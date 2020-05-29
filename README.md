@@ -49,4 +49,4 @@ Or contact us directly: [gmx2qmmm@gmail.com]
 [Gromacs 5.0.2]:<http://www.gromacs.org>
 [GitHub]:<https://github.com/gmx2qmmm/gmx2qmmm_portable>
 [gmx2qmmm@gmail.com]:<mailto:gmx2qmmm@gmail.com>
-[gmx2qmmm reference]:<https://drive.google.com/file/d/1ynMEmijAfRfvyLQYSU30lsO8aqFmTrgx/view?usp=sharing>
+[gmx2qmmm reference]:<https://drive.google.com/file/d/1B6YNfCFRB4jqweVABamPQWlgziFlNIDK/view?usp=sharing>
