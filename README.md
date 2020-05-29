@@ -17,14 +17,14 @@ The required input files in the package are
 
 |Input files|Command|Default input name|
 | ------ | ------ | ------ |
-|Coordinate file (.gro)|-c|conf.gro|
+|Coordinate file (.g96)|-c|conf.g96|
 |Topology (.top)|-p|topol.top|
-|QM atoms file(.ndx)|-n|qmatoms|
-|QM parameters (.dat)|-qm|qm|
-| MM parameters (.dat)|-mm|mm|
-|QM/MM parameters (.dat)|-qmmm|qmmm|
-| Active atoms (.ndx)|-act|active_atoms|
-|Path file (.dat)|-path|path|
+|QM atoms file(.ndx)|-n|qmatoms.ndx|
+|QM parameters (.dat)|-qm|qm.dat|
+|MM parameters (.dat)|-mm|mm.dat|
+|QM/MM parameters (.dat)|-qmmm|qmmm.dat|
+|Active atoms (.ndx)|-act|act.ndx|
+|Path file (.dat)|-path|path.dat|
 |Logfile (.log)|-g|logfile|
 
 If the parameters are not entered in the input files, the program will run the job with the default values.
