@@ -35,7 +35,7 @@ Input files guide please enter
 
 The executed example with default parameters is
 
-**python gmx2qmmm.py -c conf.gro -p topol.top -n qmatoms -qm qm -mm mm -qmmm qmmm -act active_atoms -path path -g logfile**
+**python gmx2qmmm.py**
 
 For advance information please read [gmx2qmmm reference].
 ## Support and development
