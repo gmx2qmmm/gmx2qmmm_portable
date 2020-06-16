@@ -1,6 +1,6 @@
 gmx2qmmm
 ======
-`gmx2qmmm` is a python interface for QM/MM computation.
+`gmx2qmmm` is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) computation.
 
 ## Overview
 
