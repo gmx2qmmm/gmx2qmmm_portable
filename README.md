@@ -1,4 +1,4 @@
-gmx2qmmm
+gmx2qmmm v.1.0.1
 ======
 `gmx2qmmm` is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) computation.
 
