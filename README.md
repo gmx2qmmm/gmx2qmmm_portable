@@ -1,4 +1,5 @@
 gmx2qmmm v.1.0.1
+[![Build Status](http://img.shields.io/travis/badges/badgerbadgerbadger.svg?style=flat-square)](https://travis-ci.org/badges/badgerbadgerbadger)
 ======
 [![GitHub version]
 `gmx2qmmm` is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) computation.
@@ -11,7 +12,7 @@ Conceptually, gmx2qmmm creates a QM/MM potential and performs either single poin
 ## System requirments
  - [python 2.7] (numpy, sqlite3)
  - [Gaussian16]
- - [Gromacs 5.0.2]
+ - [Gromacs 5.0.2](and earlier version)
  
 ## Input files
 The required input files in the package are
