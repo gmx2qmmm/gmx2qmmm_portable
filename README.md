@@ -1,5 +1,4 @@
 gmx2qmmm v.1.0.1
-![Version](http://img.shields.io/gem/v/badgerbadgerbadger.svg?style=flat-square)
 ======
 [![GitHub version]
 `gmx2qmmm` is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) computation.
