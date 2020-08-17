@@ -681,8 +681,6 @@ def g96_to_gro(inp,out,logfile):
 							break
 					break
 
-
-
 def read_pcf_self(qmfile):
 	import re
 	pcf_self=0.0
@@ -1029,7 +1027,7 @@ def opt_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,
 		logger(logfile,str("Energy did not drop! Exiting optimizer, this might indicate an error!\n"))
 	return done, curr_energy, new_gro, new_pcffile, new_xyzq, new_links, new_initstep, new_qm_corrdata, clean_force, imporved
 
-def scan_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo):
+def scan_cycle(scan_data,gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo):
 	import math
 	from numpy import array as arr
 	from compiler.ast import flatten
@@ -1069,7 +1067,7 @@ def scan_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list
 			for line in ifile:
 				ofile.write(line)
 
-	perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
+	perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
 
 	
 	return done
@@ -1172,17 +1170,20 @@ def perform_opt(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 		optforce.write('%d %.8f %.8f %.8f\n'%((i+1),last_forces[i][0],last_forces[i][1],last_forces[i][2]))
 	optforce.close()
 
-#0617
 def perform_scan(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
 	import numpy as np
-	import im
+	import imp
 
+	#SP
 	g2q = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
 	jobname=g2q.stepper(qmmminfo[0],step)
 	qmenergy,mmenergy,qm_corrdata=get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir,pathinfo)
 	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,int(0),logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
 
-	
+	scan_func = imp.load_source("operations", str(basedir+"/operations/scan.py"))
+	scan_data = scan_func.load_scan("scan.txt")
+
+	scan_cycle(scan_data,gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo)
 
 def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo):
 	import imp
@@ -1210,9 +1211,7 @@ def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 	write_hess.hes_xyz_fchk(str(qmmminfo[0]+".pseudofchk"),str(qmmminfo[0]+".hess"))
 	logger(logfile,"Wrote orca format .hess file.\n")
 	evals,nm_matrix=nma.nma_3Nminus6dof_asfunction(str(qmmminfo[0]+".hess"),basedir)
-	print nma_stuff.log_nma(qmmminfo,logfile,evals,nm_matrix,active,qmmmtop,xyzq,prep_hess)
-	
-
+	print nma_stuff.log_nma(qmmminfo,logfile,evals,nm_matrix,active,qmmmtop,xyzq,prep_hess)	
 
 def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,jobtype,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
 	import imp
@@ -1220,16 +1219,7 @@ def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 	g2q = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
 	if jobtype=="SINGLEPOINT":
 		perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
-		"""
-		jobname=g2q.stepper(qmmminfo[0],step)
-		qmenergy,mmenergy,qm_corrdata=get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir,pathinfo)
-		total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,int(0),logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-		#write a total force file
-		oforce=open('oforce.txt','w')
-		for i in range(len(total_force)):
-			oforce.write('%d %.8f %.8f %.8f\n'%((i+1),total_force[i][0],total_force[i][1],total_force[i][2]))
-		oforce.close()
-		"""
+
 	elif jobtype=="OPT":
 		logger(logfile,"Performing an optimization.\n")
 		logger(logfile,"Getting initial energy:\n")
@@ -1240,7 +1230,8 @@ def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 		
 		perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo)
 	elif jobtype =="SCAN":
-		 perform_scan(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
+		logger(logfile,"Performing scan calculations.\n")
+		perform_scan(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
 	else:
 		logger(logfile,"Unrecognized jobtype \"" + jobtype + "\". Exiting.\n")
 
