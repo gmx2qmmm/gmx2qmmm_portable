@@ -16,9 +16,9 @@ def logger(log,logstring):
 def get_full_coords_nm(gro):
 	import re
 	fullcoords=[]
-	with open(gro) as ifile:
+	with open(gro) as ifile:#read ALL atom coordinates
 		count=0
-		for line in ifile:
+		for line in ifile:#skip four lines
 			if count==4:
 				break
 			count+=1
@@ -33,9 +33,9 @@ def get_full_coords_nm(gro):
 def get_full_coords_angstrom(gro):
 	import re
 	fullcoords=[]
-	with open(gro) as ifile:
+	with open(gro) as ifile:#read ALL atom coordinates
 		count=0
-		for line in ifile:
+		for line in ifile:#skip four lines
                         count+=1
 			if count==4:
 				break
@@ -55,7 +55,7 @@ def get_atoms(qmmmtop,logfile):
 	atoms=[]
 	mass_map = {"H" : "1.008", "He" : "4.0026", "Li" : "6.94", "Be" : "9.0122", "B" : "10.81", "C" : "12.011", "N" : "14.007", "O" : "15.999", "F" : "18.998", "Ne" : "20.180", "Na" : "22.990", "Mg" : "24.305", "Al" : "26.982", "Si" : "28.085", "P" : "30.974", "S" : "32.06", "Cl" : "35.45", "Ar" : "39.948", "K" : "39.098", "Ca" : "40.0784", "Sc" : "44.956", "Ti" : "47.867", "V" : "50.942", "Cr" : "51.996", "Mn" : "54.938", "Fe" : "55.8452", "Co" : "58.933", "Ni" : "58.693", "Cu" : "63.5463", "Zn" : "65.382", "Ga" : "69.723", "Ge" : "72.6308", "As" : "74.922", "Se" : "78.9718", "Br" : "79.904", "Kr" : "83.7982", "Rb" : "85.468", "Sr" : "87.62", "Y" : "88.906", "Zr" : "91.2242", "Nb" : "92.906", "Mo" : "95.95", "Tc" : "98.906254721", "Ru" : "101.072", "Rh" : "102.91", "Pd" : "106.42", "Ag" : "107.87", "Cd" : "112.41", "In" : "114.82", "Sn" : "118.71", "Sb" : "121.76", "Te" : "127.603", "I" : "126.90", "Xe" : "131.29", "Cs" : "132.91", "Ba" : "137.33", "La" : "138.91", "Ce" : "140.12", "Pr" : "140.91", "Nd" : "144.24", "Pm" : "144.9127493", "Sm" : "150.362", "Eu" : "151.96", "Gd" : "157.253", "Tb" : "158.93", "Dy" : "162.50", "Ho" : "164.93", "Er" : "167.26", "Tm" : "168.93", "Yb" : "173.05", "Lu" : "174.97", "Hf" : "178.492", "Ta" : "180.95", "W" : "183.84", "Re" : "186.21", "Os" : "190.233", "Ir" : "192.22", "Pt" : "195.08", "Au" : "196.97", "Hg" : "200.59", "Tl" : "204.38", "Pb" : "207.2", "Bi" : "208.98", "Po" : "208.982430420", "At" : "209.9871488", "Rn" : "222.017577725", "Fr" : "223.019735926", "Ra" : "226.025409825", "Ac" : "227.027752126", "Th" : "232.04", "Pa" : "231.04", "U" : "238.03", "Np" : "237.04817342", "Pu" : "244.0642045", "Am" : "243.061381125", "Cm" : "247.0703545", "Bk" : "247.0703076", "Cf" : "251.0795875", "Es" : "252.082985", "Fm" : "257.0951067", "Md" : "258.0984315", "No" : "259.1010311", "Lr" : "266.1198356", "Rf" : "267.1217962", "Db" : "268.1256757", "Sg" : "269.1286339", "Bh" : "270.1333631", "Hs" : "277.1519058", "Mt" : "278.1563168", "Ds" : "281.1645159", "Rg" : "282.1691272", "Cn" : "285.177126", "Nh" : "286.1822172", "Fl" : "289.190426", "Mc" : "289.1936389", "Lv" : "293.204496", "Ts" : "294.2104674", "Og" : "295.2162469"}
 	name_map = {value: key for key, value in mass_map.items()}
-
+	#name_list = ["H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"]
 	with open(qmmmtop) as ifile:
 		for line in ifile:
 			match=re.search(r'\[\s+moleculetype\s*\]', line,flags=re.MULTILINE)
@@ -74,6 +74,19 @@ def get_atoms(qmmmtop,logfile):
 				atomtype=str(match.group(2))
 				atommass=float(match.group(8))
 				foundname=""
+				#obsolete: atom identification based on type. using mass now (see below)
+#				testname=str(atomtype[0]).upper()
+#				if testname in name_list:
+#					foundname=testname
+#					if len(atomtype)>1:
+#						testname+=str(atomtype[1]).lower()
+#						if testname in name_list:
+#							foundname=testname
+#				else:
+#					if len(atomtype)>1:
+#						testname+=str(atomtype[1]).lower()
+#						if testname in name_list:
+#							foundname=testname
 				#find atom type based on mass
 				for key in name_map.items():
 					foundmass=key[0]
@@ -102,6 +115,9 @@ def write_mdp(mdpname,nbradius):
 		ofile.write("\nrvdw                =  ")
 		ofile.write(str(float(nbradius)))
 		ofile.write("\nTcoupl              =  no\nenergygrps          =  QM\nenergygrp-excl = QM QM\nPcoupl              =  no\ngen_vel             =  no\n")
+		#ofile.write("\nTcoupl              =  no\nenergygrps          =  QM M1\nenergygrp-excl = QM QM QM M1\nPcoupl              =  no\ngen_vel             =  no\n")
+	#	ofile.write("\nTcoupl              =  no\nenergygrps          =  QM\nPcoupl              =  no\ngen_vel             =  no\n")
+		#ofile.write("\nTcoupl              =  no\nPcoupl              =  no\ngen_vel             =  no\n")
 
 def get_nbradius(gro):
 	from numpy import array as arr
@@ -148,12 +164,22 @@ def make_gmx_inp(jobname,gro,qmmmtop,qmatomlist,curr_step,logfile,basedir,realpr
 	mdpname=str(jobname +".mdp")
 	groname=str(jobname + ".boxlarge.g96")
 	ndxname=str(qmmmtop + ".ndx")
+	#ndx2name=str(jobname+".m1.ndx")
+	#totalndx=str(jobname+".ndx")
+#	with open(totalndx,"w") as ofile:
+#		with open(ndxname) as ifile:
+#			for line in ifile:
+#				ofile.write(str(line)+"\n")
+#		with open(ndx2name) as ifile:
+#			for line in ifile:
+#				ofile.write(str(line)+"\n")
 	tprname=str(jobname + insert +".tpr")
 	nbradius=get_nbradius(gro)
 	write_mdp(mdpname,nbradius)
 	update_gro_box(gro,groname,nbradius,logfile)
 	call([realprefix, "grompp", "-p", str(qmmmtop), "-c", str(groname), "-n", str(ndxname), "-f", str(mdpname), "-o", str(tprname), "-backup", "no"])
 	call(["rm", "mdout.mdp"])
+	#call(["grompp", "-p", str(qmmmtop), "-c", str(groname), "-f", str(mdpname), "-o", str(tprname)])
 	return tprname
 
 def make_g16_inp(jobname,gro,qmmmtop,qmatomlist,qminfo,qmmminfo,pcffile,curr_step,linkatoms,logfile,nmaflag):
@@ -185,7 +211,7 @@ def make_g16_inp(jobname,gro,qmmmtop,qmatomlist,qminfo,qmmminfo,pcffile,curr_ste
 			ofile.write(" "+str(qminfo[7]))
 		if int(curr_step)!=0 or nmaflag==1:
 			ofile.write(" guess=read")
-		ofile.write(" nosymm gfinput gfprint force charge guess=huckel punch=derivatives iop(3/33=1) prop(field,read) pop=esp\n")
+		ofile.write(" nosymm gfinput gfprint force charge punch=derivatives iop(3/33=1) prop(field,read) pop=esp\n")
 		ofile.write("\nQMMM Calc QM part\n\n"+str(int(qminfo[3])) + " " +str(int(qminfo[4]))+"\n")
 		count=0
 		for element in fullcoords:
@@ -268,13 +294,14 @@ def get_qmforces_au(qmatomlist,m1list,qmmmtop,qminfo,jobname,curr_step,logfile):
 								break
 						break
 				break
+	#logger(logfile,str("\nQM FORCE:"+str(qmforces[106][0])+" "+str(qmforces[106][1])+" "+str(qmforces[106][2])+" "+"\n"))
 	return qmforces
 
-def get_mmforces_au(jobname,curr_step,logfile,pathinfo):
+def get_mmforces_au(jobname,curr_step,logfile):
 	import re
-	from subprocess import Popen, PIPE, STDOUT
-	prefix=pathinfo[3]
-	realprefix=prefix+pathinfo[7]
+	from subprocess import Popen, PIPE, STDOUT#, call
+	prefix="/usr/bin/"
+	realprefix=prefix+"gmx"
 	mmforces=[]
 	insert=""
 	if int(curr_step)!=0:
@@ -297,15 +324,14 @@ def get_mmforces_au(jobname,curr_step,logfile,pathinfo):
 					mmforces.append(mmforceline)
 					mmforceline=[]
 			break#read only one line
-	
+	#logger(logfile,str("\nMM FORCE:"+str(mmforces[106][0])+" "+str(mmforces[106][1])+" "+str(mmforces[106][2])+" "+"\n"))
 	return mmforces
 
-def get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2list,q1list,linkatoms,logfile,basedir,mminfo,qminfo,qmmminfo):
+def get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2list,q1list,linkatoms,logfile,basedir):
 	from compiler.ast import flatten
 	from numpy import array as arr
 	from numpy import linalg as LA
 	import imp
-	import math
 	rot = imp.load_source("operations", str(basedir+"/operations/expansion_check.py"))
 	linkforces=[]
 	#Force Coulomb: z1*z2*(distance along coord)/(distance between charges)**3
@@ -367,12 +393,14 @@ def get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2
 			v2=[xyzq[int(element[1])-1][0]/0.52917721,xyzq[int(element[1])-1][1]/0.52917721,xyzq[int(element[1])-1][2]/0.52917721]
 		v12=arr(v1)-arr(v2)
 		dist=LA.norm(v12)
-		
+		#print str(z1*z2/dist)
 		for i in range(0,3):
 			linkforces[int(element[0])-1][i]+=z1*z2*v12[i]/(dist*dist*dist)
 			linkforces[int(element[1])-1][i]-=z1*z2*v12[i]/(dist*dist*dist)
+	#logger(logfile,str("\n"+str(linkforces[1974][0])+" "+str(linkforces[1974][1])+" "+str(linkforces[1974][2])+" "+"\n"))
 	#now also all atoms in the corrdata list with the mod and linkcorr point charges
 	#mod first. mod is charge in pcffile minus m2charge
+	#logger(logfile,str("\nLINK FORCE PRE MOD PRE SHIFT:"+str(linkforces[106][0])+" "+str(linkforces[106][1])+" "+str(linkforces[106][2])+" "+"\n"))
 	pcf=read_pcffile(pcffile)
 	for i in range(0,len(m2list)):
 		for j in range(0,len(m2list[i])):
@@ -393,9 +421,12 @@ def get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2
 				z1=float(qm_corrdata[k+len(qmatomlist)][2])
 				v12=arr(v1)-arr(curr_mod)
 				dist=LA.norm(v12)
+#				if k==0:
+#					logger(logfile,str("\n"+str(curr_mod_charge)+" "+str(z1)+" "+str(dist)+"\n"))
 				for l in range(0,3):
 					linkforces[int(m1list[k])-1][l]+=z1*curr_mod_charge*v12[l]/(dist*dist*dist)
 					linkforces[int(m2list[i][j])-1][l]-=z1*curr_mod_charge*v12[l]/(dist*dist*dist)
+	#logger(logfile,str("\nLINK FORCE AFTER MOD PRE SHIFT:"+str(linkforces[106][0])+" "+str(linkforces[106][1])+" "+str(linkforces[106][2])+" "+"\n"))
 	m2count=0
 	linkstart=len(pcf)-2*len(flatten(m2list))
 	for i in range(0,len(m2list)):
@@ -412,24 +443,36 @@ def get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2
 				dist=LA.norm(v12)
 				for l in range(0,3):
 					linkforces[int(qmatomlist[k])-1][l]+=z1*curr_mod_charge*v12[l]/(dist*dist*dist)
+#				if int(qmatomlist[k])==1973:
+#					logger(logfile,str("\nLINK FORCES CHANGE:"+str(linkforces[1973][0])+" "+str(linkforces[1973][1])+" "+str(linkforces[1973][2])+" "+"\n"))
 			for k in range(0,len(linkatoms)):
 				v1=[linkatoms[k][0]/0.52917721,linkatoms[k][1]/0.52917721,linkatoms[k][2]/0.52917721]
 				z1=float(qm_corrdata[k+len(qmatomlist)][2])
+#				if k==0:
+#					logger(logfile,str("\n"+str(curr_mod_charge)+" "+str(z1)+" "+str(dist)+"\n"))
 				v12=arr(v1)-arr(curr_mod)
 				dist=LA.norm(v12)
 				for l in range(0,3):
 					linkforces[int(m1list[k])-1][l]+=z1*curr_mod_charge*v12[l]/(dist*dist*dist)
+	#logger(logfile,str("\nLINK FORCE AFTER MOD AFTER SHIFT (PRE RESCALE):"+str(linkforces[106][0])+" "+str(linkforces[106][1])+" "+str(linkforces[106][2])+" "+"\n"))
 	for i in range(0,len(linkatoms)):
 		v1=[linkatoms[i][0]/0.52917721,linkatoms[i][1]/0.52917721,linkatoms[i][2]/0.52917721]
 		v2=[xyzq[int(flatten(q1list)[i])-1][0]/0.52917721,xyzq[int(flatten(q1list)[i])-1][1]/0.52917721,xyzq[int(flatten(q1list)[i])-1][2]/0.52917721]
 		v12=arr(v2)-arr(v1)
 		dist=LA.norm(v12)/0.71290813568205
 		u_v12=rot.uvec(v12)
-		dist = dist * 0.5282272551 
-		forcecorr = databasecorrection("FORCES", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir,logfile)
+		forcecorr_q1=float(-0.121651604903312*dist*dist*dist+1.14556934991042*dist*dist-3.56253304170678*dist+3.65070551432821)
+		forcecorr_link=float(0.127346797162536*dist*dist*dist-1.21401609958205*dist*dist+3.84474060507329*dist-4.04529918786635)
+		q1corrvec=[]
+		linkcorrvec=[]
 		for j in range(0,3):
-			linkforces[int(flatten(q1list)[i])-1][j]+=(-u_v12[j]*forcecorr*0.5)
-			linkforces[int(m1list[i])-1][j]+=(u_v12[j]*forcecorr*0.5)   
+			q1corrvec.append(u_v12[j]*forcecorr_q1)
+			linkcorrvec.append(u_v12[j]*forcecorr_link)
+		#must have their sign reverted as we subtract these forces, but they are defined as additively correcting
+		for j in range(0,3):
+			linkforces[int(flatten(q1list)[i])-1][j]+=q1corrvec[j]
+			linkforces[int(m1list[i])-1][j]+=linkcorrvec[j]
+	#logger(logfile,str("\nLINK FORCE FULL:"+str(linkforces[106][0])+" "+str(linkforces[106][1])+" "+str(linkforces[106][2])+" "+"\n"))
 	return linkforces
 
 def make_clean_force(total_force):
@@ -442,12 +485,10 @@ def make_clean_force(total_force):
 		clean_force.append(forceline)
 	return clean_force
 
-def make_new_g96(propagator, xyzq, new_xyzq, total_force,last_forces,gro,new_gro,initstep,logfile):
+def make_new_g96(propagator,total_force,last_forces,gro,new_gro,initstep,logfile):
 	from compiler.ast import flatten
 	from numpy import array as arr
-	import numpy as np
 	import re
-
 	dispvec=[]
 	maxforce=0.0
 	clean_force=make_clean_force(total_force)
@@ -462,47 +503,18 @@ def make_new_g96(propagator, xyzq, new_xyzq, total_force,last_forces,gro,new_gro
 				maxatom=i
 				maxcoord=j
 	logger(logfile,str("Maximum force is " + str(float(maxforce)) + " a.u. at coord " + str(int(maxatom)+1) + "/" + str(int(maxcoord)+1) + ".\n"))
-	#CONJGRAD
-	z=0
-	if (propagator=="STEEP" or len(last_forces)==0 or len(new_xyzq)==0):	
+	if propagator=="STEEP" or (propagator=="CONJGRAD" and len(last_forces)==0):
 		for element in clean_force:
 			dispvec.append([float(element[0])*float(initstep)/abs(float(maxforce)),float(element[1])*float(initstep)/abs(float(maxforce)),float(element[2])*float(initstep)/abs(float(maxforce))])
-		corr_length = arr(total_force)
-
-	elif (propagator=="CONJGRAD" and len(last_forces)!=0):
+	elif propagator=="CONJGRAD" and len(last_forces)!=0:
 		#Fletcher-Reeves
 		corr_fac=arr(flatten(clean_force)).dot(arr(flatten(clean_force)))
 		corr_fac/=arr(flatten(old_clean_force)).dot(arr(flatten(old_clean_force)))
-		if z == 0 :
-			corr_length = arr(total_force)
-			z += 1
-		else:
-			corr_length = arr(total_force) + corr_fac * corr_length
 		counter=0
-		for i in range(len(total_force)):
-			dispvec.append([ float(initstep) * corr_length[i][0] ,  float(initstep) * corr_length[i][1]  ,  float(initstep) * corr_length[i][2]  ])
-
+		for element in clean_force:
+			dispvec.append([(float(element[0])-corr_fac*old_clean_force[counter][0])*float(initstep)/abs(float(maxforce)),(float(element[1])-corr_fac*old_clean_force[counter][1])*float(initstep)/abs(float(maxforce)),(float(element[2])-corr_fac*old_clean_force[counter][2])*float(initstep)/abs(float(maxforce))])
 			counter+=1
 		logger(logfile,str("Effective step at maximum force coord is " + str(float(dispvec[maxatom][maxcoord])) + " a.u.\n"))
-	
-	elif (propagator=="BFGS" and len(last_forces)!=0):
-		coords = arr(new_xyzq)[:,0:3]
-		old_coords = arr(xyzq)[:,0:3]
-		old_hessian = np.loadtxt('bfgs_hessian.txt')
-		gradient = arr(total_force)
-		old_gradient = arr(last_forces)
-		hessian, hesseig, warning_flag = get_approx_hessian(coords, old_coords, gradient, old_gradient, old_hessian,logfile)
-		np.savetxt('bfgs_hessian.txt',hessian)
-
-		coords = coords.reshape(3*len(coords),1)	# reshape coords to use in dot products
-		gradient = gradient.reshape(3*len(gradient),1)		# reshape grad to use in dot products
-		
-		direc = -np.linalg.inv(hessian).dot(gradient)
-		direc = direc.reshape(int(len(coords)/3),3)
-		
-		for i in range(len(total_force)):
-			dispvec.append([ float(initstep) * direc[i][0] ,  float(initstep) * direc[i][1]  ,  float(initstep) * direc[i][2]])
-		
 	with open(new_gro,"w") as ofile:
 		with open(gro) as ifile:
                         counter=0
@@ -536,7 +548,8 @@ def remove_inactive(total_force,active):
 		else:
 			new_total_force.append([0.0,0.0,0.0])
 	return new_total_force
-def qmmm_prep(new_gro,top,jobname,curr_step,qminfo,qmatomlist,connlist,linkatoms,basedir,logfile,pathinfo):
+
+def qmmm_prep(new_gro,top,jobname,curr_step,qminfo,qmatomlist,connlist,linkatoms,basedir,logfile):
 	import imp
 	import os.path
 	make_pcf = imp.load_source("operations", str(basedir+"/pointcharges/generate_pcf_from_top.py"))
@@ -545,13 +558,12 @@ def qmmm_prep(new_gro,top,jobname,curr_step,qminfo,qmatomlist,connlist,linkatoms
 	make_gmx2qmmm = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
 	geo=make_pcf.readg96(new_gro)
 	logger(logfile,"List of molecules...")
-	#6277
 	mollist=make_pcf.readmols(top)
 	logger(logfile,"done.\n")
 	logger(logfile,"Reading charges...")
 	chargevec=[]
 	for element in mollist:
-	    chargevec.extend(make_pcf.readcharges(element,top, pathinfo))
+	    chargevec.extend(make_pcf.readcharges(element,top))
 	logger(logfile,"done.\n")
 	new_xyzq=make_gmx2qmmm.make_xyzq(geo,chargevec)
 	logger(logfile,str("Made new xyzq matrix.\n"))
@@ -571,9 +583,9 @@ def qmmm_prep(new_gro,top,jobname,curr_step,qminfo,qmatomlist,connlist,linkatoms
 		logger(logfile,"NOTE: Shifting omitted due to " + str(filename+".pointcharges") + " being an existing file!\n")
 	logger(logfile,"done.\n")
 	return new_xyzq,m1list,m2list,new_links
-def make_opt_step(jobname,xyzq,connlist,propagator,gro,top,total_force,initstep,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,logfile,basedir,pathinfo):
-	from numpy import array as arr
-	import numpy as np
+
+def make_opt_step(jobname,xyzq,connlist,propagator,gro,top,total_force,initstep,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,logfile,basedir):
+        from numpy import array as arr
 	new_gro=str(jobname + "." + str(int(curr_step)+1) + ".g96")
 	new_pcffile=str(jobname + "." + str(int(curr_step)+1) + ".pointcharges")
 	new_xyzq=[]
@@ -582,25 +594,16 @@ def make_opt_step(jobname,xyzq,connlist,propagator,gro,top,total_force,initstep,
 	qmenergy=0.0
 	mmenergy=0.0
 	higher_energy=True
-
-	#init BFGS hessian: initial guess for identity hessian
-	if propagator=="BFGS":
-		init_hessian = np.eye(3*len(xyzq))
-		np.savetxt('bfgs_hessian.txt',init_hessian)
-
 	while higher_energy and float(initstep)>=0.000001:
 		if propagator=="STEEP":
 			logger(logfile,str("Making a steepest descent step with a maximum step step of " + str(initstep) + " a.u.\n"))
 		if propagator=="CONJGRAD":
 			logger(logfile,str("Making a conjugate gradient step with a maximum step step of " + str(initstep) + " a.u.\n"))
-		if propagator=="BFGS":
-			logger(logfile,str("Making a BFGS gradient step with a maximum step step of " + str(initstep) + " a.u.\n"))
 		higher_energy=False
-		make_new_g96(propagator, xyzq, new_xyzq, total_force,last_forces,gro,new_gro,initstep, logfile)
+		make_new_g96(propagator,total_force,last_forces,gro,new_gro,initstep,logfile)
 		logger(logfile,str("Made new coordinates in file " + str(new_gro) + ".\n"))
-		#6277
-		new_xyzq,m1list,m2list,new_links=qmmm_prep(new_gro,top,jobname,int(curr_step)+1,qminfo,qmatomlist,connlist,linkatoms,basedir,logfile,pathinfo)
-		qmenergy,mmenergy,new_qm_corrdata=get_energy(new_gro,qmmminfo[0],new_xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,new_pcffile,new_links,int(curr_step)+1,logfile,basedir,pathinfo)
+		new_xyzq,m1list,m2list,new_links=qmmm_prep(new_gro,top,jobname,int(curr_step)+1,qminfo,qmatomlist,connlist,linkatoms,basedir,logfile)
+		qmenergy,mmenergy,new_qm_corrdata=get_energy(new_gro,qmmminfo[0],new_xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,new_pcffile,new_links,int(curr_step)+1,logfile,basedir)
 		curr_energy=float(qmenergy)+float(mmenergy)
 		if float(curr_energy)>float(last_energy):
 			logger(logfile,str("Rejected one optimization step due to energy increasing. Trying again, with smaller step.\n"))
@@ -620,12 +623,36 @@ def make_opt_step(jobname,xyzq,connlist,propagator,gro,top,total_force,initstep,
 			initstep*=0.2
 		else:
 			initstep*=1.2
+	return qmenergy,mmenergy,new_qm_corrdata,new_gro,new_pcffile,new_xyzq,new_links,initstep
 
-	imporved = True
-	if higher_energy and float(initstep)<0.000001:
-		call(["rm",new_gro,new_pcffile])
-		imporved = False
-	return qmenergy,mmenergy,new_qm_corrdata,new_gro,new_pcffile,new_xyzq,new_links,initstep, imporved
+def opt_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir):
+	import math
+	from numpy import array as arr
+	from compiler.ast import flatten
+	done=0
+	f_thresh=float(qmmminfo[2])
+	jobname=str(qmmminfo[0])
+	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,qmmminfo[0],curr_step,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir)
+	clean_force=make_clean_force(total_force)
+	maxforce=0.0
+	for element in flatten(clean_force):
+		if abs(float(element))>abs(maxforce):
+			maxforce=float(element)
+	if abs(maxforce)<float(f_thresh):
+		logger(logfile,str("Max force " + str(maxforce) + " below threshold ("+ str(f_thresh) +"). Finishing.\n"))
+		done=1
+		return done, last_energy, gro, pcffile, xyzq, linkatoms, initstep, qm_corrdata, clean_force
+	else:
+		logger(logfile,str("Max force not below threshold. Continuing.\n"))
+	qmenergy,mmenergy,new_qm_corrdata,new_gro,new_pcffile,new_xyzq,new_links,new_initstep=make_opt_step(jobname,xyzq,connlist,qmmminfo[5],gro,top,total_force,initstep,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,logfile,basedir)
+	curr_energy=float(qmenergy)+float(mmenergy)
+	if float(new_initstep)<0.000001:
+		done=2
+		logger(logfile,str("Step became lower than 0.000001 a.u., optimization is considered done for now. This is the best we can do unless reaching unacceptable numerical noise levels.\n"))
+	if float(curr_energy)>float(last_energy):
+		done=1
+		logger(logfile,str("Energy did not drop! Exiting optimizer, this might indicate an error!\n"))
+	return done, curr_energy, new_gro, new_pcffile, new_xyzq, new_links, new_initstep, new_qm_corrdata, clean_force
 
 def g96_to_gro(inp,out,logfile):
 	import re
@@ -681,7 +708,48 @@ def g96_to_gro(inp,out,logfile):
 							break
 					break
 
-
+def perform_opt(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir):
+	from subprocess import call
+	import os.path
+	count=qmmminfo[7]
+	qmenergy,mmenergy,qm_corrdata=get_energy(gro,qmmminfo[0],xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(count),logfile,basedir)
+	last_energy=float(qmenergy)+float(mmenergy)
+	done=0
+	maxcycle=int(qmmminfo[3])
+	initstep=float(qmmminfo[4])
+	new_links=linkatoms
+	new_pcffile=pcffile
+	new_gro=gro
+	new_xyzq=xyzq
+	new_qm_corrdata=qm_corrdata
+	last_forces=[]
+	while not done and count<=maxcycle:
+		logger(logfile,str("-----Optimization cycle "+str(int(count)+1)+"-----\n"))
+		jobname=qmmminfo[0]
+		if count>0:
+			jobname+="."+str(int(count))
+		archivename=str(jobname)+".tar.gz"
+		if os.path.isfile(archivename):
+			call(["tar","-xf",archivename])
+			call(["rm",archivename])
+		archive=["tar","-cf",str(jobname)+".tar"]
+		files=[new_pcffile,str(jobname)+".edr",str(jobname)+".edr.xvg",str(jobname)+".trr",str(jobname)+".xvg",str(jobname)+".gmx.log",str(jobname)+".g96",str(jobname)+".gjf",str(jobname)+".mdp",str(jobname)+".boxlarge.g96",str(jobname)+".tpr",str(jobname)+".gjf.log",str(jobname)+".fort.7"]
+		done,last_energy,new_gro,new_pcffile,new_xyzq,new_links,initstep,new_qm_corrdata,last_forces=opt_cycle(new_gro,top,new_xyzq,connlist,qmatomlist,new_qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,new_pcffile,new_links,count,last_energy,last_forces,initstep,active,logfile,basedir)
+		archive.extend(files)
+		call(archive)
+		call(["gzip", str(jobname)+".tar"])
+		delete=["rm"]
+		delete.extend(files)
+		call(delete)
+		count+=1
+	if done==0:
+		logger(logfile,"Optimization canceled due to step limit.\n")
+	elif done==1:
+		logger(logfile,"Optimization finished due to energy threshold.\n")
+	elif done==2:
+		logger(logfile,"Optimization finished due to step size.\n")
+	g96_to_gro(str(qmmminfo[0]+"."+str(count)+".g96"),str(qmmminfo[0]+".opt.gro"),logfile)
+	logger(logfile,"Final geometry written to " + str(qmmminfo[0])+".opt.gro.\n")
 
 def read_pcf_self(qmfile):
 	import re
@@ -697,6 +765,7 @@ def read_pcf_self(qmfile):
 def get_qmenergy(qmfile,qmprog,extra_string,pcffile,logfile,basedir):
 	import re
 	import imp
+	#make_gmx2qmmm = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
 	logger(logfile,"Extracting QM energy.\n")
 	qmenergy=0.0
 	qm_corrdata=[]
@@ -718,6 +787,9 @@ def get_qmenergy(qmfile,qmprog,extra_string,pcffile,logfile,basedir):
 					match=re.search(r'^\s*Total\s*Energy,\s*E\(\S+\)\s*\=\s*([-]*\d+\.\d+)', line,flags=re.MULTILINE)
 				if match:
 					logger(logfile,"Obtaining charge self-interaction...")
+					#shifted_charges=make_gmx2qmmm.read_charges_clean(pcffile)
+					#shifted_charges_au=make_gmx2qmmm.ang2bohr(shifted_charges)
+					#pcf_self_pot=make_gmx2qmmm.get_pcf_self_pot(shifted_charges_au)
 					pcf_self_pot=read_pcf_self(qmfile)
 					logger(logfile,"done: {:>20.10f} a.u.\n".format(float(pcf_self_pot)))
 					#G16 energy needs to be corrected for self potential of PCF
@@ -741,8 +813,12 @@ def get_mmenergy(edrname,realprefix,logfile):
 	import re
 	mmenergy=0.0
 	logger(logfile,"Extracting MM energy.\n")
+	#with open("tmpinput.tmp","w") as ofile:
+	#	ofile.write("11\n\n")
 	p = Popen([realprefix, "energy", "-f", edrname, "-o", str(edrname+".xvg"), "-backup", "no"], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
 	p.communicate(input=b'11\n\n')
+	#call(["gmx_d", "energy", "-f", edrname, "-o", str(edrname+".xvg"), "<", "tmpinput.tmp"])
+	#call(["rm", "tmpinput.tmp"])
 	with open(str(edrname+".xvg")) as ifile:
 		for line in ifile:
 			match=re.search(r'^    0.000000\s*([-]*\d+.\d+)\n', line,flags=re.MULTILINE)
@@ -782,7 +858,7 @@ def read_pcffile(pcffile):
 				break
 	return pcf
 
-def get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1list,qmmmtop,linkatoms,pcffile,logfile,mminfo,qminfo,qmmminfo,basedir):
+def get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1list,qmmmtop,linkatoms,pcffile,logfile):
 	import math
 	from numpy import array as arr
 	from numpy import linalg as LA
@@ -844,6 +920,7 @@ def get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1l
 			v2=[xyzq[int(element[1])-1][0]/0.52917721,xyzq[int(element[1])-1][1]/0.52917721,xyzq[int(element[1])-1][2]/0.52917721]
 		v12=arr(v1)-arr(v2)
 		dist=LA.norm(v12)
+		#print str(z1*z2/dist)
 		linkenergy+=z1*z2/dist
 	#now also all atoms in the corrdata list with the mod and linkcorr point charges
 	#mod first. mod is charge in pcffile minus m2charge
@@ -894,17 +971,17 @@ def get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1l
 		v2=[xyzq[int(flatten(q1list)[i])-1][0]/0.52917721,xyzq[int(flatten(q1list)[i])-1][1]/0.52917721,xyzq[int(flatten(q1list)[i])-1][2]/0.52917721]
 		v12=arr(v2)-arr(v1)
 		dist=LA.norm(v12)
-        dist = dist * 0.7409471631 
-        energycorr = databasecorrection("ENERGY", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir,logfile)
-        linkenergy-=energycorr
+		linkenergy+=0.439749962284789*dist*dist*dist*0.52917721*0.52917721*0.52917721-2.23510192333531*dist*dist*0.52917721*0.52917721+3.7473966326933*dist*0.52917721+76.5520216417149 #fitted polynomial from a C-C vs. C-H B3LYP/6-31G* butane C-Link scan
 		#sign inverted due to correction convention (subtracting)
 	return linkenergy
 
-def get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,logfile,basedir,pathinfo):
+def get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,logfile,basedir):
 	from subprocess import call
 	import os.path
-	prefix=pathinfo[3]
-	realprefix=prefix+pathinfo[7]
+	#prefix="/usr/bin/"
+	prefix="/home/janjoswig/local/gromacs-2019.1/bin/"
+	#realprefix=prefix+"gmx"
+	realprefix=prefix+"gmx19"
 	mmenergy=0.0
 	qmfile=""
 	mmfile=""
@@ -925,13 +1002,9 @@ def get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop
 	mmfile=make_gmx_inp(jobname,gro,qmmmtop,qmatomlist,curr_step,logfile,basedir,realprefix)
 	logger(logfile,"Gromacs input ready.\n")
 	if qminfo[0]=="G16":
-		g16cmd = pathinfo[4]
 		if not os.path.isfile(str(qmfile)+".log"):
 			logger(logfile,"Running G16 file.\n")
-			call([g16cmd,str(qmfile)])
-			logname=qmfile[:-3]
-			logname+="log"
-			call(["mv",logname,str(jobname+insert+".gjf.log")])
+			call(["rung16",str(qmfile)])
 			call(["mv","fort.7",str(jobname+insert+".fort.7")])
 			logger(logfile,"G16 done.\n")
 		else:
@@ -952,239 +1025,33 @@ def get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop
 	call(["rm", outname])
 	qmenergy,qm_corrdata=get_qmenergy(str(qmfile),qminfo[0],qminfo[7],pcffile,logfile,basedir)
 	mmenergy=get_mmenergy(str(edrname),realprefix,logfile)
-	linkcorrenergy=get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1list,qmmmtop,linkatoms,pcffile,logfile,mminfo,qminfo,qmmminfo,basedir)
-	energy_file = 'oenergy.txt'
-	if curr_step == 0:
-		file_flag='w'
-	else:
-		file_flag = 'a+'
-	
-	if (qmmminfo[1] == "SINGLEPOINT") :
-		oenergy = open(energy_file,file_flag)
-		oenergy.write('Step: %d\n'%curr_step)
-		oenergy.write('QM energy: %.8f\n'%qmenergy)
-		oenergy.write('MM energy: %.8f\n'%mmenergy)
-		oenergy.write('Link energy: %.8f\n'%linkcorrenergy)
-		oenergy.write('Total energy: %.8f\n'%(float(qmenergy)+float(mmenergy)-float(linkcorrenergy)))
-		oenergy.write('--------------------------------------------\n')
-		oenergy.close()
-	else:
-		optE = open("oenergy.txt",file_flag)
-		optE.write("%d	%.8f	%.8f	%.8f	%.8f\n"%(curr_step,qmenergy,mmenergy,linkcorrenergy,(float(qmenergy)+float(mmenergy)-float(linkcorrenergy))))
-		optE.close()
+	linkcorrenergy=get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1list,qmmmtop,linkatoms,pcffile,logfile)
 	qmenergy-=linkcorrenergy
 	methodstring=str(qminfo[1])
 	if qminfo[2]!="NONE":
 		methodstring+=str("/" + str(qminfo[2]))
 	logger(logfile,str("Single point energy done. QM/MM energy is {:>20.10f} (QM, link atom corrected ".format(float(qmenergy)) + methodstring +") + {:>20.10f} (MM) = {:>20.10f} (a.u.)\n".format(float(mmenergy),float(qmenergy)+float(mmenergy))))
-        
 	return qmenergy,mmenergy,qm_corrdata
 
-def read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,curr_step,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo):
+def read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,curr_step,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir):
 	from numpy import array as arr
 	logger(logfile,str("Reading forces.\n"))
 	qmforces=[]
 	mmforces=[]
 	qmforces=get_qmforces_au(qmatomlist,m1list,qmmmtop,qminfo,jobname,curr_step,logfile)
 	logger(logfile,str("QM forces read.\n"))
-	mmforces=get_mmforces_au(jobname,curr_step,logfile,pathinfo)
+	mmforces=get_mmforces_au(jobname,curr_step,logfile)
 	logger(logfile,str("MM forces read.\n"))
-	linkcorrforces=get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2list,q1list,linkatoms,logfile,basedir,mminfo,qminfo,qmmminfo)
+	linkcorrforces=get_linkforces_au(linkcorrlist,qmatomlist,xyzq,pcffile,qm_corrdata,m1list,m2list,q1list,linkatoms,logfile,basedir)
 	logger(logfile,str("Forces for link atom correction read.\n"))
 	total_force=arr(qmforces)+arr(mmforces)-arr(linkcorrforces)
 	#logger(logfile,str("\n"+str(total_force[106][0])+" "+str(total_force[106][1])+" "+str(total_force[106][2])+"\n"))
-	logger(logfile,str("Total forces obtained.\n")) 
-	#total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
+	logger(logfile,str("Total forces obtained.\n"))
+	total_force=remove_inactive(total_force,active)
 	logger(logfile,str("Deleted forces of inactive atoms.\n"))
-
 	return total_force
 
-def opt_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo):
-	import math
-	from numpy import array as arr
-	from compiler.ast import flatten
-	done=0
-	f_thresh=float(qmmminfo[2])
-	jobname=str(qmmminfo[0])
-	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,qmmminfo[0],curr_step,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-	clean_force=make_clean_force(total_force)
-	maxforce=0.0
-	for element in flatten(clean_force):
-		if abs(float(element))>abs(maxforce):
-			maxforce=float(element)
-	if abs(maxforce)<float(f_thresh):
-		logger(logfile,str("Max force " + str(maxforce) + " below threshold ("+ str(f_thresh) +"). Finishing.\n"))
-		done=1
-		return done, last_energy, gro, pcffile, xyzq, linkatoms, initstep, qm_corrdata, clean_force
-	else:
-		logger(logfile,str("Max force not below threshold. Continuing.\n"))
-		
-	qmenergy,mmenergy,new_qm_corrdata,new_gro,new_pcffile,new_xyzq,new_links,new_initstep,imporved=make_opt_step(jobname,xyzq,connlist,qmmminfo[5],gro,top,total_force,initstep,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,logfile,basedir,pathinfo)
-	curr_energy=float(qmenergy)+float(mmenergy)
-	if float(new_initstep)<0.000001:
-		done=2
-		logger(logfile,str("Step became lower than 0.000001 a.u., optimization is considered done for now. This is the best we can do unless reaching unacceptable numerical noise levels.\n"))
-	if float(curr_energy)>float(last_energy):
-		done=1
-		logger(logfile,str("Energy did not drop! Exiting optimizer, this might indicate an error!\n"))
-	return done, curr_energy, new_gro, new_pcffile, new_xyzq, new_links, new_initstep, new_qm_corrdata, clean_force, imporved
-
-def scan_cycle(gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,curr_step,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo):
-	import math
-	from numpy import array as arr
-	from compiler.ast import flatten
-	#already run sp once
-	
-	jobname=str(qmmminfo[0])
-	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,qmmminfo[0],curr_step,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-	clean_force=make_clean_force(total_force)
-
-	#function xyz2zmatrix
-	#function write Gaussian input with zmat
-	#function z2g
-
-
-	#make new geo
-	with open(new_gro,"w") as ofile:
-		with open(gro) as ifile:
-                        counter=0
-			for line in ifile:
-				ofile.write(line)
-                                counter+=1
-                                if counter==4:
-                                    break
-			counter=0
-			for line in ifile:
-				match=re.search(r'^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)', line,flags=re.MULTILINE)
-				if not match:
-					ofile.write(line)
-                                        logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to new g96 file.\n"))
-                                        break
-				else:
-					dispx=dispvec[counter][0]*0.052917721
-					dispy=dispvec[counter][1]*0.052917721
-					dispz=dispvec[counter][2]*0.052917721
-					ofile.write(str(match.group(1))+" "+str(match.group(2))+" "+str(match.group(3))+" "+str(match.group(4))+" {:>15.9f} {:>15.9f} {:>15.9f}\n".format(float(match.group(5))+float(dispx),float(match.group(6))+float(dispy),float(match.group(7))+float(dispz)))
-					counter+=1
-			for line in ifile:
-				ofile.write(line)
-
-	perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
-
-	
-	return done
-
-def perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
-	import imp
-	import numpy as np
-	g2q = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
-	jobname=g2q.stepper(qmmminfo[0],step)
-	qmenergy,mmenergy,qm_corrdata=get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir,pathinfo)
-	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,int(0),logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-	#write a total force file
-	oforce=open('oforce.txt','w')
-	for i in range(len(total_force)):
-		oforce.write('%d %.8f %.8f %.8f\n'%((i+1),total_force[i][0],total_force[i][1],total_force[i][2]))
-	oforce.close()
-
-def perform_opt(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo):
-	from subprocess import call
-	import os.path
-	count=qmmminfo[7]
-	qmenergy,mmenergy,qm_corrdata=get_energy(gro,qmmminfo[0],xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(count),logfile,basedir,pathinfo)
-	last_energy=float(qmenergy)+float(mmenergy)
-	done=0
-	maxcycle=int(qmmminfo[3])
-	initstep=float(qmmminfo[4])
-	new_links=linkatoms
-	new_pcffile=pcffile
-	new_gro=gro
-	new_xyzq=xyzq
-	new_qm_corrdata=qm_corrdata
-	last_forces=[]
-	while not done and count<=maxcycle:
-		logger(logfile,str("-----Optimization cycle "+str(int(count)+1)+"-----\n"))
-		jobname=qmmminfo[0]
-		if count>0:
-			jobname+="."+str(int(count))
-		archivename=str(jobname)+".tar.gz"
-		if os.path.isfile(archivename):
-			call(["tar","-xf",archivename])
-			call(["rm",archivename])
-		archive=["tar","-cf",str(jobname)+".tar"]
-		files=[new_pcffile,str(jobname)+".edr",str(jobname)+".edr.xvg",str(jobname)+".trr",str(jobname)+".xvg",str(jobname)+".gmx.log",str(jobname)+".g96",str(jobname)+".gjf",str(jobname)+".mdp",str(jobname)+".boxlarge.g96",str(jobname)+".tpr",str(jobname)+".gjf.log",str(jobname)+".fort.7"]
-		done,last_energy,new_gro,new_pcffile,new_xyzq,new_links,initstep,new_qm_corrdata,last_forces,imporved=opt_cycle(new_gro,top,new_xyzq,connlist,qmatomlist,new_qm_corrdata,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,new_pcffile,new_links,count,last_energy,last_forces,initstep,active,logfile,basedir,pathinfo)
-		if not imporved:
-			logger(logfile,str("No imporvement. Optimization stopped.\n"))
-			done=2
-			break
-		archive.extend(files)
-		call(archive)
-		call(["gzip", str(jobname)+".tar"])
-		delete=["rm"]
-		delete.extend(files)
-		call(delete)
-
-		energy_file = 'optenergy.txt'
-		force_file = 'optforce.txt'
-		rm_file = 'orm.txt'
-		rmname = qmmminfo[0]+"."+str(int(count))
-		if count == 0:
-			file_flag='w'
-		elif count > 0:
-			file_flag = 'a+'
-			if qmmminfo[9] == 'YES':
-				orm = open(rm_file,file_flag)
-				orm.write('%s\n'%rmname)
-				orm.close()
-		if count >= 0:
-			oenergy = open(energy_file,file_flag)
-			oenergy.write('%d %.8f \n'%(count+1,last_energy))
-			oenergy.close()
-
-			oforce = open(force_file,file_flag)
-			oforce.write('Step %d \n'%(count+1))
-			for i in range(len(last_forces)):
-				oforce.write('%d %.8f %.8f %.8f\n'%((i+1),last_forces[i][0],last_forces[i][1],last_forces[i][2]))
-			oforce.close()
-		
-		if not done:
-			if qmmminfo[9] == 'YES':
-				call(["rm",rmname+'.chk'])
-				call(["rm",rmname+'.tar.gz'])
-	
-		count+=1
-
-	call(["rm",qmmminfo[0]+"."+str(int(count+1))+'.chk'])
-	call(["rm",qmmminfo[0]+"."+str(int(count+1))+'.gjf'])
-
-	if done==0:
-		logger(logfile,"Optimization canceled due to step limit.\n")
-	elif done==1:
-		logger(logfile,"Optimization finished due to energy threshold.\n")
-	elif done==2:
-		logger(logfile,"Optimization finished due to step size.\n")
-	g96_to_gro(str(qmmminfo[0]+"."+str(count)+".g96"),str(qmmminfo[0]+".opt.gro"),logfile)
-	logger(logfile,"Final geometry written to " + str(qmmminfo[0])+".opt.gro.\n")
-
-	optforce=open('oforce.txt','w')
-	for i in range(len(last_forces)):
-		optforce.write('%d %.8f %.8f %.8f\n'%((i+1),last_forces[i][0],last_forces[i][1],last_forces[i][2]))
-	optforce.close()
-
-#0617
-def perform_scan(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
-	import numpy as np
-	import im
-
-	g2q = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
-	jobname=g2q.stepper(qmmminfo[0],step)
-	qmenergy,mmenergy,qm_corrdata=get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir,pathinfo)
-	total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,int(0),logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-
-	
-
-def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo):
+def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir):
 	import imp
 	from numpy import array as arr
 	nma_stuff = imp.load_source("operations", str(basedir+"/operations/nma_stuff.py"))
@@ -1193,9 +1060,9 @@ def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 	logger(logfile,"------This will be a numerical) normal mode analysis.------\n")
 	logger(logfile,"Generating a numerical Hessian for the active region using a displacement step of " + str(qmmminfo[6]) + " a.u.\n")
 	logger(logfile,"Will require "+ str(len(active)*6+1) +" single point calculations!\n")
-	qmenergy,mmenergy,qm_corrdata=get_energy(gro,qmmminfo[0],xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,0,logfile,basedir,pathinfo)
+	qmenergy,mmenergy,qm_corrdata=get_energy(gro,qmmminfo[0],xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,0,logfile,basedir)
 	start_energy=float(qmenergy)+float(mmenergy)
-	start_forces=read_forces(qmatomlist,m1list,qmmmtop,qminfo,qmmminfo[0],0,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
+	start_forces=read_forces(qmatomlist,m1list,qmmmtop,qminfo,qmmminfo[0],0,logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir)
 	start_grad=arr(start_forces)*-1.0
 	hessian_xyz_full=[]
 	for curr_atom in active:
@@ -1211,116 +1078,22 @@ def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 	logger(logfile,"Wrote orca format .hess file.\n")
 	evals,nm_matrix=nma.nma_3Nminus6dof_asfunction(str(qmmminfo[0]+".hess"),basedir)
 	print nma_stuff.log_nma(qmmminfo,logfile,evals,nm_matrix,active,qmmmtop,xyzq,prep_hess)
-	
 
-
-def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,jobtype,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
+def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,jobtype,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step):
 	import imp
-	import numpy as np
 	g2q = imp.load_source("operations", str(basedir+"/gmx2qmmm.py"))
 	if jobtype=="SINGLEPOINT":
-		perform_sp(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
-		"""
 		jobname=g2q.stepper(qmmminfo[0],step)
-		qmenergy,mmenergy,qm_corrdata=get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir,pathinfo)
-		total_force=read_forces(qmatomlist,m1list,qmmmtop,qminfo,jobname,int(0),logfile,linkcorrlist,xyzq,pcffile,qm_corrdata,m2list,q1list,linkatoms,active,basedir,mminfo,qmmminfo,pathinfo)
-		#write a total force file
-		oforce=open('oforce.txt','w')
-		for i in range(len(total_force)):
-			oforce.write('%d %.8f %.8f %.8f\n'%((i+1),total_force[i][0],total_force[i][1],total_force[i][2]))
-		oforce.close()
-		"""
+		get_energy(gro,jobname,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,int(0),logfile,basedir)
 	elif jobtype=="OPT":
 		logger(logfile,"Performing an optimization.\n")
 		logger(logfile,"Getting initial energy:\n")
-		
-		perform_opt(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo)
+		perform_opt(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir)
 	elif jobtype=="NMA":
 		jobname=g2q.stepper(qmmminfo[0],step)
-		
-		perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,pathinfo)
-	elif jobtype =="SCAN":
-		 perform_scan(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo)
+		perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir)
 	else:
 		logger(logfile,"Unrecognized jobtype \"" + jobtype + "\". Exiting.\n")
-
-
-def databasecorrection(energy_or_force, cut, dist, mminfo, qminfo, qmmminfo, basedir, logfile):
-    import numpy as np
-    import sqlite3
-    forcefield = mminfo[0]
-    method = qminfo[1]
-    basisset = qminfo[2]
-    fit = qmmminfo[8]
-    
-    conn = sqlite3.connect(basedir + '/correction_database/database.sqlite')
-
-    #check if method exist in database
-    method_set = conn.cursor()
-    method_set.execute('SELECT * FROM ' + cut + ' WHERE forcefield="' + forcefield + '" AND method="' + method + '" AND basisset ="' + basisset + '"')
-    method_set_value = method_set.fetchall()
-    if len(method_set_value) == 0:
-		cut = "aminoacid_CACB"
-		forcefield = 'amberGS'
-		method = 'CAM-B3LYP'
-		basisset = '6-31++G**' 
-		logger(logfile,"Unexisted method in correction database, changing to default correction method...\n") 
-
-    c = conn.cursor()
-    c.execute('SELECT * FROM ' + cut + ' WHERE forcefield="' + forcefield + '" AND method="' + method + '" AND basisset ="' + basisset + '"')
-    db_values = c.fetchall()[0]
-    
-    conn.close()
-    returnvalue = 0
-    if len(db_values) > 0:
-        if energy_or_force == "ENERGY":
-            if fit == "POLY":
-                returnvalue = db_values[5] * dist * dist * dist + db_values[6] * dist * dist + db_values[7] * dist + db_values[8]
-            elif fit == "MORSE":
-                returnvalue = db_values[9] * (np.exp(-2*db_values[10]*(dist-db_values[11]))-2*np.exp(-db_values[10]*(dist-db_values[11]))) + db_values[12]
-            elif fit == "NO":
-                returnvalue = 0
-                logger(logfile,"No energy correction.\n") 
-        elif energy_or_force == "FORCES":
-            if fit == "POLY":
-                returnvalue = db_values[13] * dist * dist * dist + db_values[14] * dist * dist + db_values[15] * dist + db_values[16]
-            elif fit == "MORSE":
-                returnvalue = db_values[17] * (np.exp(-2*db_values[18]*(dist-db_values[19]))-2*np.exp(-db_values[18]*(dist-db_values[19]))) + db_values[20]
-            elif fit == "NO":
-                returnvalue = 0
-                logger(logfile,"No force correction.\n")             
-    return returnvalue
-
-def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess,logfile):
-	import numpy as np
-	s = xyz - old_xyz
-	if s.shape[1] != 1:
-		s = s.reshape(3*len(s),1)	# reshape s so it can be used in dot products
-	g = grad - old_grad
-	if g.shape[1] != 1:
-		g = g.reshape(3*len(g),1)	# reshape g so it can be used in dot products
-	# Broyden-Fletcher-Goldfarb-Shanno
-	# Define a few values and matrices first for convenience
-	mat = old_hess.dot(s)
-	factor1 = g.T.dot(s)
-	factor2 = s.T.dot(mat)
-	idmat = np.eye(len(g))
-
-	#update formula
-	new_hess = old_hess + g.dot(g.T) / factor1 - mat.dot(mat.T) / factor2
-	# moreover, we calculate eigenvalues as they are indicative of the curvature of the current PES
-	eigvals, eigvecs = np.linalg.eig(new_hess)
-
-	# Check BFGS condition
-	if factor1 > 0:
-		logger(logfile, "BFGS condition fulfilled.\n")
-		WARN = False
-	else:
-		logger(logfile, "BFGS condition not fulfilled! We keep the old Hessian.\n")
-		WARN = True
-		new_hess = old_hess
-
-	return new_hess, eigvals.min(), WARN
 
 if __name__ == '__main__':
 	print "This file serves as a library for gmx2qmmm-related functions."
