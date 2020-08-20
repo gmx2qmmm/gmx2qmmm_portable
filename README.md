@@ -1,6 +1,5 @@
 gmx2qmmm v.1.0.1
 ======
-[![GitHub version]
 `gmx2qmmm` is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) computation.
 
 ## Overview
@@ -18,7 +17,7 @@ The required input files in the package are
 
 |Input files|Command|Default input name|
 | ------ | ------ | ------ |
-|Coordinate file (.g96)|-c|conf.g96|
+|Coordinate file (.g96 or .gro)|-c|conf.g96|
 |Topology (.top)|-p|topol.top|
 |QM atoms file(.ndx)|-n|qmatoms.ndx|
 |QM parameters (.dat)|-qm|qm.dat|
