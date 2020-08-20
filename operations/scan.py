@@ -40,3 +40,25 @@ def load_scan(inputfile):
         d_array = d_array.reshape(len(d_array)//6,6)
 
     return r_array, a_array, d_array
+
+def length_a_b(coords_A, coords_B):
+    import numpy as np
+    #create AB vector
+    vectorAB = np.subtract(coords_A, coords_B)
+    #length of AB vector
+    length = np.sqrt(np.dot(vectorAB, vectorAB))
+    return length
+
+def angle_a_b_c(coords_A, coords_B, coords_C):
+    import numpy as np
+    #create AB vector
+    v1 = np.subtract(coords_A, coords_B)
+    #create BC vector
+    v2 = np.subtract(coords_B, coords_C)
+    #normalise vectors
+    normv1 = np.sqrt(np.dot(v1, v1))
+    normv2 = np.sqrt(np.dot(v2, v2))
+    #calculate angle by arccos((v1 dot v2)/(normv1 * normv2))
+    angle = np.arccos((np.dot(v1, v2)) / (normv1 * normv2))
+    return angle
+    

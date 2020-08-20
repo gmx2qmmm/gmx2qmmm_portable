@@ -2,7 +2,7 @@
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
 
-#this will read a gmx data set (.g96, .top) and a list of atoms to be computed with QM in a QM/MM scheme. Will also read the parameters of the QM, MM and QMMM calculations and an active region.
+#this will read a gmx data set (.g96 or .gro, .top) and a list of atoms to be computed with QM in a QM/MM scheme. Will also read the parameters of the QM, MM and QMMM calculations and an active region.
 #Will set up a QM/MM calculation with the QM and MM parameters of choice.
 #Will produce a log file containing details and the QM/MM energy.
 
@@ -742,9 +742,15 @@ def gmx2qmmm(cmd_options):
 	for element in mollist:
 		chargevec.extend(make_pcf.readcharges(element,top,pathinfo))
 	logger(logfile,"done.\n")
-	logger(logfile,"Reading geometry...")
-	#geo=make_pcf.readgeo(gro)
-	geo=make_pcf.readg96(gro)
+	
+	if (gro[-4:]=='.gro'):
+		logger(logfile,"Reading geometry (.gro)...")
+		geo=make_pcf.readgeo(gro)
+	elif(gro[-4:]=='.g96'):
+		logger(logfile,"Reading geometry (.g96)...")
+		geo=make_pcf.readg96(gro)
+	
+	logger(logfile,"%s\n"%geo)
 	logger(logfile,"done.\n")
 	logger(logfile,"Reading connectivity matrix...")
 	connlist=read_conn_list_from_top(top,mollist,basedir)
@@ -759,8 +765,13 @@ def gmx2qmmm(cmd_options):
 	logger(logfile,"Reading MM parameters...")
 	mminfo,flaglist=read_mmparams(mmparams)
 	logger(logfile,"done.\n")
-	logger(logfile,"Writing high-precision coordinate file...")
-	logger(logfile,"done.\n")
+	
+	if (gro[-4:]=='.gro'):
+		logger(logfile,"Writing high-precision coordinate file...")
+		grohigh=write_highprec(gro,jobname,logfile)
+		gro = jobname+".g96"
+		logger(logfile,"done.\n")
+	
 	logger(logfile,"Setting up a calculation named \"" + str(jobname) + "\" of type \"" + str(jobtype) + "\".\n")
 	qmmmtop=str(jobname + ".qmmm.top")
 	pcffile=str(jobname + ".pointcharges")

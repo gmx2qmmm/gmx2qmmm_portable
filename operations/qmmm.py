@@ -13,7 +13,7 @@ def logger(log,logstring):
 	with open(log,"a") as ofile:
 		ofile.write(str(datetime.now()) + " " + logstring)
 
-def get_full_coords_nm(gro):
+def get_full_coords_nm(gro): #read g96
 	import re
 	fullcoords=[]
 	with open(gro) as ifile:
