@@ -9,6 +9,7 @@ gmx2qmmm v.1.0.2
 - [System requirments](#system-requirments)
 - [**gmx2qmmm** job](#job-type)
 - [Input files](#input-files)
+- [References](#references)
 - [Support and development](#support-and-development)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -52,6 +53,13 @@ Input files guide please execute  `python gmx2qmmm.py -h`
 The executed example with default parameters is  `python gmx2qmmm.py`
 
 For advance information please read [gmx2qmmm reference].
+
+## References
+
+> A user‐friendly, Python‐based quantum mechanics/Gromacs interface: gmx2qmmm
+> Jan P. Götze, Yuan‐Wei Pi, Simon Petry, Fabian Langkabel,  Jan Felix Witte, Oliver Lemke
+> https://doi.org/10.1002/qua.26486
+
 ## Support and development
 For bug reports/suggestions/complaints please raise an issue on [GitHub].
 
