@@ -24,7 +24,7 @@ import numpy as np
 def _flatten(x):
     """Replace deprecated ``compiler.ast.flatten``"""
     for e in x:
-        if not isinstance(e, collections.Iterable) or isinstance(e, str):
+        if not isinstance(e, collections.abc.Iterable) or isinstance(e, str):
             yield e
         else:
             yield from _flatten(e)
@@ -542,7 +542,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                             q1line.append(int(entry[i]))
         q1list.append(q1line)
     # get q2
-    q1list = _flatten(q1list)
+    q1list = list(_flatten(q1list))
     for element in q1list:
         q2line = []
         for conn in connlist:
@@ -672,7 +672,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                 linkpairline.append([element, stuff])
             else:
                 linkpairline.append([stuff, element])
-        for stuff in _flatten(m3list[count]):
+        for stuff in list(_flatten(m3list[count])):
             if int(element) < int(stuff):
                 linkpairline.append([element, stuff])
             else:
