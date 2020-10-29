@@ -9,6 +9,7 @@ gmx2qmmm v.1.0.2
 - [System requirments](#system-requirments)
 - [**gmx2qmmm** job](#job-type)
 - [Input files](#input-files)
+- [Examples](#example)
 - [References](#references)
 - [Support and development](#support-and-development)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -53,6 +54,14 @@ Input files guide please execute  `python gmx2qmmm.py -h`
 The executed example with default parameters is  `python gmx2qmmm.py`
 
 For advance information please read [gmx2qmmm reference].
+
+## Examples
+The directory example contains SP and OPT calculation for glycine serine (GLYSER). The names of the input files are default.
+Go to the sp/opt directory on the command line:
+
+```
+python gmx2qmmm.py
+```
 
 ## References
 
