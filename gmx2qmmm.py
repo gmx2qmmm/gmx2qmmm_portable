@@ -690,7 +690,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                     linkpairline.append([stuff, entry])
             linkcorrlist.append(linkpairline)
         count += 1
-    reshaped_linkcorrlist = np.array(flatten(linkcorrlist)).reshape(-1, 2)
+    reshaped_linkcorrlist = np.array(_flatten(linkcorrlist)).reshape(-1, 2)
     final_linkcorrlist = []
     for element in reshaped_linkcorrlist:
         found = False
@@ -757,21 +757,22 @@ def write_highprec(gro, jobname, logfile):
                             float(match.group(7)),
                         )
                     )
-                    ofile.write("END\nBOX\n")
-                    match = re.search(
-                        r"^\s*(\d+\.*\d*)\s*(\d+\.*\d*)\s*(\d+\.*\d*)",
-                        finalline,
-                        flags=re.MULTILINE,
-                    )
-                    if not match:
-                        logger(
-                            logfile,
-                            str(
-                                "Unexpected line instead of box vectors. Exiting. Last line:\n"
-                            ),
-                        )
-                        logger(logfile, line)
-                        exit(1)
+
+            ofile.write("END\nBOX\n")
+            match = re.search(
+                r"^\s*(\d+\.*\d*)\s*(\d+\.*\d*)\s*(\d+\.*\d*)",
+                finalline,
+                flags=re.MULTILINE,
+            )
+            if not match:
+                logger(
+                    logfile,
+                    str(
+                        "Unexpected line instead of box vectors. Exiting. Last line:\n"
+                    ),
+                )
+                logger(logfile, line)
+                exit(1)
             else:
                 ofile.write(
                     str(
@@ -782,7 +783,7 @@ def write_highprec(gro, jobname, logfile):
                         )
                     )
                 )
-                ofile.write("END")
+            ofile.write("END")
     return filename
 
 
