@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 # To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
@@ -9,11 +7,14 @@
 __author__ = "jangoetze"
 __date__ = "$02-Jan-2018 14:45:17$"
 
+import os
+import math
+import sys
+
+import numpy as np
+
 
 def make_distmat(coords):  # unclustered coords
-    from numpy import array as arr
-    from numpy import linalg as LA
-
     distmat = []
     for i in range(0, len(coords) / 3):
         curr_coords = []
@@ -24,26 +25,17 @@ def make_distmat(coords):  # unclustered coords
             curr_coords2 = []
             for k in range(0, 3):
                 curr_coords2.append(float(coords[j * 3 + k]))
-            dist = arr(curr_coords) - arr(curr_coords2)
-            distmatline.append(float(LA.norm(dist)))
+            dist = np.array(curr_coords) - np.array(curr_coords2)
+            distmatline.append(float(np.linalg.norm(dist)))
         distmat.append(distmatline)
     return distmat
 
 
 def normvec(vec):
-    from numpy import array as arr
-    from numpy import linalg as LA
-
-    return arr(vec) / LA.norm(vec)
+    return np.array(vec) / np.linalg.norm(vec)
 
 
 def make_angle(a, b, c, coords):  # unclustered coords
-    import math
-    from numpy import array as arr
-    from numpy import linalg as LA
-    from numpy import arccos as acos
-    from numpy import dot as dot
-
     coords_a = []
     coords_b = []
     coords_c = []
@@ -51,22 +43,16 @@ def make_angle(a, b, c, coords):  # unclustered coords
         coords_a.append(float(coords[a * 3 + i]))
         coords_b.append(float(coords[b * 3 + i]))
         coords_c.append(float(coords[c * 3 + i]))
-    ab = arr(coords_a) - arr(coords_b)
-    cb = arr(coords_c) - arr(coords_b)
-    if LA.norm(ab) == 0.0 or LA.norm(cb) == 0.0:
-        print "Atoms with identical coordinates found. Exiting."
+    ab = np.array(coords_a) - np.array(coords_b)
+    cb = np.array(coords_c) - np.array(coords_b)
+    if np.linalg.norm(ab) == 0.0 or np.linalg.norm(cb) == 0.0:
+        print("Atoms with identical coordinates found. Exiting.")
         exit(1)
-    angle = 180.0 * acos(dot(normvec(ab), normvec(cb))) / math.pi
+    angle = 180.0 * np.arccos(np.dot(normvec(ab), normvec(cb))) / math.pi
     return angle
 
 
 def make_torsion(a, b, c, d, coords):  # unclustered coords
-    from numpy import array as arr
-    from numpy import linalg as LA
-    from numpy import dot as dot
-    from numpy import cross as cross
-    import math
-
     coords_a = []
     coords_b = []
     coords_c = []
@@ -76,18 +62,18 @@ def make_torsion(a, b, c, d, coords):  # unclustered coords
         coords_b.append(float(coords[b * 3 + i]))
         coords_c.append(float(coords[c * 3 + i]))
         coords_d.append(float(coords[d * 3 + i]))
-    ab = arr(coords_a) - arr(coords_b)
-    bc = arr(coords_b) - arr(coords_c)
-    cd = arr(coords_c) - arr(coords_d)
-    if LA.norm(ab) == 0.0 or LA.norm(bc) == 0.0 or LA.norm(cd) == 0.0:
-        print "Atoms with identical coordinates found. Exiting."
+    ab = np.array(coords_a) - np.array(coords_b)
+    bc = np.array(coords_b) - np.array(coords_c)
+    cd = np.array(coords_c) - np.array(coords_d)
+    if np.linalg.norm(ab) == 0.0 or np.linalg.norm(bc) == 0.0 or np.linalg.norm(cd) == 0.0:
+        print("Atoms with identical coordinates found. Exiting.")
         exit(1)
-    normab = ab / LA.norm(ab)
-    normbc = bc / LA.norm(bc)
-    normcd = cd / LA.norm(cd)
+    normab = ab / np.linalg.norm(ab)
+    normbc = bc / np.linalg.norm(bc)
+    normcd = cd / np.linalg.norm(cd)
     torsion = math.atan2(
-        dot(cross(cross(normab, normbc), cross(normbc, normcd)), normbc),
-        dot(cross(normab, normbc), cross(normbc, normcd)),
+        np.dot(np.cross(np.cross(normab, normbc), np.cross(normbc, normcd)), normbc),
+        np.dot(np.cross(normab, normbc), np.cross(normbc, normcd)),
     )
     proper_torsion = -180.0 * torsion / math.pi
     return proper_torsion
@@ -143,13 +129,13 @@ def getangled(atoms, coords, current, bonded, distmat):
             mindist = float(distmat[bonded][i])
     if proper:
         if curr_min == -1:
-            print "Only collinear atoms encountered during zmat construction. Exiting."
+            print("Only collinear atoms encountered during zmat construction. Exiting.")
             exit(1)
         else:
             return curr_min
     else:
         if altmin == -1:
-            print "Only collinear atoms encountered during zmat construction. Exiting."
+            print("Only collinear atoms encountered during zmat construction. Exiting.")
             exit(1)
         return altmin
 
@@ -180,28 +166,19 @@ def gettorsioned(atoms, coords, current, bonded, angled, distmat):
             mindist = float(distmat[angled][i])
     if proper:
         if curr_min == -1:
-            print "Only collinear atoms encountered during zmat construction. Exiting."
+            print("Only collinear atoms encountered during zmat construction. Exiting.")
             exit(1)
         else:
             return curr_min
     else:
         if altmin == -1:
-            print "Only collinear atoms encountered during zmat construction. Exiting."
+            print("Only collinear atoms encountered during zmat construction. Exiting.")
             exit(1)
         return altmin
 
 
 def xyz_zmat_g16RevA02(inpfile, outfile):
-    import os
-
     basedir = os.path.dirname(os.path.abspath(__file__))
-    import math
-    import imp
-    from numpy import array as arr
-    from numpy import dot as dot
-    from numpy import linalg as LA
-    from numpy import arccos as acos
-    from numpy import cross as cross
 
     extrxyz = imp.load_source(
         "orcaextractors", str(basedir + "/operations/geo_from_xyz.py")
@@ -241,9 +218,9 @@ def xyz_zmat_g16RevA02(inpfile, outfile):
                 varlist.append(["b3", float(distmat[2][1])])
                 varlist.append(["a3", float(make_angle(2, 1, 0, coords))])
         else:
-            # 		print zmat
-            # 		print varlist
-            # 		exit(1)
+            # print zmat
+            # print varlist
+            # exit(1)
             # get closest bond partner
             b = getbonded(atoms, count - 1, distmat)
             bondvar = "b" + str(count)
@@ -272,6 +249,4 @@ def xyz_zmat_g16RevA02(inpfile, outfile):
 
 
 if __name__ == "__main__":
-    import sys
-
     xyz_zmat_g16RevA02(sys.argv[1], sys.argv[2])

@@ -11,6 +11,7 @@ __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 
 import re
+import sys
 
 import numpy as np
 
@@ -82,7 +83,5 @@ def sum_pcf_tm_red(inp, x, y, z, atomlist):
 
 
 if __name__ == "__main__":
-    import sys
-
     sumvec = sum_pcf_tm(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-    print sumvec
+    print(sumvec)

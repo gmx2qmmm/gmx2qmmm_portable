@@ -7,27 +7,22 @@
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
-import sys
-import imp
 import math
-from numpy import linalg as LA
-from numpy import array as arr
-from numpy import dot as dot
-from numpy import transpose as transpose
-from numpy import sqrt as sqr
+import sys
+
+import numpy as np
+
+from gmx2qmmm.operations import expansion_check as rot
 
 
 def make_stretch(curr_index, shaped_coords, basedir, n_a):
-    import imp
-
-    rot = imp.load_source("operations", str(basedir + "/operations/expansion_check.py"))
     stretchline = []
     for j in range(0, curr_index - 1):
         stretchline.append([0.0, 0.0, 0.0])
     unit_fwd = rot.uvec(
-        arr(shaped_coords[curr_index]) - arr(shaped_coords[curr_index - 1])
+        np.array(shaped_coords[curr_index]) - np.array(shaped_coords[curr_index - 1])
     )
-    unit_bwd = arr(unit_fwd) * -1.0
+    unit_bwd = np.array(unit_fwd) * -1.0
     ufwd = []
     ubwd = []
     for element in unit_fwd:
@@ -49,20 +44,20 @@ def make_angle(curr_index, shaped_coords, basedir, n_a):
     for j in range(0, curr_index - 2):
         angleline.append([0.0, 0.0, 0.0])
     unit_v1 = rot.uvec(
-        arr(shaped_coords[curr_index]) - arr(shaped_coords[curr_index - 1])
+        np.array(shaped_coords[curr_index]) - np.array(shaped_coords[curr_index - 1])
     )
     unit_v2 = rot.uvec(
-        arr(shaped_coords[curr_index - 2]) - arr(shaped_coords[curr_index - 1])
+        np.array(shaped_coords[curr_index - 2]) - np.array(shaped_coords[curr_index - 1])
     )
     phi = rot.angle3d(unit_v1, unit_v2)
     angleelement = (math.cos(phi) * unit_v1 - unit_v2) / math.sin(phi)
     angleline.append([angleelement[0], angleelement[1], angleelement[2]])
-    distv1 = arr(shaped_coords[curr_index]) - arr(shaped_coords[curr_index - 1])
-    distv2 = arr(shaped_coords[curr_index - 2]) - arr(shaped_coords[curr_index - 1])
+    distv1 = np.array(shaped_coords[curr_index]) - np.array(shaped_coords[curr_index - 1])
+    distv2 = np.array(shaped_coords[curr_index - 2]) - np.array(shaped_coords[curr_index - 1])
     sqrtvec = [
-        sqr(abs(distv1[0] * distv2[0])),
-        sqr(abs(distv1[1] * distv2[1])),
-        sqr(abs(distv1[2] * distv2[2])),
+        np.sqr(abs(distv1[0] * distv2[0])),
+        np.sqr(abs(distv1[1] * distv2[1])),
+        np.sqr(abs(distv1[2] * distv2[2])),
     ]
     if distv1[0] * distv2[0] < 0.0:
         sqrtvec[0] *= -1.0
@@ -72,7 +67,7 @@ def make_angle(curr_index, shaped_coords, basedir, n_a):
         sqrtvec[2] *= -1.0
     angleelement = (distv1 - math.cos(phi) * distv2) * unit_v1 + unit_v2 * (
         distv2 - distv1 * math.cos(phi)
-    ) / (arr(sqrtvec) * math.sin(phi))
+    ) / (np.array(sqrtvec) * math.sin(phi))
     angleline.append([angleelement[0], angleelement[1], angleelement[2]])
     angleelement = (math.cos(phi) * unit_v2 - unit_v1) / math.sin(phi)
     angleline.append([angleelement[0], angleelement[1], angleelement[2]])
@@ -90,11 +85,11 @@ def construct_bmat(coords, basedir):
         coordline = []
         for j in range(0, 3):
             coordline.append(coords[i * 3 + j])
-        shaped_coords.append(arr(coordline))
+        shaped_coords.append(np.array(coordline))
     b_mat = []
     for i in range(1, n_a):
         if n_a < 3:
-            print "Molecule too small. Exiting."
+            print("Molecule too small. Exiting.")
             exit(1)
         b_mat_line_stretch = make_stretch(i, shaped_coords, basedir, n_a)
         b_mat.append(flatten(b_mat_line_stretch))
@@ -106,11 +101,11 @@ def construct_bmat(coords, basedir):
 
 
 def proj(u, v):
-    absu = sqr(dot(u, u))
+    absu = np.sqr(np.dot(u, u))
     if absu < 0.000000000000001:
-        p = float(0.0) * arr(u)
+        p = float(0.0) * np.array(u)
     else:
-        p = (dot(u, v) / dot(u, u)) * arr(u)
+        p = (np.dot(u, v) / np.dot(u, u)) * np.array(u)
     return p
 
 
@@ -120,8 +115,8 @@ def newvec(mat, dim, rdm):
         rdmvec.append(float(10.0))
         if j == int(rdm):
             rdmvec[j] += float(20.0)
-    scale = dot(rdmvec, rdmvec)
-    normrdmvec = arr(rdmvec) / math.sqrt(scale)
+    scale = np.dot(rdmvec, rdmvec)
+    normrdmvec = np.array(rdmvec) / math.sqrt(scale)
     mat.append(normrdmvec)
     return mat
 
@@ -129,28 +124,28 @@ def newvec(mat, dim, rdm):
 def ortho(dim, matrix, start):
     if dim == 1:
         test_vec = matrix
-        scale = dot(test_vec, test_vec)
-        normvec = arr(test_vec) / math.sqrt(scale)
+        scale = np.dot(test_vec, test_vec)
+        normvec = np.array(test_vec) / math.sqrt(scale)
         return normvec
     else:
         for i in range(start, dim):
             test_vec = matrix[i]
-            scale = dot(test_vec, test_vec)
-            normvec = arr(test_vec) / math.sqrt(scale)
+            scale = np.dot(test_vec, test_vec)
+            normvec = np.array(test_vec) / math.sqrt(scale)
             curr_vec = matrix[0]
-            scale = dot(curr_vec, curr_vec)
-            normcurr_vec = arr(curr_vec) / math.sqrt(scale)
-            sum_proj = proj(arr(normcurr_vec), arr(normvec))
+            scale = np.dot(curr_vec, curr_vec)
+            normcurr_vec = np.array(curr_vec) / math.sqrt(scale)
+            sum_proj = proj(np.array(normcurr_vec), np.array(normvec))
             for j in range(1, dim):
                 if j == i:
                     continue
                 curr_vec = matrix[j]
-                scale = dot(curr_vec, curr_vec)
-                norm_currvec = arr(curr_vec) / math.sqrt(scale)
-                sum_proj += proj(norm_currvec, arr(normvec))
-            finalvec = arr(normvec) - arr(sum_proj)
-            scale = dot(finalvec, finalvec)
-            normfinalvec = arr(finalvec) / math.sqrt(scale)
+                scale = np.dot(curr_vec, curr_vec)
+                norm_currvec = np.array(curr_vec) / math.sqrt(scale)
+                sum_proj += proj(norm_currvec, np.array(normvec))
+            finalvec = np.array(normvec) - np.array(sum_proj)
+            scale = np.dot(finalvec, finalvec)
+            normfinalvec = np.array(finalvec) / math.sqrt(scale)
             matrix[i] = normfinalvec
         return matrix
 
@@ -160,8 +155,8 @@ def checknorm(matrix):
     for i in range(0, len(matrix)):
         sum = 0.0
         for j in range(0, len(matrix)):
-            norm = dot(matrix[i], matrix[j])
-            absnorm = sqr(norm * norm)
+            norm = np.dot(matrix[i], matrix[j])
+            absnorm = np.sqr(norm * norm)
             sum += absnorm
         sumvec.append(sum)
     return sumvec
@@ -242,7 +237,7 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
     t_row.append(ele)
     t_inert.append(t_row)
     # generate principal moments and their eigenvectors
-    e_princ, princ = LA.eig(arr(t_inert))
+    e_princ, princ = np.linalg.eig(np.array(t_inert))
     # begin setup transrot
     transrotmat = []
     for i in range(0, 3):
@@ -261,8 +256,8 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
 
-        py = dot(arr(curr_coords).astype(float), arr(princ[1]).astype(float))
-        pz = dot(arr(curr_coords).astype(float), arr(princ[2]).astype(float))
+        py = np.dot(np.array(curr_coords).astype(float), np.array(princ[1]).astype(float))
+        pz = np.dot(np.array(curr_coords).astype(float), np.array(princ[2]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (py * princ[2][j] - pz * princ[1][j]) * math.sqrt(float(mass[i]))
@@ -274,8 +269,8 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
 
-        px = dot(arr(curr_coords).astype(float), arr(princ[0]).astype(float))
-        pz = dot(arr(curr_coords).astype(float), arr(princ[2]).astype(float))
+        px = np.dot(np.array(curr_coords).astype(float), np.array(princ[0]).astype(float))
+        pz = np.dot(np.array(curr_coords).astype(float), np.array(princ[2]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (pz * princ[0][j] - px * princ[2][j]) * math.sqrt(float(mass[i]))
@@ -287,8 +282,8 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
 
-        px = dot(arr(curr_coords).astype(float), arr(princ[0]).astype(float))
-        py = dot(arr(curr_coords).astype(float), arr(princ[1]).astype(float))
+        px = np.dot(np.array(curr_coords).astype(float), np.array(princ[0]).astype(float))
+        py = np.dot(np.array(curr_coords).astype(float), np.array(princ[1]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (px * princ[1][j] - py * princ[0][j]) * math.sqrt(float(mass[i]))
@@ -316,9 +311,9 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
     # begin normalize transrot
     norm_trm = []
     for i in range(0, 6):
-        scale = dot(transrotmat[i], transrotmat[i])
-        norm_vec = arr(transrotmat[i]) / math.sqrt(scale)
-        norm_trm.append(arr(norm_vec).astype(float))
+        scale = np.dot(transrotmat[i], transrotmat[i])
+        norm_vec = np.array(transrotmat[i]) / math.sqrt(scale)
+        norm_trm.append(np.array(norm_vec).astype(float))
     # end normalize transrot
 
     # Begin Ortho
@@ -333,7 +328,7 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
     for i in range(0, len(mass) * 3):
         currnorm = float(0.0)
         for j in range(0, len(mass) * 3):
-            currnorm += dot(norm_trm[i], norm_trm[j])
+            currnorm += np.dot(norm_trm[i], norm_trm[j])
         if currnorm > 1.01:
             found = True
     while enter <= 500 and found:
@@ -342,19 +337,19 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
         for i in range(0, len(mass) * 3):
             currnorm = float(0.0)
             for j in range(0, len(mass) * 3):
-                currnorm += dot(norm_trm[i], norm_trm[j])
+                currnorm += np.dot(norm_trm[i], norm_trm[j])
             if currnorm > 1.01:
                 found = True
         enter += 1
     if enter >= 500:
-        print "had to orthogonalize more than 500 times! Check your results!"
+        print("had to orthogonalize more than 500 times! Check your results!")
     # ENd Ortho
     d_mat = []
     for i in range(6, len(mass) * 3):
         d_mat.append(norm_trm[i])
-    dh = dot(d_mat, hessian)
-    h_int = dot(dh, transpose(d_mat))
-    e_val, nm_matrix = LA.eig(arr(h_int))
+    dh = np.dot(d_mat, hessian)
+    h_int = np.dot(dh, np.transpose(d_mat))
+    e_val, nm_matrix = np.linalg.eig(np.array(h_int))
     mass_sqrtvec_matrix = []
     for i in range(0, len(mass)):
         for p in range(0, 3):
@@ -362,12 +357,12 @@ def nma_3Nminus6dof_asfunction(hessfile, basedir):
             for j in range(0, len(mass)):
                 for k in range(0, 3):
                     if i == j and p == k:
-                        massline.extend([float(1.0 / sqr(float(mass[i])))])
+                        massline.extend([float(1.0 / np.sqr(float(mass[i])))])
                     else:
                         massline.extend([float(0.0)])
             mass_sqrtvec_matrix.append(massline)
-    mw_d_mat = dot(arr(mass_sqrtvec_matrix), transpose(d_mat))
-    cart_nm = dot(mw_d_mat, nm_matrix)
+    mw_d_mat = np.dot(np.array(mass_sqrtvec_matrix), np.transpose(d_mat))
+    cart_nm = np.dot(mw_d_mat, nm_matrix)
     # begin sort eigenvalues/vectors
     done = False
     while not done:
@@ -460,7 +455,7 @@ def nma_3Nminus6dof(sysargs):
     t_inert.append(t_row)
     # end inertia tensor
     # generate principal moments and their eigenvectors
-    e_princ, princ = LA.eig(arr(t_inert))
+    e_princ, princ = np.linalg.eig(np.array(t_inert))
     # e_princ ok, princ ok!
     # begin setup transrot
     transrotmat = []
@@ -479,8 +474,8 @@ def nma_3Nminus6dof(sysargs):
         curr_coords = []
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
-        py = dot(arr(curr_coords).astype(float), arr(princ[1]).astype(float))
-        pz = dot(arr(curr_coords).astype(float), arr(princ[2]).astype(float))
+        py = np.dot(np.array(curr_coords).astype(float), np.array(princ[1]).astype(float))
+        pz = np.dot(np.array(curr_coords).astype(float), np.array(princ[2]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (py * princ[2][j] - pz * princ[1][j]) * math.sqrt(float(mass[i]))
@@ -491,9 +486,9 @@ def nma_3Nminus6dof(sysargs):
         curr_coords = []
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
-        # 	print curr_coords
-        px = dot(arr(curr_coords).astype(float), arr(princ[0]).astype(float))
-        pz = dot(arr(curr_coords).astype(float), arr(princ[2]).astype(float))
+        # print curr_coords
+        px = np.dot(np.array(curr_coords).astype(float), np.array(princ[0]).astype(float))
+        pz = np.dot(np.array(curr_coords).astype(float), np.array(princ[2]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (pz * princ[0][j] - px * princ[2][j]) * math.sqrt(float(mass[i]))
@@ -504,9 +499,9 @@ def nma_3Nminus6dof(sysargs):
         curr_coords = []
         for j in range(0, 3):
             curr_coords.append(shift_coords[3 * i + j])
-        # 	print curr_coords
-        px = dot(arr(curr_coords).astype(float), arr(princ[0]).astype(float))
-        py = dot(arr(curr_coords).astype(float), arr(princ[1]).astype(float))
+        # print curr_coords
+        px = np.dot(np.array(curr_coords).astype(float), np.array(princ[0]).astype(float))
+        py = np.dot(np.array(curr_coords).astype(float), np.array(princ[1]).astype(float))
         for j in range(0, 3):
             rotvec.append(
                 (px * princ[1][j] - py * princ[0][j]) * math.sqrt(float(mass[i]))
@@ -534,9 +529,9 @@ def nma_3Nminus6dof(sysargs):
     # begin normalize transrot
     norm_trm = []
     for i in range(0, 6):
-        scale = dot(transrotmat[i], transrotmat[i])
-        norm_vec = arr(transrotmat[i]) / math.sqrt(scale)
-        norm_trm.append(arr(norm_vec).astype(float))
+        scale = np.dot(transrotmat[i], transrotmat[i])
+        norm_vec = np.array(transrotmat[i]) / math.sqrt(scale)
+        norm_trm.append(np.array(norm_vec).astype(float))
     # end normalize transrot
     # Begin Ortho
     # Ortho for rotvecs
@@ -550,7 +545,7 @@ def nma_3Nminus6dof(sysargs):
     for i in range(0, len(mass) * 3):
         currnorm = float(0.0)
         for j in range(0, len(mass) * 3):
-            currnorm += dot(norm_trm[i], norm_trm[j])
+            currnorm += np.dot(norm_trm[i], norm_trm[j])
         if currnorm > 1.01:
             found = True
     while (enter <= 500 and found) or enter < 10:
@@ -559,19 +554,19 @@ def nma_3Nminus6dof(sysargs):
         for i in range(0, len(mass) * 3):
             currnorm = float(0.0)
             for j in range(0, len(mass) * 3):
-                currnorm += dot(norm_trm[i], norm_trm[j])
-            if 1.0 - (sqr(currnorm * currnorm)) > 0.01:
+                currnorm += np.dot(norm_trm[i], norm_trm[j])
+            if 1.0 - (np.sqr(currnorm * currnorm)) > 0.01:
                 found = True
         enter += 1
     if enter >= 500:
-        print "had to orthogonalize more than 500 times! Check your results!"
+        print("had to orthogonalize more than 500 times! Check your results!")
     # ENd Ortho
     d_mat = []
     for i in range(6, len(mass) * 3):
         d_mat.append(norm_trm[i])
-    dh = dot(d_mat, hessian)
-    h_int = dot(dh, transpose(d_mat))
-    e_val, nm_matrix = LA.eigh(arr(hessian))
+    dh = np.dot(d_mat, hessian)
+    h_int = np.dot(dh, np.transpose(d_mat))
+    e_val, nm_matrix = np.linalg.eigh(np.array(hessian))
     b_mat = construct_bmat(shift_coords, basedir)
     # begin sort eigenvalues/vectors
     done = False
@@ -584,16 +579,14 @@ def nma_3Nminus6dof(sysargs):
                 e_val[i + 1], e_val[i] = e_val[i], e_val[i + 1]
     for i in range(0, len(e_val)):
         if e_val[i] < 0.0:
-            print str(-1.0 * sqr(abs(float(e_val[i])) * float(26424608)))
+            print(str(-1.0 * np.sqrt(abs(float(e_val[i])) * float(26424608))))
         else:
-            print str(sqr(float(e_val[i]) * float(26424608)))
+            print(str(np.sqrt(float(e_val[i]) * float(26424608))))
     exit(1)
-    print h_int
-    print nm_matrix
-    print arr(nm_matrix)
+    print(h_int)
+    print(nm_matrix)
+    print(np.array(nm_matrix))
 
 
 if __name__ == "__main__":
-    import sys
-
     nma_3Nminus6dof(sys.argv)

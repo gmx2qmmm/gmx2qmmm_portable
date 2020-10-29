@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 # To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
@@ -9,10 +7,10 @@
 __author__ = "jangoetze"
 __date__ = "$02-Jan-2018 14:45:17$"
 
+import re
+
 
 def hessian_from_hes(inpname):
-    import re
-
     n_dof = 0
     curr_col = 0
     list_hess = []
@@ -56,12 +54,10 @@ def hessian_from_hes(inpname):
             line_hess.append(float(list_hess[i * n_dof + j]))
         matrix_hess.append(line_hess)
     if len(list_hess) != n_dof * n_dof:
-        print "Did not find the same number of Hessian entries as indicated by (degrees of freedom)**2!"
+        print("Did not find the same number of Hessian entries as indicated by (degrees of freedom)**2!")
         exit(1)
     return matrix_hess
 
 
 if __name__ == "__main__":
-    import sys
-
-    hessian_from_hess(name1)
+    hessian_from_hes(name1)  # name1 is not defined

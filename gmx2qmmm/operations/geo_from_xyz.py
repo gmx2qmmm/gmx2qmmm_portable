@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 # To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
@@ -9,10 +7,10 @@
 __author__ = "jangoetze"
 __date__ = "$02-Jan-2018 14:45:17$"
 
+import sys
+
 
 def geo_from_xyz(inpname, inppar):
-    import re
-
     ifile = open(inpname)
     n_a = 0
     list_xyz = []
@@ -34,15 +32,13 @@ def geo_from_xyz(inpname, inppar):
         list_xyz = list_bohrs
     ifile.close()
     if len(list_xyz) != n_a * 3:
-        print "geo_from_xyz: Did not find the same number of coordinates as indicated by 3*(number of atoms at beginning of file)!"
-        print "geo_from_xyz: Alternatively, formatting may be off! Please provide an output from a converter script as input!"
+        print("geo_from_xyz: Did not find the same number of coordinates as indicated by 3*(number of atoms at beginning of file)!")
+        print("geo_from_xyz: Alternatively, formatting may be off! Please provide an output from a converter script as input!")
         exit(1)
     return list_xyz
 
 
 if __name__ == "__main__":
-    import sys
-
     coords = geo_from_xyz(sys.argv[1], sys.argv[2])
     for element in coords:
-        print element
+        print(element)

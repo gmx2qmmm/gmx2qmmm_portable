@@ -87,7 +87,7 @@ def read_qmatom_list(inp):
             if atomlist:
                 for element in atomlist:
                     qmatomlist.append(element)
-    sortedlist = sort(np.array(qmatomlist).astype(int))
+    sortedlist = sorted(np.array(qmatomlist).astype(int))
     return sortedlist
 
 

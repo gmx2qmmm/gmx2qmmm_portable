@@ -1,17 +1,22 @@
-#!/usr/bin/env python2
-# encoding: ISO-8859-15
-
-# To change this license header, choose License Headers in Project Properties.
-# To change this template file, choose Tools | Templates
-# and open the template in the editor.
-
-# THIS IS NOT ABLE TO RUN STANDALONE - ONLY USE THE LISTSONLY FUNCTION
-# This will take a gromacs .top file, and remove all terms that are not needed for a QM/MM energy description. Will result in a QM/MM viable .top file, if used with a proper energy exlusion group set up.
-# Will also set up an exclusion list between all QM atoms. This is required in the MD run.
-# Needs .top, file qmatomlist, output file name, list of flags
+"""
+To change this license header, choose License Headers in Project
+Properties. To change this template file, choose Tools | Templates and
+open the template in the editor. THIS IS NOT ABLE TO RUN STANDALONE -
+ONLY USE THE LISTSONLY FUNCTION This will take a gromacs .top file, and
+remove all terms that are not needed for a QM/MM energy description.
+Will result in a QM/MM viable .top file, if used with a proper energy
+exlusion group set up. Will also set up an exclusion list between all QM
+atoms. This is required in the MD run. Needs .top, file qmatomlist,
+output file name, list of flags
+"""
 
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
+
+import os
+
+from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
+from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 
 
 def logger(log, logstring):
@@ -1139,15 +1144,7 @@ def generate_top_listsonly(
     logfile,
     pathinfo,
 ):
-    import imp
-    import re
 
-    make_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/generate_pcf_from_top.py")
-    )
-    prep_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/prepare_pcf_for_shift.py")
-    )
     qmatomlist = prep_pcf.read_qmatom_list(qmatoms)
     mollist = make_pcf.readmols(top)
     includelist = make_pcf.getincludelist(top, pathinfo)
@@ -1172,22 +1169,12 @@ def generate_top_listsonly(
 
 
 def generate_top(sysargs):
-    import imp
-    import re
-    import os
-
     basedir = os.path.dirname(os.path.abspath(__file__))
     top = sysargs[1]
     qmatoms = sysargs[2]
     outname = sysargs[3]
     flaglist = sysargs[4]
     m1list = sysargs[5]
-    make_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/generate_pcf_from_top.py")
-    )
-    prep_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/prepare_pcf_for_shift.py")
-    )
     qmatomlist = prep_pcf.read_qmatom_list(qmatoms)
     mollist = make_pcf.readmols(top)
     includelist = make_pcf.getincludelist(top, pathinfo)

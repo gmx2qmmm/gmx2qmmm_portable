@@ -11,17 +11,17 @@
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
-import importlib
 import math
 import sys
 
 import numpy as np
 
+from gmx2qmmm.operations import xyz_zmat_g16RevA_02 as zmatlib
+from gmx2qmmm.operations import geo_xyz_g09RevA_02_log as getxyz
+from gmx2qmmm.operations import geo_from_xyz as extrxyz
+
 
 def find_neighbor(coords, curr_atom, found_list, basedir):
-    zmatlib = importlib.load_source(
-        "operations", str(basedir + "/operations/xyz_zmat_g16RevA.02.py")
-    )
     distmat = zmatlib.make_distmat(coords)
     mindist = 100000.0
     curr_min = -1
@@ -221,12 +221,6 @@ def get_expansion(c1, c2, a, b, conns, size):
 
 
 def expansion_check(inp1, inp2, inp3, basedir):
-    getxyz = importlib.load_source(
-        "operations", str(basedir + "/operations/geo_xyz_g09RevA.02.log.py")
-    )
-    extrxyz = importlib.load_source(
-        "operations", str(basedir + "/operations/geo_from_xyz.py")
-    )
     getxyz.geo_xyz_g09RevA02log(inp1, "temp.xyz")
     coords1 = extrxyz.geo_from_xyz("temp.xyz", "A")
     getxyz.geo_xyz_g09RevA02log(inp2, "temp.xyz")

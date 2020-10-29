@@ -1,6 +1,4 @@
-#! /usr/bin/python
-
-# To change this license header, choose License Headers in Project Properties.
+## To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
 
@@ -10,10 +8,12 @@
 __author__ = "jangoetze"
 __date__ = "$02-Jan-2018 14:45:17$"
 
+import re
+import math
+import sys
+
 
 def hes_xyz_fchk(inpname, outname):
-    import re
-    import math
 
     ifile = open(inpname)
     ofile = open(outname, "w")
@@ -159,7 +159,7 @@ def hes_xyz_fchk(inpname, outname):
             match = re.search("N=\s+(\d+)", line)
             n_c = int(match.group(1))
             if n_c != (n_a * 3):
-                print "Number of coordinates is not 3 times number of atoms. Exiting."
+                print("Number of coordinates is not 3 times number of atoms. Exiting.")
                 exit(1)
             for line in ifile:
                 if len(list_i_c) >= n_c:
@@ -186,20 +186,20 @@ def hes_xyz_fchk(inpname, outname):
             n_h_g09 = int(match.group(1))
             break
     if n_h_g09 == 0:
-        print "Did not find a proper Cartesian Force Constants entry. Exiting."
+        print("Did not find a proper Cartesian Force Constants entry. Exiting.")
         exit(1)
     n_h_g09_curr = n_h_g09
     for line in ifile:
         matchlist = re.findall("\s+([-]*\d\.\d{8}E[+,-]\d\d)", line)
         if len(matchlist) == 0:
-            print "No matches for Cartesian Force Constants!"
+            print("No matches for Cartesian Force Constants!")
             exit(1)
         list_h_g09 += matchlist
         n_h_g09_curr -= 5
         if n_h_g09_curr < 1:
             break
     if n_h_g09 != len(list_h_g09):
-        print "Reading of g09 fchk Cartesian Force Constants failed. Exiting."
+        print("Reading of g09 fchk Cartesian Force Constants failed. Exiting.")
         exit(1)
     ofile.write(
         "\n$orca_hessian_file\n\n$act_atom\n  0\n\n$act_coord\n  0\n\n$act_energy\n        0.000000\n\n$hessian\n"
@@ -248,7 +248,7 @@ def hes_xyz_fchk(inpname, outname):
             n_v_entries = int(match.group(1))
             break
     if n_v_entries == 0:
-        print "Did not find a proper Vib-E2 entry. Exiting."
+        print("Did not find a proper Vib-E2 entry. Exiting.")
         exit(1)
     n_v = (n_a * 3) - 6
     rem_v = n_v_entries
@@ -264,7 +264,7 @@ def hes_xyz_fchk(inpname, outname):
             break
         rem_v -= 5
     if n_v_entries != len(list_v):
-        print "Reading of g09 fchk Vib-E2 failed. Exiting."
+        print("Reading of g09 fchk Vib-E2 failed. Exiting.")
         exit(1)
     for i in range(0, n_dof):
         colstring = "{:>5}   ".format(i)
@@ -285,7 +285,7 @@ def hes_xyz_fchk(inpname, outname):
             n_nm = int(match.group(1))
             break
     if n_nm == 0:
-        print "Did not find a proper Vib-Modes entry. Exiting."
+        print("Did not find a proper Vib-Modes entry. Exiting.")
         exit(1)
     list_nm_g09 = []
     list_nm_orca = []
@@ -298,14 +298,14 @@ def hes_xyz_fchk(inpname, outname):
     for line in ifile:
         matchlist = re.findall("\s+([-]*\d\.\d{8}E[+,-]\d\d)", line)
         if len(matchlist) == 0:
-            print "No matches for Vib-Modes!"
+            print("No matches for Vib-Modes!")
             exit(1)
         list_nm_g09 += matchlist
         n_nm_curr -= 5
         if n_nm_curr < 1:
             break
     if n_nm != len(list_nm_g09):
-        print "Reading of g09 fchk Vib-Modes failed. Exiting."
+        print("Reading of g09 fchk Vib-Modes failed. Exiting.")
         exit(1)
     for i in range(0, n_dof):
         for j in range(0, n_dof):
@@ -345,21 +345,21 @@ def hes_xyz_fchk(inpname, outname):
             n_mass = int(match.group(1))
             break
     if n_mass == 0:
-        print "Did not find a proper Vib-AtMass entry. Exiting."
+        print("Did not find a proper Vib-AtMass entry. Exiting.")
         exit(1)
     n_mass_curr = n_mass
     list_mass = []
     for line in ifile:
         matchlist = re.findall("\s+([-]*\d\.\d{8}E[+,-]\d\d)", line)
         if len(matchlist) == 0:
-            print "No matches for Vib-AtMass!"
+            print("No matches for Vib-AtMass!")
             exit(1)
         list_mass += matchlist
         n_mass_curr -= 5
         if n_mass_curr < 1:
             break
     if n_mass != len(list_mass):
-        print "Reading of g09 fchk Vib-AtMass failed. Exiting."
+        print("Reading of g09 fchk Vib-AtMass failed. Exiting.")
         exit(1)
     for i in range(0, int(n_a)):
         reformatted = " {:<2} {:>11.5f}  {:>18.12f} {:>18.12f} {:>18.12f}\n".format(
@@ -383,21 +383,21 @@ def hes_xyz_fchk(inpname, outname):
             n_dip = int(match.group(1))
             break
     if n_dip == 0:
-        print "Did not find a proper Dipole Derivatives entry. Exiting."
+        print("Did not find a proper Dipole Derivatives entry. Exiting.")
         exit(1)
     n_dip_curr = n_dip
     list_dip = []
     for line in ifile:
         matchlist = re.findall("\s+([-]*\d\.\d{8}E[+,-]\d\d)", line)
         if len(matchlist) == 0:
-            print "No matches for Dipole Derivatives!"
+            print("No matches for Dipole Derivatives!")
             exit(1)
         list_dip += matchlist
         n_dip_curr -= 5
         if n_dip_curr < 1:
             break
     if n_dip != len(list_dip):
-        print "Reading of g09 fchk Dipole Derivatives failed. Exiting."
+        print("Reading of g09 fchk Dipole Derivatives failed. Exiting.")
         exit(1)
     for i in range(0, int(n_dip) / 3):
         reformatted = "{:>20.10E}{:>20.10E}{:>20.10E}\n".format(
@@ -424,6 +424,4 @@ def hes_xyz_fchk(inpname, outname):
 
 
 if __name__ == "__main__":
-    import sys
-
-    print hes_xyz_fchk(sys.argv[1], sys.argv[2])
+    print(hes_xyz_fchk(sys.argv[1], sys.argv[2]))

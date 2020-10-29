@@ -18,8 +18,6 @@ QM PART
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 
-import collections
-import importlib
 import math
 import os
 import re
@@ -27,14 +25,8 @@ import sys
 
 import numpy as np
 
-
-def _flatten(x):
-    """Replace deprecated ``compiler.ast.flatten``"""
-    for e in x:
-        if not isinstance(e, collections.abc.Iterable) or isinstance(e, str):
-            yield e
-        else:
-            yield from _flatten(e)
+from gmx2qmmm._helper import _flatten
+from gmx2qmmm.pointcharges import sum_pcf_tm as make_p_sum
 
 
 def uvec(vec):
@@ -378,9 +370,6 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
     getlist = m1list
     orgfield = []
     qmlist = qmcoords
-    make_p_sum = importlib.load_source(
-        "operations", str(basedir + "/pointcharges/sum_pcf_tm.py")
-    )
     target_sum = np.array([0.0, 0.0, 0.0])
     for i in range(0, len(getlist)):
         orgcoordsq = pcf[int(getlist[i]) - 1]
@@ -614,9 +603,6 @@ def generate_charge_shift(syscmds):
 
         orgfield.append(orgcoordsq)
     qmlist = get_qmlist(qmcoords)
-    make_p_sum = importlib.load_source(
-        "operations", str(basedir + "/pointcharges/sum_pcf_tm.py")
-    )
     target_sum = np.array([0.0, 0.0, 0.0])
 
     for element in qmlist:

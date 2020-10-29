@@ -1,6 +1,9 @@
+import re
+
+import numpy as np
+
+
 def load_scan(inputfile):
-    import numpy as np
-    import re
 
     # read&match
     with open(inputfile, "r") as file_object:
@@ -43,8 +46,6 @@ def load_scan(inputfile):
 
 
 def length_a_b(coords_A, coords_B):
-    import numpy as np
-
     # create AB vector
     vectorAB = np.subtract(coords_A, coords_B)
     # length of AB vector
@@ -53,8 +54,6 @@ def length_a_b(coords_A, coords_B):
 
 
 def angle_a_b_c(coords_A, coords_B, coords_C):
-    import numpy as np
-
     # create AB vector
     v1 = np.subtract(coords_A, coords_B)
     # create BC vector

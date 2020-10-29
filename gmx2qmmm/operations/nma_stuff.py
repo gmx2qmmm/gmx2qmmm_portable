@@ -5,6 +5,14 @@
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
+import os
+import subprocess
+
+import numpy as np
+
+from gmx2qmmm._helper import _flatten
+from gmx2qmmm.operations import hes_xyz_g09RevD_01_fchk as write_hess
+
 
 def make_disp_g96_name(gro, curr_coord, curr_atom, disp):
     new_g96_name = gro + "." + str(curr_atom) + "at"
@@ -17,8 +25,6 @@ def make_disp_g96_name(gro, curr_coord, curr_atom, disp):
 
 
 def make_disp_g96(gro, coord_index, curr_atom, disp):
-    import re
-
     coord_list = ["X", "Y", "Z"]
     new_g96_name = make_disp_g96_name(gro, coord_list[coord_index], curr_atom, disp)
     nm_disp = float(disp) * 0.052917721
@@ -43,12 +49,12 @@ def make_disp_g96(gro, coord_index, curr_atom, disp):
                     flags=re.MULTILINE,
                 )
                 if not match:
-                    print "Error in automatically generated file " + str(
+                    print("Error in automatically generated file " + str(
                         gro
                     ) + " for atom " + str(
                         curr_atom
-                    ) + ". This should never happen. Exiting. Last line:"
-                    print line
+                    ) + ". This should never happen. Exiting. Last line:")
+                    print(line)
                     exit(1)
                 ofile.write(match.group(1))
                 for i in range(0, 3):
@@ -86,15 +92,13 @@ def eval_gro(
     logfile,
     basedir,
 ):
-    from subprocess import call
-    import os.path
 
     jobname = gro[:-4]
     new_pcffile = str(jobname + ".pointcharges")
     archivename = str(jobname) + ".tar.gz"
     if os.path.isfile(archivename):
-        call(["tar", "-xf", archivename])
-        call(["rm", archivename])
+        subprocess.call(["tar", "-xf", archivename])
+        subprocess.call(["rm", archivename])
     new_xyzq, m1list, m2list, new_links = qmmm_prep(
         gro, top, jobname, 0, qminfo, qmatomlist, connlist, linkatoms, basedir, logfile
     )
@@ -156,33 +160,26 @@ def eval_gro(
         str(jobname) + ".fort.7",
     ]
     archive.extend(files)
-    call(archive)
-    call(["gzip", str(jobname) + ".tar"])
+    subprocess.call(archive)
+    subprocess.call(["gzip", str(jobname) + ".tar"])
     delete = ["rm"]
     delete.extend(files)
-    call(delete)
+    subprocess.call(delete)
     return sp_energy, curr_forces
 
 
 def prepare_hess(hessian_full, active):
-    from numpy import array as arr
-
     red_hess = []
     for element in hessian_full:
         red_hess_line = []
         for i in range(0, len(element)):
-            if i + 1 in arr(active).astype(int):
+            if i + 1 in np.array(active).astype(int):
                 red_hess_line.extend(element[i])
         red_hess.append(red_hess_line)
     return red_hess
 
 
 def log_nma(qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, hess):
-    import imp
-
-    write_hess = imp.load_source(
-        "operations", str(basedir + "/operations/hes_xyz_g09RevD.01.fchk.py")
-    )
     logger(logfile, "------Results of normal mode analysis------\n")
     jobname = str(qmmminfo[0] + "_final")
     write_pseudofchk_file(
@@ -199,9 +196,7 @@ def log_nma(qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, hess):
 def write_pseudofchk_file(
     jobname, evals, nm_matrix, hess, active, qmmmtop, logfile, xyzq
 ):
-    from compiler.ast import flatten
-
-    flat_nm = flatten(nm_matrix)
+    flat_nm = list(_flatten(nm_matrix))
     outname = jobname + ".pseudofchk"
     n_a = len(active)
     dof = len(active) * 3
@@ -553,10 +548,6 @@ def get_xyz_2nd_deriv(
     logfile,
     basedir,
 ):
-    import imp
-    from numpy import array as arr
-    from compiler.ast import flatten
-
     # DO FOR 3 COORDS AND PLUS AND MINUS
     disp = float(qmmminfo[6])
     grad_vectors = []
@@ -587,7 +578,7 @@ def get_xyz_2nd_deriv(
             logfile,
             basedir,
         )
-        plus_grad = arr(plus_forces) * -1.0
+        plus_grad = np.array(plus_forces) * -1.0
         if plus_energy < start_energy:
             logger(
                 logfile,
@@ -628,7 +619,7 @@ def get_xyz_2nd_deriv(
             logfile,
             basedir,
         )
-        minus_grad = arr(minus_forces) * -1.0
+        minus_grad = np.array(minus_forces) * -1.0
         if minus_energy < start_energy:
             logger(
                 logfile,
@@ -647,12 +638,12 @@ def get_xyz_2nd_deriv(
                 + str(float(start_energy))
                 + " a.u.\n",
             )
-        average_grad = flatten(
-            (arr(flatten(plus_grad)) - arr(flatten(minus_grad))) / (float(disp) * 2.0)
-        )
+        average_grad = list(_flatten(
+            (np.array(list(_flatten(plus_grad))) - np.array(list(_flatten(minus_grad)))) / (float(disp) * 2.0)
+        ))
         grad_vectors.append(average_grad)
     return grad_vectors
 
 
 if __name__ == "__main__":
-    print "This is a library for normal mode analysis functions. Do not execute directly."
+    print("This is a library for normal mode analysis functions. Do not execute directly.")

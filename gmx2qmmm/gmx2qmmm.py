@@ -10,8 +10,6 @@ energy.
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
-import collections
-import datetime
 import re
 import os
 import subprocess
@@ -19,25 +17,12 @@ import sys
 
 import numpy as np
 
+from gmx2qmmm._helper import _flatten, logger
 from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 from gmx2qmmm.operations import generate_top as topprep
 from gmx2qmmm.operations import qmmm
-
-
-def _flatten(x):
-    """Replace deprecated ``compiler.ast.flatten``"""
-    for e in x:
-        if not isinstance(e, collections.abc.Iterable) or isinstance(e, str):
-            yield e
-        else:
-            yield from _flatten(e)
-
-
-def logger(log, logstring):
-    with open(log, "a") as ofile:
-        ofile.write(str(datetime.datetime.now()) + " " + logstring)
 
 
 def get_mollength_direct(molname, top):
@@ -553,13 +538,13 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                 if (
                     int(element) != int(conn[0])
                     and (int(conn[0]) in np.array(qmatomlist).astype(int))
-                    and (int(conn[0]) not in np.array(flatten(q1list)).astype(int))
+                    and (int(conn[0]) not in np.array([int(x) for x in _flatten(q1list)]))
                 ):
                     q2line.append(int(conn[0]))
                 elif int(element) == int(conn[0]):
                     for i in range(1, len(conn)):
                         if (int(conn[i]) in np.array(qmatomlist).astype(int)) and (
-                            int(conn[i]) not in np.array(flatten(q1list)).astype(int)
+                            int(conn[i]) not in np.array([int(x) for x in _flatten(q1list)])
                         ):
                             q2line.append(int(conn[i]))
         q2list.append(q2line)
@@ -574,7 +559,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                         int(entry) != int(conn[0])
                         and (int(conn[0]) in np.array(qmatomlist).astype(int))
                         and int(conn[0]) not in np.array(q1list).astype(int)
-                        and int(conn[0]) not in np.array(flatten(q2list)).astype(int)
+                        and int(conn[0]) not in np.array([int(x) for x in _flatten(q1list)])
                     ):
                         q3line.append(int(conn[0]))
                     elif int(entry) == int(conn[0]):
@@ -582,7 +567,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                             if (
                                 int(conn[i]) in np.array(qmatomlist).astype(int)
                                 and int(conn[i]) not in np.array(q1list).astype(int)
-                                and int(conn[i]) not in arr(flatten(q2list)).astype(int)
+                                and int(conn[i]) not in np.array([int(x) for x in _flatten(q1list)])
                             ):
                                 q3line.append(int(conn[i]))
             q3lineline.append(q3line)
@@ -655,12 +640,12 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                 linkpairline.append([element, entry])
             else:
                 linkpairline.append([entry, element])
-        for entry in flatten(m3list[count]):
+        for entry in _flatten(m3list[count]):
             if int(element) < int(entry):
                 linkpairline.append([element, entry])
             else:
                 linkpairline.append([entry, element])
-        for entry in flatten(m4list[count]):
+        for entry in _flatten(m4list[count]):
             if int(element) < int(entry):
                 linkpairline.append([element, entry])
             else:
@@ -693,7 +678,7 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
                     linkpairline.append([stuff, entry])
             linkcorrlist.append(linkpairline)
         count += 1
-    reshaped_linkcorrlist = np.array(_flatten(linkcorrlist)).reshape(-1, 2)
+    reshaped_linkcorrlist = np.array(list(_flatten(linkcorrlist))).reshape(-1, 2)
     final_linkcorrlist = []
     for element in reshaped_linkcorrlist:
         found = False

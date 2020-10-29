@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 # To change this license header, choose License Headers in Project Properties.
 # To change this template file, choose Tools | Templates
 # and open the template in the editor.
@@ -12,10 +10,11 @@
 __author__ = "jangoetze"
 __date__ = "$02-Jan-2018 14:45:17$"
 
+import re
+import sys
+
 
 def mass_from_hes(inpname):
-    import re
-
     ifile = open(inpname)
     mass_map = {
         "H": "1.008",
@@ -156,12 +155,10 @@ def mass_from_hes(inpname):
             break
     ifile.close()
     if len(list_m) != n_a:
-        print "Did not find the same number of atoms as indicated by number of atoms at beginning of geometry!"
+        print("Did not find the same number of atoms as indicated by number of atoms at beginning of geometry!")
         exit(1)
     return list_m
 
 
 if __name__ == "__main__":
-    import sys
-
     mass_from_hes(sys.argv[1])

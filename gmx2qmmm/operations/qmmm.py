@@ -8,17 +8,16 @@
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
+import math
+import re
 
-def logger(log, logstring):
-    from datetime import datetime
+import numpy as np
+import sqlite3
 
-    with open(log, "a") as ofile:
-        ofile.write(str(datetime.now()) + " " + logstring)
+from gmx2qmmm._helper import logger, _flatten
 
 
 def get_full_coords_nm(gro):  # read g96
-    import re
-
     fullcoords = []
     with open(gro) as ifile:
         count = 0
@@ -44,8 +43,6 @@ def get_full_coords_nm(gro):  # read g96
 
 
 def get_full_coords_angstrom(gro):
-    import re
-
     fullcoords = []
     with open(gro) as ifile:
         count = 0
@@ -73,9 +70,6 @@ def get_full_coords_angstrom(gro):
 
 
 def get_atoms(qmmmtop, logfile):
-    import re
-    import math
-
     atoms = []
     mass_map = {
         "H": "1.008",
@@ -287,10 +281,8 @@ def write_mdp(mdpname, nbradius):
 
 
 def get_nbradius(gro):
-    from numpy import array as arr
-    from numpy import linalg as LA
 
-    fullcoords = arr(get_full_coords_nm(gro))
+    fullcoords = np.array(get_full_coords_nm(gro))
     mindist = fullcoords[0]
     maxdist = fullcoords[1]
     for element in fullcoords:
@@ -299,8 +291,8 @@ def get_nbradius(gro):
                 mindist[i] = element[i]
             if float(maxdist[i]) < float(element[i]):
                 maxdist[i] = element[i]
-    maxcoords = arr(maxdist) - arr(mindist)
-    return LA.norm(maxcoords)
+    maxcoords = np.array(maxdist) - np.array(mindist)
+    return np.linalg.norm(maxcoords)
 
 
 def update_gro_box(gro, groname, nbradius, logfile):
@@ -399,8 +391,6 @@ def make_g16_inp(
     logfile,
     nmaflag,
 ):
-    import re
-    from numpy import array as arr
 
     insert = ""
     oldinsert = ""
@@ -440,7 +430,7 @@ def make_g16_inp(
         )
         count = 0
         for element in fullcoords:
-            if int(count + 1) in arr(qmatomlist).astype(int):
+            if int(count + 1) in np.array(qmatomlist).astype(int):
                 ofile.write(
                     "{:<2s} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
                         str(atoms[count]),
@@ -491,8 +481,6 @@ def make_g16_inp(
 
 
 def get_qmforces_au(qmatomlist, m1list, qmmmtop, qminfo, jobname, curr_step, logfile):
-    import re
-    from numpy import array as arr
 
     qmforces = []
     qmonlyforcelist = []
@@ -560,9 +548,9 @@ def get_qmforces_au(qmatomlist, m1list, qmmmtop, qminfo, jobname, curr_step, log
                                 match
                                 and (
                                     int(match.group(1))
-                                    not in arr(qmatomlist).astype(int)
+                                    not in np.array(qmatomlist).astype(int)
                                 )
-                                and (int(match.group(1)) not in arr(m1list).astype(int))
+                                and (int(match.group(1)) not in np.array(m1list).astype(int))
                             ):
                                 curr_charge = float(match.group(7))
                                 qmforces.append(
@@ -573,12 +561,12 @@ def get_qmforces_au(qmatomlist, m1list, qmmmtop, qminfo, jobname, curr_step, log
                                     ]
                                 )
                                 count += 1
-                            elif match and int(match.group(1)) in arr(
+                            elif match and int(match.group(1)) in np.array(
                                 qmatomlist
                             ).astype(int):
                                 qmforces.append(qmonlyforcelist[qmcount])
                                 qmcount += 1
-                            elif match and int(match.group(1)) in arr(m1list).astype(
+                            elif match and int(match.group(1)) in np.array(m1list).astype(
                                 int
                             ):
                                 qmforces.append(
@@ -660,11 +648,6 @@ def get_linkforces_au(
     qminfo,
     qmmminfo,
 ):
-    from compiler.ast import flatten
-    from numpy import array as arr
-    from numpy import linalg as LA
-    import imp
-    import math
 
     rot = imp.load_source("operations", str(basedir + "/operations/expansion_check.py"))
     linkforces = []
@@ -676,7 +659,7 @@ def get_linkforces_au(
         z1 = 0.0
         v1 = []
         v2 = []
-        if int(element[0]) in flatten(m2list):
+        if int(element[0]) in _flatten(m2list):
             for i in range(0, len(m2list)):
                 for j in range(0, len(m2list[i])):
                     if int(m2list[i][j]) == int(element[0]):
@@ -689,7 +672,7 @@ def get_linkforces_au(
                         break
                 if z1 != 0.0:
                     break
-        elif int(element[0]) in arr(qmatomlist).astype(int):
+        elif int(element[0]) in np.array(qmatomlist).astype(int):
             for i in range(0, len(qmatomlist)):
                 if int(qmatomlist[i]) == int(element[0]):
                     z1 = float(qm_corrdata[i][2])
@@ -699,7 +682,7 @@ def get_linkforces_au(
                         xyzq[int(element[0]) - 1][2] / 0.52917721,
                     ]
                     break
-        elif int(element[0]) in arr(m1list).astype(int):
+        elif int(element[0]) in np.array(m1list).astype(int):
             for i in range(0, len(m1list)):
                 if int(m1list[i]) == int(element[0]):
                     z1 = float(qm_corrdata[i + len(qmatomlist)][2])
@@ -717,7 +700,7 @@ def get_linkforces_au(
                 xyzq[int(element[0]) - 1][2] / 0.52917721,
             ]
         z2 = 0.0
-        if int(element[1]) in flatten(m2list):
+        if int(element[1]) in _flatten(m2list):
             for i in range(0, len(m2list)):
                 for j in range(0, len(m2list[i])):
                     if int(m2list[i][j]) == int(element[1]):
@@ -730,7 +713,7 @@ def get_linkforces_au(
                         break
                 if z2 != 0.0:
                     break
-        elif int(element[1]) in arr(qmatomlist).astype(int):
+        elif int(element[1]) in np.array(qmatomlist).astype(int):
             for i in range(0, len(qmatomlist)):
                 if int(qmatomlist[i]) == int(element[1]):
                     z2 = float(qm_corrdata[i][2])
@@ -740,7 +723,7 @@ def get_linkforces_au(
                         xyzq[int(element[1]) - 1][2] / 0.52917721,
                     ]
                     break
-        elif int(element[1]) in arr(m1list).astype(int):
+        elif int(element[1]) in np.array(m1list).astype(int):
             for i in range(0, len(m1list)):
                 if int(m1list[i]) == int(element[1]):
                     z2 = float(qm_corrdata[i + len(qmatomlist)][2])
@@ -757,8 +740,8 @@ def get_linkforces_au(
                 xyzq[int(element[1]) - 1][1] / 0.52917721,
                 xyzq[int(element[1]) - 1][2] / 0.52917721,
             ]
-        v12 = arr(v1) - arr(v2)
-        dist = LA.norm(v12)
+        v12 = np.array(v1) - np.array(v2)
+        dist = np.linalg.norm(v12)
 
         for i in range(0, 3):
             linkforces[int(element[0]) - 1][i] += (
@@ -785,8 +768,8 @@ def get_linkforces_au(
                     xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 for l in range(0, 3):
                     linkforces[int(qmatomlist[k]) - 1][l] += (
                         z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
@@ -801,8 +784,8 @@ def get_linkforces_au(
                     linkatoms[k][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 for l in range(0, 3):
                     linkforces[int(m1list[k]) - 1][l] += (
                         z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
@@ -811,7 +794,7 @@ def get_linkforces_au(
                         z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
                     )
     m2count = 0
-    linkstart = len(pcf) - 2 * len(flatten(m2list))
+    linkstart = len(pcf) - 2 * len(list(_flatten(m2list)))
     for i in range(0, len(m2list)):
         for j in range(0, len(m2list[i]) * 2):
             curr_mod = []
@@ -826,8 +809,8 @@ def get_linkforces_au(
                     xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 for l in range(0, 3):
                     linkforces[int(qmatomlist[k]) - 1][l] += (
                         z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
@@ -839,8 +822,8 @@ def get_linkforces_au(
                     linkatoms[k][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 for l in range(0, 3):
                     linkforces[int(m1list[k]) - 1][l] += (
                         z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
@@ -851,31 +834,31 @@ def get_linkforces_au(
             linkatoms[i][1] / 0.52917721,
             linkatoms[i][2] / 0.52917721,
         ]
+        _flattened = list(_flatten(q1list))
         v2 = [
-            xyzq[int(flatten(q1list)[i]) - 1][0] / 0.52917721,
-            xyzq[int(flatten(q1list)[i]) - 1][1] / 0.52917721,
-            xyzq[int(flatten(q1list)[i]) - 1][2] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][1] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][2] / 0.52917721,
         ]
-        v12 = arr(v2) - arr(v1)
-        dist = LA.norm(v12) / 0.71290813568205
+        v12 = np.array(v2) - np.array(v1)
+        dist = np.linalg.norm(v12) / 0.71290813568205
         u_v12 = rot.uvec(v12)
         dist = dist * 0.5282272551
         forcecorr = databasecorrection(
             "FORCES", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir, logfile
         )
         for j in range(0, 3):
-            linkforces[int(flatten(q1list)[i]) - 1][j] += -u_v12[j] * forcecorr * 0.5
+            linkforces[int(_flattened[i]) - 1][j] += -u_v12[j] * forcecorr * 0.5
             linkforces[int(m1list[i]) - 1][j] += u_v12[j] * forcecorr * 0.5
     return linkforces
 
 
 def make_clean_force(total_force):
-    from numpy import array as arr
 
     clean_force = []
-    for element in arr(total_force):
+    for element in np.array(total_force):
         forceline = []
-        for entry in arr(element):
+        for entry in np.array(element):
             forceline.append(float(entry))
         clean_force.append(forceline)
     return clean_force
@@ -892,18 +875,13 @@ def make_new_g96(
     initstep,
     logfile,
 ):
-    from compiler.ast import flatten
-    from numpy import array as arr
-    import numpy as np
-    import re
-
     dispvec = []
     maxforce = 0.0
     clean_force = make_clean_force(total_force)
     old_clean_force = make_clean_force(last_forces)
     maxatom = -1
     maxcoord = -1
-    check_force = flatten(clean_force)
+    check_force = list(_flatten(clean_force))
     for i in range(0, len(check_force) / 3):
         for j in range(0, 3):
             if abs(float(check_force[i * 3 + j])) > abs(maxforce):
@@ -933,17 +911,19 @@ def make_new_g96(
                     float(element[2]) * float(initstep) / abs(float(maxforce)),
                 ]
             )
-        corr_length = arr(total_force)
+        corr_length = np.array(total_force)
 
     elif propagator == "CONJGRAD" and len(last_forces) != 0:
         # Fletcher-Reeves
-        corr_fac = arr(flatten(clean_force)).dot(arr(flatten(clean_force)))
-        corr_fac /= arr(flatten(old_clean_force)).dot(arr(flatten(old_clean_force)))
+        _flattened = list(_flatten(clean_force))
+        corr_fac = np.array(_flattened).dot(np.array(_flattened))
+        _flattened = list(_flatten(old_clean_force))
+        corr_fac /= np.array(_flattened).dot(np.array(_flattened))
         if z == 0:
-            corr_length = arr(total_force)
+            corr_length = np.array(total_force)
             z += 1
         else:
-            corr_length = arr(total_force) + corr_fac * corr_length
+            corr_length = np.array(total_force) + corr_fac * corr_length
         counter = 0
         for i in range(len(total_force)):
             dispvec.append(
@@ -965,11 +945,11 @@ def make_new_g96(
         )
 
     elif propagator == "BFGS" and len(last_forces) != 0:
-        coords = arr(new_xyzq)[:, 0:3]
-        old_coords = arr(xyzq)[:, 0:3]
+        coords = np.array(new_xyzq)[:, 0:3]
+        old_coords = np.array(xyzq)[:, 0:3]
         old_hessian = np.loadtxt("bfgs_hessian.txt")
-        gradient = arr(total_force)
-        old_gradient = arr(last_forces)
+        gradient = np.array(total_force)
+        old_gradient = np.array(last_forces)
         hessian, hesseig, warning_flag = get_approx_hessian(
             coords, old_coords, gradient, old_gradient, old_hessian, logfile
         )
@@ -1044,11 +1024,9 @@ def make_new_g96(
 
 
 def remove_inactive(total_force, active):
-    from numpy import array as arr
-
     new_total_force = []
     for i in range(0, len(total_force)):
-        if (i + 1) in arr(active).astype(int):
+        if (i + 1) in np.array(active).astype(int):
             new_total_force.append(total_force[i])
         else:
             new_total_force.append([0.0, 0.0, 0.0])
@@ -1159,9 +1137,6 @@ def make_opt_step(
     basedir,
     pathinfo,
 ):
-    from numpy import array as arr
-    import numpy as np
-
     new_gro = str(jobname + "." + str(int(curr_step) + 1) + ".g96")
     new_pcffile = str(jobname + "." + str(int(curr_step) + 1) + ".pointcharges")
     new_xyzq = []
@@ -1521,8 +1496,6 @@ def get_mmenergy(edrname, realprefix, logfile):
 
 
 def get_m2charges(xyzq, m1list, m2list):
-    from numpy import array as arr
-
     m2charges = []
     count = 0
     for element in m1list:
@@ -1580,10 +1553,6 @@ def get_linkenergy_au(
     qmmminfo,
     basedir,
 ):
-    import math
-    from numpy import array as arr
-    from numpy import linalg as LA
-    from compiler.ast import flatten
 
     linkenergy = 0.0
     m2charges = get_m2charges(xyzq, m1list, m2list)
@@ -1591,7 +1560,7 @@ def get_linkenergy_au(
         z1 = 0.0
         v1 = []
         v2 = []
-        if int(element[0]) in arr(flatten(m2list)).astype(int):
+        if int(element[0]) in np.array(list(_flatten(m2list))).astype(int):
             for i in range(0, len(m2list)):
                 for j in range(0, len(m2list[i])):
                     if int(m2list[i][j]) == int(element[0]):
@@ -1604,7 +1573,7 @@ def get_linkenergy_au(
                         break
                 if z1 != 0.0:
                     break
-        elif int(element[0]) in arr(qmatomlist).astype(int):
+        elif int(element[0]) in np.array(qmatomlist).astype(int):
             for i in range(0, len(qmatomlist)):
                 if int(qmatomlist[i]) == int(element[0]):
                     z1 = float(qm_corrdata[i][2])
@@ -1614,7 +1583,7 @@ def get_linkenergy_au(
                         xyzq[int(element[0]) - 1][2] / 0.52917721,
                     ]
                     break
-        elif int(element[0]) in arr(m1list).astype(int):
+        elif int(element[0]) in np.array(m1list).astype(int):
             for i in range(0, len(m1list)):
                 if int(m1list[i]) == int(element[0]):
                     z1 = float(qm_corrdata[i + len(qmatomlist)][2])
@@ -1632,7 +1601,7 @@ def get_linkenergy_au(
                 xyzq[int(element[0]) - 1][2] / 0.52917721,
             ]
         z2 = 0.0
-        if int(element[1]) in flatten(m2list):
+        if int(element[1]) in _flatten(m2list):
             for i in range(0, len(m2list)):
                 for j in range(0, len(m2list[i])):
                     if int(m2list[i][j]) == int(element[1]):
@@ -1645,7 +1614,7 @@ def get_linkenergy_au(
                         break
                 if z2 != 0.0:
                     break
-        elif int(element[1]) in arr(qmatomlist).astype(int):
+        elif int(element[1]) in np.array(qmatomlist).astype(int):
             for i in range(0, len(qmatomlist)):
                 if int(qmatomlist[i]) == int(element[1]):
                     z2 = float(qm_corrdata[i][2])
@@ -1655,7 +1624,7 @@ def get_linkenergy_au(
                         xyzq[int(element[1]) - 1][2] / 0.52917721,
                     ]
                     break
-        elif int(element[1]) in arr(m1list).astype(int):
+        elif int(element[1]) in np.array(m1list).astype(int):
             for i in range(0, len(m1list)):
                 if int(m1list[i]) == int(element[1]):
                     z2 = float(qm_corrdata[i + len(qmatomlist)][2])
@@ -1672,8 +1641,8 @@ def get_linkenergy_au(
                 xyzq[int(element[1]) - 1][1] / 0.52917721,
                 xyzq[int(element[1]) - 1][2] / 0.52917721,
             ]
-        v12 = arr(v1) - arr(v2)
-        dist = LA.norm(v12)
+        v12 = np.array(v1) - np.array(v2)
+        dist = np.linalg.norm(v12)
         linkenergy += z1 * z2 / dist
     # now also all atoms in the corrdata list with the mod and linkcorr point charges
     # mod first. mod is charge in pcffile minus m2charge
@@ -1693,8 +1662,8 @@ def get_linkenergy_au(
                     xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 linkenergy += z1 * curr_mod_charge / dist
             for k in range(0, len(linkatoms)):
                 v1 = [
@@ -1703,12 +1672,12 @@ def get_linkenergy_au(
                     linkatoms[k][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 linkenergy += z1 * curr_mod_charge / dist
     # now linkcorr. linkcorr are last m2*2 entries in pcf
     m2count = 0
-    linkstart = len(pcf) - 2 * len(flatten(m2list))
+    linkstart = len(pcf) - 2 * len(list(_flatten(m2list)))
     for i in range(0, len(m2list)):
         for j in range(0, len(m2list[i])):
             curr_mod = []
@@ -1723,8 +1692,8 @@ def get_linkenergy_au(
                     xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 linkenergy += z1 * curr_mod_charge / dist
             for k in range(0, len(linkatoms)):
                 v1 = [
@@ -1733,8 +1702,8 @@ def get_linkenergy_au(
                     linkatoms[k][2] / 0.52917721,
                 ]
                 z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = arr(v1) - arr(curr_mod)
-                dist = LA.norm(v12)
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
                 linkenergy += z1 * curr_mod_charge / dist
     # now, add the correction of energy for the link atoms. currently only C-C bond cuts supported.
     for i in range(0, len(linkatoms)):
@@ -1743,13 +1712,14 @@ def get_linkenergy_au(
             linkatoms[i][1] / 0.52917721,
             linkatoms[i][2] / 0.52917721,
         ]
+        _flattened = _flatten(q1list)
         v2 = [
-            xyzq[int(flatten(q1list)[i]) - 1][0] / 0.52917721,
-            xyzq[int(flatten(q1list)[i]) - 1][1] / 0.52917721,
-            xyzq[int(flatten(q1list)[i]) - 1][2] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
+            xyzq[int(_flattened(q1list)[i]) - 1][1] / 0.52917721,
+            xyzq[int(_flattened(q1list)[i]) - 1][2] / 0.52917721,
         ]
-        v12 = arr(v2) - arr(v1)
-        dist = LA.norm(v12)
+        v12 = np.array(v2) - np.array(v1)
+        dist = np.linalg.norm(v12)
     dist = dist * 0.7409471631
     energycorr = databasecorrection(
         "ENERGY", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir, logfile
@@ -1978,7 +1948,6 @@ def read_forces(
     qmmminfo,
     pathinfo,
 ):
-    from numpy import array as arr
 
     logger(logfile, str("Reading forces.\n"))
     qmforces = []
@@ -2006,7 +1975,7 @@ def read_forces(
         qmmminfo,
     )
     logger(logfile, str("Forces for link atom correction read.\n"))
-    total_force = arr(qmforces) + arr(mmforces) - arr(linkcorrforces)
+    total_force = np.array(qmforces) + np.array(mmforces) - np.array(linkcorrforces)
     # logger(logfile,str("\n"+str(total_force[106][0])+" "+str(total_force[106][1])+" "+str(total_force[106][2])+"\n"))
     logger(logfile, str("Total forces obtained.\n"))
     # total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
@@ -2042,9 +2011,6 @@ def opt_cycle(
     basedir,
     pathinfo,
 ):
-    import math
-    from numpy import array as arr
-    from compiler.ast import flatten
 
     done = 0
     f_thresh = float(qmmminfo[2])
@@ -2072,7 +2038,7 @@ def opt_cycle(
     )
     clean_force = make_clean_force(total_force)
     maxforce = 0.0
-    for element in flatten(clean_force):
+    for element in _flatten(clean_force):
         if abs(float(element)) > abs(maxforce):
             maxforce = float(element)
     if abs(maxforce) < float(f_thresh):
@@ -2199,9 +2165,6 @@ def scan_cycle(
     basedir,
     pathinfo,
 ):
-    import math
-    from numpy import array as arr
-    from compiler.ast import flatten
 
     # already run sp once
 
@@ -2710,8 +2673,6 @@ def perform_nma(
     basedir,
     pathinfo,
 ):
-    import imp
-    from numpy import array as arr
 
     nma_stuff = imp.load_source("operations", str(basedir + "/operations/nma_stuff.py"))
     write_hess = imp.load_source(
@@ -2773,7 +2734,7 @@ def perform_nma(
         qmmminfo,
         pathinfo,
     )
-    start_grad = arr(start_forces) * -1.0
+    start_grad = np.array(start_forces) * -1.0
     hessian_xyz_full = []
     for curr_atom in active:
         grad_deriv_vec = nma_stuff.get_xyz_2nd_deriv(
@@ -2957,9 +2918,6 @@ def perform_job(
 def databasecorrection(
     energy_or_force, cut, dist, mminfo, qminfo, qmmminfo, basedir, logfile
 ):
-    import numpy as np
-    import sqlite3
-
     forcefield = mminfo[0]
     method = qminfo[1]
     basisset = qminfo[2]
