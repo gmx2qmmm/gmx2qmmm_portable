@@ -38,7 +38,7 @@ def create_pi_conn(coords, size):
             new_neighbor = find_neighbor(coords, i, found_neighbors)
             found_neighbors.append(new_neighbor)
         if len(found_neighbors) < 3:
-            print "Something went wrong with the neighbor search. Exiting."
+            print("Something went wrong with the neighbor search. Exiting.")
             exit(1)
         for element in found_neighbors:
             if element > size:
@@ -75,7 +75,7 @@ def find_conn_element(a, b, conns, size):
                 ele = conns[b][i] - 1
                 break
     if ele == -1:
-        print "No third atom found for rotation! Exiting."
+        print("No third atom found for rotation! Exiting.")
         exit(0)
     return ele
 
@@ -146,7 +146,7 @@ def angle3d(v1, v2):
     from numpy import linalg as LA
 
     if LA.norm(v1) == 0.0 or LA.norm(v2) == 0.0:
-        print "Requested angle between vectors of length 0, which is impossible. Exiting."
+        print("Requested angle between vectors of length 0, which is impossible. Exiting.")
         exit(1)
     angle = acos(dot(uvec(v1), uvec(v2)))
     return angle
@@ -185,7 +185,7 @@ def rotate_planar(coords, a, b, c):
             break
     bc = arr(c_c) - arr(b_c)
     if angle3d(uvec(ab), uvec(bc)) < 0.000001:
-        print "Collinear pi system detected. This is not a properly defined system (linear bonds?). Exiting."
+        print("Collinear pi system detected. This is not a properly defined system (linear bonds?). Exiting.")
         exit(0)
     torsion = math.atan2(
         dot(

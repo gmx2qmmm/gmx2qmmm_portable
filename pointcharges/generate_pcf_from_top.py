@@ -15,10 +15,12 @@
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 
+import re
+import os
+import sys
+
 
 def checkformol(molname, inp):
-    import re
-
     with open(inp) as ifile:
         correct = False
         for line in ifile:
@@ -43,9 +45,6 @@ def checkformol(molname, inp):
 
 
 def getincludelist(inp, pathinfo):
-    import re
-    import os.path
-
     gmxtop_path = pathinfo[8]
     toplist = []
     with open(inp) as ifile:
@@ -73,7 +72,7 @@ def getincludelist(inp, pathinfo):
                     foundname = gmxtop_path + foundname
                     check = os.path.isfile(foundname)
                     if not check:
-                        print "File " + foundname + " was not found. Maybe update the gmxpath variable in the script? Exiting."
+                        print("File " + foundname + " was not found. Maybe update the gmxpath variable in the script? Exiting.")
                         exit(1)
                 toplist.append(foundname)
 
@@ -82,8 +81,6 @@ def getincludelist(inp, pathinfo):
 
 
 def readcharges(molvecentry, top, pathinfo):
-    import re
-
     cvec = []
     curr_top = top
     molname = molvecentry[0]
@@ -100,7 +97,7 @@ def readcharges(molvecentry, top, pathinfo):
                 curr_top = element
                 break
     if not found:
-        print "No charges found for " + str(molname) + ". Exiting."
+        print("No charges found for " + str(molname) + ". Exiting.")
         exit(1)
     with open(curr_top) as ifile:
         for line in ifile:
@@ -152,8 +149,6 @@ def readcharges(molvecentry, top, pathinfo):
 
 
 def readg96(inp):
-    import re
-
     coords = []
     with open(inp) as ifile:
         count = 0
@@ -178,8 +173,6 @@ def readg96(inp):
 
 
 def readgeo(inp):
-    import re
-
     coords = []
     n_a = 0
     with open(inp) as ifile:
@@ -191,7 +184,7 @@ def readgeo(inp):
                 n_a = int(match.group(1))
                 break
             else:
-                print ".gro is corrupt (no number of atoms found, second line). Exiting."
+                print(".gro is corrupt (no number of atoms found, second line). Exiting.")
                 exit(1)
         count = 1
         for line in ifile:
@@ -205,9 +198,9 @@ def readgeo(inp):
                 coords.append(float(match.group(6)) * 10.0)
                 coords.append(float(match.group(7)) * 10.0)
             else:
-                print ".gro is corrupt. Exiting."
-                print "Last line:"
-                print line
+                print(".gro is corrupt. Exiting.")
+                print("Last line:")
+                print(line)
                 exit(1)
             count += 1
             if count > n_a:
@@ -216,8 +209,6 @@ def readgeo(inp):
 
 
 def readmols(top):
-    import re
-
     mollist = []
     with open(top) as ifile:
         found = False
@@ -227,7 +218,7 @@ def readmols(top):
                 found = True
                 break
         if not found:
-            print 'No "molecules" entry in ' + str(top) + " found. Exiting."
+            print('No "molecules" entry in ' + str(top) + " found. Exiting.")
             exit(1)
         for line in ifile:
             match = re.search(r"^;", line, flags=re.MULTILINE)
@@ -238,9 +229,9 @@ def readmols(top):
                 if match:
                     mollist.append([match.group(1), match.group(2)])
                 else:
-                    print "Found an incomprehensible line in molecules list. Exiting."
-                    print "Last line was:"
-                    print line
+                    print("Found an incomprehensible line in molecules list. Exiting.")
+                    print("Last line was:")
+                    print(line)
                     exit(1)
     return mollist
 
@@ -256,8 +247,6 @@ def makeout(coords, charges, name):
 
 
 def generate_pcf_from_top(gro, top, out, pathinfo):
-    import re
-
     chargevec = []
     mollist = readmols(top)
     for element in mollist:
@@ -270,16 +259,14 @@ def generate_pcf_from_top(gro, top, out, pathinfo):
         geo = readgeo(gro)
 
     if len(geo) != 3 * len(chargevec):
-        print "Not all atoms (" + str(
+        print("Not all atoms (" + str(
             len(geo) / 3.0
         ) + ") were replaced by charges (" + str(
             len(chargevec)
-        ) + ") in full iteration step! Exiting."
+        ) + ") in full iteration step! Exiting.")
         exit(1)
     makeout(geo, chargevec, out)
 
 
 if __name__ == "__main__":
-    import sys
-
     generate_pcf_from_top(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

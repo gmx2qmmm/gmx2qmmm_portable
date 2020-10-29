@@ -10,14 +10,14 @@
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 
+import re
+
+import numpy as np
+
 
 def sum_pcf_tm(inp, x, y, z):
-    import re
-    from numpy import array as arr
-    from numpy import linalg as LA
-
     base = [float(x), float(y), float(z)]
-    sumvec = arr([0.0, 0.0, 0.0])
+    sumvec = np.array([0.0, 0.0, 0.0])
     with open(inp) as ifile:
         for line in ifile:
             match = re.search(
@@ -32,37 +32,29 @@ def sum_pcf_tm(inp, x, y, z):
                     float(match.group(3)),
                 ]
                 new_charge = float(match.group(4))
-                distvec = arr(new_vec) - arr(base)
-                qdistvec = arr(distvec) * new_charge
+                distvec = np.array(new_vec) - np.array(base)
+                qdistvec = np.array(distvec) * new_charge
                 sumvec += qdistvec
     return sumvec
 
 
 def sum_pcf_tm_nofile(inp, x, y, z):
-    import re
-    from numpy import array as arr
-    from numpy import linalg as LA
-
     base = [float(x), float(y), float(z)]
-    sumvec = arr([0.0, 0.0, 0.0])
+    sumvec = np.array([0.0, 0.0, 0.0])
     for element in inp:
         if element[0] == "QM":
             continue
         new_vec = [float(element[0]), float(element[1]), float(element[2])]
         new_charge = float(element[3])
-        distvec = arr(new_vec) - arr(base)
-        qdistvec = arr(distvec) * new_charge
+        distvec = np.array(new_vec) - np.array(base)
+        qdistvec = np.array(distvec) * new_charge
         sumvec += qdistvec
     return sumvec
 
 
 def sum_pcf_tm_red(inp, x, y, z, atomlist):
-    import re
-    from numpy import array as arr
-    from numpy import linalg as LA
-
     base = [float(x), float(y), float(z)]
-    sumvec = arr([0.0, 0.0, 0.0])
+    sumvec = np.array([0.0, 0.0, 0.0])
     count = 0
     with open(inp) as ifile:
         for line in ifile:
@@ -83,8 +75,8 @@ def sum_pcf_tm_red(inp, x, y, z, atomlist):
                 new_charge = float(match.group(4))
                 if count != 5926:
                     new_charge += 0.233333333
-                distvec = arr(new_vec) - arr(base)
-                qdistvec = arr(distvec) * new_charge
+                distvec = np.array(new_vec) - np.array(base)
+                qdistvec = np.array(distvec) * new_charge
                 sumvec += qdistvec
     return sumvec
 
