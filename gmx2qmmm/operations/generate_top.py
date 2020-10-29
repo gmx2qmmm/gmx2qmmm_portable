@@ -95,7 +95,7 @@ def molfinder(top, includelist, molname):
         if foundtop != "":
             break
     if foundtop == "":
-        print "Molecule " + str(molname) + " was not found in any top. Exiting."
+        print("Molecule " + str(molname) + " was not found in any top. Exiting.")
         exit(1)
     return foundtop
 
@@ -1102,9 +1102,9 @@ def make_new_top(
                     atom
                 ) > int(curr_offset):
                     # the unique molecule contains a qm atom
-                    print "Ding"
+                    print("Ding")
                 else:
-                    print "Dong"
+                    print("Dong")
         for i in range(0, int(molecule[1])):
             curr_offset += mollength[molcount]
         molcount += 1

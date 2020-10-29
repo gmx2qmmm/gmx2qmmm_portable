@@ -11,9 +11,15 @@
 __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
+import importlib
+import math
+import sys
+
+import numpy as np
+
 
 def find_neighbor(coords, curr_atom, found_list, basedir):
-    zmatlib = imp.load_source(
+    zmatlib = importlib.load_source(
         "operations", str(basedir + "/operations/xyz_zmat_g16RevA.02.py")
     )
     distmat = zmatlib.make_distmat(coords)
@@ -81,59 +87,47 @@ def find_conn_element(a, b, conns, size):
 
 
 def uvec(vec):
-    from numpy import linalg as LA
-    from numpy import array as arr
-
-    v = arr(vec) / LA.norm(arr(vec))
+    v = np.array(vec) / np.linalg.norm(np.array(vec))
     return v
 
 
 def rotate3dZ180(c):
-    from numpy import dot as dot
-
     new_coords = []
     rotmat = [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]
     for i in range(0, len(c) / 3):
         curr = []
         for j in range(0, 3):
             curr.append(c[i * 3 + j])
-        new_curr = dot(rotmat, curr)
+        new_curr = np.dot(rotmat, curr)
         new_coords.extend(new_curr)
     return new_coords
 
 
 def rotate3d(c, rotvec, angle):
-    from numpy import dot as dot
-    from numpy import linalg as LA
-    from numpy import cross as cross
-    from numpy import cos as cos
-    from numpy import sin as sin
-    from numpy import array as arr
-
     new_coords = []
     rotmat = [
         [
-            cos(angle) + rotvec[0] * rotvec[0] * (1.0 - cos(angle)),
-            rotvec[0] * rotvec[1] * (1.0 - cos(angle)) - rotvec[2] * sin(angle),
-            rotvec[0] * rotvec[2] * (1.0 - cos(angle)) + rotvec[1] * sin(angle),
+            np.cos(angle) + rotvec[0] * rotvec[0] * (1.0 - np.cos(angle)),
+            rotvec[0] * rotvec[1] * (1.0 - np.cos(angle)) - rotvec[2] * np.sin(angle),
+            rotvec[0] * rotvec[2] * (1.0 - np.cos(angle)) + rotvec[1] * np.sin(angle),
         ],
         [
-            rotvec[0] * rotvec[1] * (1.0 - cos(angle)) + rotvec[2] * sin(angle),
-            cos(angle) + rotvec[1] * rotvec[1] * (1.0 - cos(angle)),
-            rotvec[1] * rotvec[2] * (1.0 - cos(angle)) - rotvec[0] * sin(angle),
+            rotvec[0] * rotvec[1] * (1.0 - np.cos(angle)) + rotvec[2] * np.sin(angle),
+            np.cos(angle) + rotvec[1] * rotvec[1] * (1.0 - np.cos(angle)),
+            rotvec[1] * rotvec[2] * (1.0 - np.cos(angle)) - rotvec[0] * np.sin(angle),
         ],
         [
-            rotvec[0] * rotvec[2] * (1.0 - cos(angle)) - rotvec[1] * sin(angle),
-            rotvec[1] * rotvec[2] * (1.0 - cos(angle)) + rotvec[0] * sin(angle),
-            cos(angle) + rotvec[2] * rotvec[2] * (1.0 - cos(angle)),
+            rotvec[0] * rotvec[2] * (1.0 - np.cos(angle)) - rotvec[1] * np.sin(angle),
+            rotvec[1] * rotvec[2] * (1.0 - np.cos(angle)) + rotvec[0] * np.sin(angle),
+            np.cos(angle) + rotvec[2] * rotvec[2] * (1.0 - np.cos(angle)),
         ],
     ]
     for i in range(0, len(c) / 3):
         curr = []
         for j in range(0, 3):
             curr.append(float(c[i * 3 + j]))
-        if LA.norm(curr) > 0.0000001:
-            new_curr = dot(arr(rotmat), arr(uvec(curr))) * LA.norm(curr)
+        if np.linalg.norm(curr) > 0.0000001:
+            new_curr = np.dot(np.array(rotmat), np.array(uvec(curr))) * np.linalg.norm(curr)
             new_coords.extend(new_curr)
         else:
             new_coords.extend(curr)
@@ -141,58 +135,50 @@ def rotate3d(c, rotvec, angle):
 
 
 def angle3d(v1, v2):
-    from numpy import dot as dot
-    from numpy import arccos as acos
-    from numpy import linalg as LA
 
-    if LA.norm(v1) == 0.0 or LA.norm(v2) == 0.0:
+    if np.linalg.norm(v1) == 0.0 or np.linalg.norm(v2) == 0.0:
         print("Requested angle between vectors of length 0, which is impossible. Exiting.")
         exit(1)
-    angle = acos(dot(uvec(v1), uvec(v2)))
+    angle = np.arcos(np.dot(uvec(v1), uvec(v2)))
     return angle
 
 
 def rotate_planar(coords, a, b, c):
-    from numpy import dot as dot
-    from numpy import cross as cross
-    from numpy import array as arr
-    import math
-
     rot_coords = []
     a_c = [coords[a * 3 + 0], coords[a * 3 + 1], coords[a * 3 + 2]]
     b_c = [coords[b * 3 + 0], coords[b * 3 + 1], coords[b * 3 + 2]]
     c_c = [coords[c * 3 + 0], coords[c * 3 + 1], coords[c * 3 + 2]]
-    ab = arr(b_c) - arr(a_c)
+    ab = np.array(b_c) - np.array(a_c)
     if angle3d(uvec(ab), [1.0, 0.0, 0.0]) > (math.pi - 0.01):
         curr_coords = rotate3dZ180(coords)
         a_c = [curr_coords[a * 3 + 0], curr_coords[a * 3 + 1], curr_coords[a * 3 + 2]]
         b_c = [curr_coords[b * 3 + 0], curr_coords[b * 3 + 1], curr_coords[b * 3 + 2]]
         c_c = [curr_coords[c * 3 + 0], curr_coords[c * 3 + 1], curr_coords[c * 3 + 2]]
-        ab = arr(b_c) - arr(a_c)
+        ab = np.array(b_c) - np.array(a_c)
         coords = curr_coords
     count = 0
     while angle3d(uvec(ab), [1.0, 0.0, 0.0]) > 0.000001:
-        rotvec = uvec(cross(uvec(ab), [1.0, 0.0, 0.0]))
+        rotvec = uvec(np.cross(uvec(ab), [1.0, 0.0, 0.0]))
         # print angle3d(uvec(ab),[1.,0.0,0.0])
         curr_coords = rotate3d(coords, rotvec, angle3d(uvec(ab), [1.0, 0.0, 0.0]))
         a_c = [curr_coords[a * 3 + 0], curr_coords[a * 3 + 1], curr_coords[a * 3 + 2]]
         b_c = [curr_coords[b * 3 + 0], curr_coords[b * 3 + 1], curr_coords[b * 3 + 2]]
         c_c = [curr_coords[c * 3 + 0], curr_coords[c * 3 + 1], curr_coords[c * 3 + 2]]
-        ab = arr(b_c) - arr(a_c)
+        ab = np.array(b_c) - np.array(a_c)
         coords = curr_coords
         count += 1
         if count > 5:
             break
-    bc = arr(c_c) - arr(b_c)
+    bc = np.array(c_c) - np.array(b_c)
     if angle3d(uvec(ab), uvec(bc)) < 0.000001:
         print("Collinear pi system detected. This is not a properly defined system (linear bonds?). Exiting.")
         exit(0)
     torsion = math.atan2(
-        dot(
-            cross(cross([0.0, -1.0, 0.0], uvec(ab)), cross(uvec(ab), uvec(bc))),
+        np.dot(
+            np.cross(np.cross([0.0, -1.0, 0.0], uvec(ab)), np.cross(uvec(ab), uvec(bc))),
             uvec(ab),
         ),
-        dot(cross([0.0, -1.0, 0.0], uvec(ab)), cross(uvec(ab), uvec(bc))),
+        np.dot(np.cross([0.0, -1.0, 0.0], uvec(ab)), np.cross(uvec(ab), uvec(bc))),
     )
     rot_coords = rotate3d(coords, uvec(ab), -1.0 * torsion)
     return rot_coords
@@ -235,15 +221,10 @@ def get_expansion(c1, c2, a, b, conns, size):
 
 
 def expansion_check(inp1, inp2, inp3, basedir):
-
-    import sys
-    import imp
-    import math
-
-    getxyz = imp.load_source(
+    getxyz = importlib.load_source(
         "operations", str(basedir + "/operations/geo_xyz_g09RevA.02.log.py")
     )
-    extrxyz = imp.load_source(
+    extrxyz = importlib.load_source(
         "operations", str(basedir + "/operations/geo_from_xyz.py")
     )
     getxyz.geo_xyz_g09RevA02log(inp1, "temp.xyz")
@@ -286,7 +267,7 @@ def expansion_check(inp1, inp2, inp3, basedir):
             min_diff_y[0] = element[0]
             min_diff_y[1] = element[1]
             min_diff_y[2] = element[2]
-    print "Min, max main coord diff: ( " + str(min_diff_x[0]) + " / " + str(
+    print("Min, max main coord diff: ( " + str(min_diff_x[0]) + " / " + str(
         min_diff_x[1]
     ) + " ): " + str(min_diff_x[2]) + " , ( " + str(max_diff_x[0]) + " / " + str(
         max_diff_x[1]
@@ -304,10 +285,8 @@ def expansion_check(inp1, inp2, inp3, basedir):
         max_diff_y[1]
     ) + " ): " + str(
         max_diff_y[2]
-    )
+    ))
 
 
 if __name__ == "__main__":
-    import sys
-
     expansion_check(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

@@ -2816,9 +2816,9 @@ def perform_nma(
     evals, nm_matrix = nma.nma_3Nminus6dof_asfunction(
         str(qmmminfo[0] + ".hess"), basedir
     )
-    print nma_stuff.log_nma(
+    print(nma_stuff.log_nma(
         qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, prep_hess
-    )
+    ))
 
 
 def perform_job(
@@ -3085,5 +3085,5 @@ def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess, logfile):
 
 
 if __name__ == "__main__":
-    print "This file serves as a library for gmx2qmmm-related functions."
-    print "Do not execute directly. Use gmx2qmmm instead."
+    print("This file serves as a library for gmx2qmmm-related functions.")
+    print("Do not execute directly. Use gmx2qmmm instead.")

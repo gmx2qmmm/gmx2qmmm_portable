@@ -12,13 +12,18 @@ __date__ = "$06-Feb-2018 12:45:17$"
 
 import collections
 import datetime
-import importlib
 import re
 import os
 import subprocess
 import sys
 
 import numpy as np
+
+from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
+from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
+from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
+from gmx2qmmm.operations import generate_top as topprep
+from gmx2qmmm.operations import qmmm
 
 
 def _flatten(x):
@@ -36,6 +41,7 @@ def logger(log, logstring):
 
 
 def get_mollength_direct(molname, top):
+    """"""
     mollength = 0
     with open(top) as ifile:
         # print str(top) + " is open"
@@ -91,9 +97,6 @@ def get_mollength_direct(molname, top):
 
 
 def get_curr_top(molname, top, basedir):
-    make_pcf = imporlib.load_source(
-        "operations", str(basedir + "/pointcharges/generate_pcf_from_top.py")
-    )
     curr_top = top
     found = make_pcf.checkformol(molname, top)
 
@@ -962,19 +965,7 @@ def gmx2qmmm(cmd_options):
     gro = stepper(gro, step)
 
     logger(logfile, "Initializing dependencies...")
-    make_pcf = importlib.load_source(
-        "operations", str(basedir + "/pointcharges/generate_pcf_from_top.py")
-    )
-    prep_pcf = importlib.load_source(
-        "operations", str(basedir + "/pointcharges/prepare_pcf_for_shift.py")
-    )
-    final_pcf = importlib.load_source(
-        "operations", str(basedir + "/pointcharges/generate_charge_shift.py")
-    )
-    topprep = importlib.load_source(
-        "operations", str(basedir + "/operations/generate_top.py")
-    )
-    qmmm = importlib.load_source("operations", str(basedir + "/operations/qmmm.py"))
+
     logger(logfile, "complete.\n")
     chargevec = []
     logger(logfile, "Trying to understand your MM files.\n")
