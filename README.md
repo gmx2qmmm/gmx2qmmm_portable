@@ -56,8 +56,10 @@ The executed example with default parameters is  `python gmx2qmmm.py`
 For advance information please read [gmx2qmmm reference].
 
 ## Examples
-The directory example contains SP and OPT calculation for glycine serine (GLYSER). The names of the input files are default.
-Go to the sp/opt directory on the command line:
+The directory example contains SP and OPT calculation for glycine serine (GLYSER). 
+![alt text](https://github.com/gmx2qmmm/gmx2qmmm_portable/blob/master/example/glyser.png?raw=true)
+
+The names of the input files are default. Go to the sp/opt directory on the command line:
 
 ```
 python gmx2qmmm.py
