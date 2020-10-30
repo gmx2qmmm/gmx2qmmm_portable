@@ -885,7 +885,7 @@ def make_new_g96(
     maxatom = -1
     maxcoord = -1
     check_force = list(_flatten(clean_force))
-    for i in range(0, len(check_force) / 3):
+    for i in range(0, int(len(check_force) / 3)):
         for j in range(0, 3):
             if abs(float(check_force[i * 3 + j])) > abs(maxforce):
                 maxforce = float(check_force[i * 3 + j])
@@ -1274,8 +1274,6 @@ def make_opt_step(
 
 
 def g96_to_gro(inp, out, logfile):
-    import re
-
     with open(out, "w") as ofile:
         n_a = 0
         with open(inp) as ifile:
@@ -1364,8 +1362,6 @@ def g96_to_gro(inp, out, logfile):
 
 
 def read_pcf_self(qmfile):
-    import re
-
     pcf_self = 0.0
     with open(qmfile + ".log") as ifile:
         for line in ifile:
@@ -1627,9 +1623,7 @@ def get_linkenergy_au(
         linkenergy += z1 * z2 / dist
     # now also all atoms in the corrdata list with the mod and linkcorr point charges
     # mod first. mod is charge in pcffile minus m2charge
-    print(pcffile)
     pcf = read_pcffile(pcffile)
-    print(pcf)
     for i in range(0, len(m2list)):
         for j in range(0, len(m2list[i])):
             curr_mod = []
@@ -1698,8 +1692,8 @@ def get_linkenergy_au(
         _flattened = list(_flatten(q1list))
         v2 = [
             xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
-            xyzq[int(_flattened(q1list)[i]) - 1][1] / 0.52917721,
-            xyzq[int(_flattened(q1list)[i]) - 1][2] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][1] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][2] / 0.52917721,
         ]
         v12 = np.array(v2) - np.array(v1)
         dist = np.linalg.norm(v12)
@@ -2886,7 +2880,7 @@ def databasecorrection(
     basisset = qminfo[2]
     fit = qmmminfo[8]
 
-    conn = sqlite3.connect(basedir + "/correction_database/database.sqlite")
+    conn = sqlite3.connect(basedir + "/../correction_database/database.sqlite")
 
     # check if method exist in database
     method_set = conn.cursor()
@@ -2973,8 +2967,6 @@ def databasecorrection(
 
 
 def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess, logfile):
-    import numpy as np
-
     s = xyz - old_xyz
     if s.shape[1] != 1:
         s = s.reshape(3 * len(s), 1)  # reshape s so it can be used in dot products

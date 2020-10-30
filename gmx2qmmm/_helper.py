@@ -25,13 +25,13 @@ def stepper(filename, step):
     else:
         if len(filename) > 7:
             if filename[-7:] == ".fort.7":
-                new_filename == str(filename[:-7] + "." + str(step) + ".fort.7")
+                new_filename = str(filename[:-7] + "." + str(step) + ".fort.7")
                 return new_filename
         for i in range(0, len(filename)):
             buffer = 0
             if filename[i] == ".":
                 buffer = i
-        new_filename == str(filename[:buffer] + "." + str(step) + filename[buffer:])
+        new_filename = str(filename[:buffer] + "." + str(step) + filename[buffer:])
         return new_filename
 
 
