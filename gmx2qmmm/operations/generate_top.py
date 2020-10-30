@@ -14,6 +14,8 @@ __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 
 import os
+import re
+import numpy as np
 
 from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
@@ -178,8 +180,6 @@ def get_mollength(molfindlist):
 
 
 def clean_exclusions(excludedata, n_a, logfile):
-    from numpy import array as arr
-
     logger(logfile, str("Cleaning exclusion list...\n"))
     new_excludedata = []
     for i in range(1, n_a + 1):
@@ -187,11 +187,11 @@ def clean_exclusions(excludedata, n_a, logfile):
         new_excludedata.append(new_excludeline)
     for element in excludedata:
         for j in range(1, len(element)):
-            if int(element[j]) > int(element[0]) and int(element[j]) not in arr(
+            if int(element[j]) > int(element[0]) and int(element[j]) not in np.array(
                 new_excludedata[int(element[0]) - 1]
             ).astype(int):
                 new_excludedata[int(element[0]) - 1].append(int(element[j]))
-            if int(element[j]) < int(element[0]) and int(element[0]) not in arr(
+            if int(element[j]) < int(element[0]) and int(element[0]) not in np.array(
                 new_excludedata[int(element[j]) - 1]
             ).astype(int):
                 new_excludedata[int(element[j]) - 1].append(int(element[0]))
@@ -204,8 +204,6 @@ def clean_exclusions(excludedata, n_a, logfile):
 
 
 def cleanagain_exclusions(excludedata, logfile):
-    from numpy import array as arr
-
     logger(logfile, str("Formatting exclusion list...\n"))
     new_excludedata = []
     for element in excludedata:
@@ -231,10 +229,6 @@ def make_large_top(
     flaglist,
     logfile,
 ):
-    import re
-    from numpy import array as arr
-    from compiler.ast import flatten
-
     mollength = get_mollength(molfindlist)
     red_molfindlist = []
     for entry in molfindlist:
@@ -945,7 +939,7 @@ def make_large_top(
         ofile.write("\n[ moleculetype ]\nQMMM_model     3\n\n[ atoms ]\n")
         ffnb = find_ffnonbonded(includedata, logfile)
         for element in atomdata:
-            if int(element[0]) in arr(qmatomlist).astype(int):
+            if int(element[0]) in np.array(qmatomlist).astype(int):
                 ofile.write(
                     "{:>6d} {:>10s} {:>6d} {:>6s} {:>6s} {:>6d} {:>10.4f}".format(
                         int(element[0]),
@@ -978,8 +972,8 @@ def make_large_top(
             ofile.write("\n")
         ofile.write("\n[ bonds ]\n")
         for element in bonddata:
-            if (int(element[0]) in arr(qmatomlist).astype(int)) or (
-                int(element[1]) in arr(qmatomlist).astype(int)
+            if (int(element[0]) in np.array(qmatomlist).astype(int)) or (
+                int(element[1]) in np.array(qmatomlist).astype(int)
             ):
                 excludeline = [element[0], element[1]]
                 excludedata.append(excludeline)
@@ -995,11 +989,11 @@ def make_large_top(
         ofile.write("\n[ angles ]\n")
         for element in angledata:
             if (
-                (int(element[0]) in arr(qmatomlist).astype(int))
-                and (int(element[1]) in arr(qmatomlist).astype(int))
+                (int(element[0]) in np.array(qmatomlist).astype(int))
+                and (int(element[1]) in np.array(qmatomlist).astype(int))
             ) or (
-                (int(element[1]) in arr(qmatomlist).astype(int))
-                and (int(element[2]) in arr(qmatomlist).astype(int))
+                (int(element[1]) in np.array(qmatomlist).astype(int))
+                and (int(element[2]) in np.array(qmatomlist).astype(int))
             ):
                 excludeline = [element[0], element[2]]
                 excludedata.append(excludeline)
@@ -1010,13 +1004,13 @@ def make_large_top(
         ofile.write("\n[ dihedrals ]\n")
         for element in dihedraldata:
             if (
-                (int(element[0]) in arr(qmatomlist).astype(int))
-                and (int(element[1]) in arr(qmatomlist).astype(int))
-                and (int(element[2]) in arr(qmatomlist).astype(int))
+                (int(element[0]) in np.array(qmatomlist).astype(int))
+                and (int(element[1]) in np.array(qmatomlist).astype(int))
+                and (int(element[2]) in np.array(qmatomlist).astype(int))
             ) or (
-                (int(element[1]) in arr(qmatomlist).astype(int))
-                and (int(element[2]) in arr(qmatomlist).astype(int))
-                and (int(element[3]) in arr(qmatomlist).astype(int))
+                (int(element[1]) in np.array(qmatomlist).astype(int))
+                and (int(element[2]) in np.array(qmatomlist).astype(int))
+                and (int(element[3]) in np.array(qmatomlist).astype(int))
             ):
                 excludeline = [element[0], element[3]]
                 excludedata.append(excludeline)
@@ -1026,7 +1020,7 @@ def make_large_top(
             ofile.write("\n")
         ofile.write("\n[ settles ]\n")
         for element in settledata:
-            if int(element[0]) in arr(qmatomlist).astype(int):
+            if int(element[0]) in np.array(qmatomlist).astype(int):
                 continue
             for entry in element:
                 ofile.write(str(entry) + " ")
@@ -1058,9 +1052,6 @@ def make_large_top(
 def make_new_top(
     top, molfindlist, mollist, mollength, qmatomlist, includelist, outname
 ):
-    import re
-    from numpy import array as arr
-
     new_mollist = mollist
     molcount = 0
     curr_offset = 0

@@ -201,7 +201,7 @@ def write_new_field_to_disk_listsonly(inp, ofilename, new_field, getlist, m2_nol
     m2count = 0
     for element in inp:
         count += 1
-        if int(count) in np.array(_flatten(m2list)).astype(int):
+        if int(count) in np.array(list(_flatten(m2list))).astype(int):
             if len(element) != 4:
                 print("Line " + str(count) + " does not contain data. Exiting.")
                 exit(1)
@@ -224,7 +224,7 @@ def write_new_field_to_disk_listsonly(inp, ofilename, new_field, getlist, m2_nol
                 if i != len(element) - 1:
                     ofile.write(" ")
             ofile.write("\n")
-    for i in range(len(_flatten(m2list)), len(new_field)):
+    for i in range(len(list(_flatten(m2list))), len(new_field)):
         ofile.write(
             "{:<.10f} {:<.10f} {:<.10f} {:<.10f}\n".format(
                 float(new_field[i][0]),

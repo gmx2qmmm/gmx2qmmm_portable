@@ -17,7 +17,8 @@ import sys
 
 import numpy as np
 
-from gmx2qmmm._helper import _flatten, logger
+from gmx2qmmm._helper import _flatten, logger, stepper
+from gmx2qmmm._helper import get_linkatoms_ang, make_xyzq
 from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
@@ -181,22 +182,6 @@ def read_conn_list_from_top(top, mollist, basedir):
             connlist += connset
             count += int(mollength)
     return connlist
-
-
-def make_xyzq(geo, chargevec):
-    xyzq = []
-    count = 0
-    for element in chargevec:
-        xyzq.append(
-            [
-                float(geo[count * 3 + 0]),
-                float(geo[count * 3 + 1]),
-                float(geo[count * 3 + 2]),
-                float(element),
-            ]
-        )
-        count += 1
-    return xyzq
 
 
 def read_pathparams(inp):
@@ -458,55 +443,6 @@ def write_charge_field(charges, outname):
                 )
             )
         ofile.write("$end\n")
-
-
-def get_linkatoms_ang(xyzq, qmatomlist, m1list, connlist, prev_scalefacs):
-    linkatoms = []
-    pairlist = []
-    for entry in m1list:
-        pair = []
-        for i in range(0, len(connlist)):
-            if int(entry) in np.array(connlist[i]).astype(int):
-                if int(entry) == int(connlist[i][0]):
-                    for j in range(0, len(connlist[i])):
-                        if int(connlist[i][j]) in np.array(qmatomlist).astype(int):
-                            pair = [int(connlist[i][j]), int(entry)]
-                            pairlist.append(pair)
-                            break
-                    break
-                else:
-                    if int(connlist[i][0]) in np.array(qmatomlist).astype(int):
-                        pair = [int(connlist[i][0]), int(entry)]
-                        pairlist.append(pair)
-                        break
-    count = 0
-    for entry in pairlist:
-        linkcoords = []
-        q = [
-            float(xyzq[entry[0] - 1][0]),
-            float(xyzq[entry[0] - 1][1]),
-            float(xyzq[entry[0] - 1][2]),
-        ]
-        m = [
-            float(xyzq[entry[1] - 1][0]),
-            float(xyzq[entry[1] - 1][1]),
-            float(xyzq[entry[1] - 1][2]),
-        ]
-        qmvec = np.array(m) - np.array(q)
-        scalefac = 0.71290813568205  # ratio between B3LYP/6-31G* optimum of C-C in butane vs C-Link relaxed butane
-
-        if len(prev_scalefacs) != 0:
-            scalefac = prev_scalefacs[count][3]
-        qmvec_norm_scale = np.array(qmvec) * scalefac
-        linkcoords = [
-            float(qmvec_norm_scale[0]) + float(q[0]),
-            float(qmvec_norm_scale[1]) + float(q[1]),
-            float(qmvec_norm_scale[2]) + float(q[2]),
-            float(scalefac),
-        ]
-        linkatoms.append(linkcoords)
-        count += 1
-    return linkatoms
 
 
 def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
@@ -870,22 +806,6 @@ def read_options(cmd_options):
     logfile = find_optentry("-g", new_cmd_options)
     path = find_optentry("-path", new_cmd_options)
     return gro, top, qmatoms, qmparams, mmparams, qmmmparams, activefile, logfile, path
-
-
-def stepper(filename, step):
-    if step == 0:
-        return filename
-    else:
-        if len(filename) > 7:
-            if filename[-7:] == ".fort.7":
-                new_filename == str(filename[:-7] + "." + str(step) + ".fort.7")
-                return new_filename
-        for i in range(0, len(filename)):
-            buffer = 0
-            if filename[i] == ".":
-                buffer = i
-        new_filename == str(filename[:buffer] + "." + str(step) + filename[buffer:])
-        return new_filename
 
 
 def add_gmxpath(basedir, path):

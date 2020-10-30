@@ -9,12 +9,23 @@ __author__ = "jangoetze"
 __date__ = "$06-Feb-2018 12:45:17$"
 
 import math
+import os
 import re
+import subprocess
 
 import numpy as np
 import sqlite3
 
-from gmx2qmmm._helper import logger, _flatten
+from gmx2qmmm._helper import logger, _flatten, stepper
+from gmx2qmmm._helper import get_linkatoms_ang, make_xyzq
+from gmx2qmmm.operations import expansion_check as rot
+from gmx2qmmm.operations import scan as scan_func
+from gmx2qmmm.operations import nma_stuff
+from gmx2qmmm.operations import nma_3N_6dof as nma
+from gmx2qmmm.operations import hes_xyz_g09RevD_01_fchk as write_hess
+from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
+from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
+from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 
 
 def get_full_coords_nm(gro):  # read g96
@@ -296,8 +307,6 @@ def get_nbradius(gro):
 
 
 def update_gro_box(gro, groname, nbradius, logfile):
-    import re
-
     with open(groname, "w") as ofile:
         with open(gro) as ifile:
             logger(
@@ -344,8 +353,6 @@ def update_gro_box(gro, groname, nbradius, logfile):
 def make_gmx_inp(
     jobname, gro, qmmmtop, qmatomlist, curr_step, logfile, basedir, realprefix
 ):
-    from subprocess import call
-
     insert = ""
     if int(curr_step) != 0:
         insert = str("." + str(int(curr_step)))
@@ -356,7 +363,7 @@ def make_gmx_inp(
     nbradius = get_nbradius(gro)
     write_mdp(mdpname, nbradius)
     update_gro_box(gro, groname, nbradius, logfile)
-    call(
+    subprocess.call(
         [
             realprefix,
             "grompp",
@@ -374,7 +381,7 @@ def make_gmx_inp(
             "no",
         ]
     )
-    call(["rm", "mdout.mdp"])
+    subprocess.call(["rm", "mdout.mdp"])
     return tprname
 
 
@@ -582,9 +589,6 @@ def get_qmforces_au(qmatomlist, m1list, qmmmtop, qminfo, jobname, curr_step, log
 
 
 def get_mmforces_au(jobname, curr_step, logfile, pathinfo):
-    import re
-    from subprocess import Popen, PIPE, STDOUT
-
     prefix = pathinfo[3]
     realprefix = prefix + pathinfo[7]
     mmforces = []
@@ -594,7 +598,7 @@ def get_mmforces_au(jobname, curr_step, logfile, pathinfo):
     trrname = str(jobname + insert + ".trr")
     tprname = str(jobname + insert + ".tpr")
     xvgname = str(jobname + insert + ".xvg")
-    p = Popen(
+    p = subprocess.Popen(
         [
             realprefix,
             "traj",
@@ -610,9 +614,9 @@ def get_mmforces_au(jobname, curr_step, logfile, pathinfo):
             "-backup",
             "no",
         ],
-        stdout=PIPE,
-        stdin=PIPE,
-        stderr=STDOUT,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
     p.communicate(input=b"0\n")
     with open(xvgname) as ifile:
@@ -649,7 +653,6 @@ def get_linkforces_au(
     qmmminfo,
 ):
 
-    rot = imp.load_source("operations", str(basedir + "/operations/expansion_check.py"))
     linkforces = []
     # Force Coulomb: z1*z2*(distance along coord)/(distance between charges)**3
     for element in xyzq:  # this is just to count an entry for each atom!
@@ -1046,19 +1049,6 @@ def qmmm_prep(
     logfile,
     pathinfo,
 ):
-    import imp
-    import os.path
-
-    make_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/generate_pcf_from_top.py")
-    )
-    prep_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/prepare_pcf_for_shift.py")
-    )
-    final_pcf = imp.load_source(
-        "operations", str(basedir + "/pointcharges/generate_charge_shift.py")
-    )
-    make_gmx2qmmm = imp.load_source("operations", str(basedir + "/gmx2qmmm.py"))
     geo = make_pcf.readg96(new_gro)
     logger(logfile, "List of molecules...")
     # 6277
@@ -1069,7 +1059,7 @@ def qmmm_prep(
     for element in mollist:
         chargevec.extend(make_pcf.readcharges(element, top, pathinfo))
     logger(logfile, "done.\n")
-    new_xyzq = make_gmx2qmmm.make_xyzq(geo, chargevec)
+    new_xyzq = make_xyzq(geo, chargevec)
     logger(logfile, str("Made new xyzq matrix.\n"))
     logger(
         logfile,
@@ -1084,7 +1074,7 @@ def qmmm_prep(
         new_xyzq, qmatomlist, qminfo[3], connlist
     )
     logger(logfile, "done.\n")
-    new_links = make_gmx2qmmm.get_linkatoms_ang(
+    new_links = get_linkatoms_ang(
         new_xyzq, qmatomlist, m1list, connlist, linkatoms
     )
     logger(logfile, str("Updated positions of link atoms.\n"))
@@ -1236,7 +1226,6 @@ def make_opt_step(
                     "Rejected one optimization step due to energy increasing. Trying again, with smaller step.\n"
                 ),
             )
-            from subprocess import call
 
             insert = ""
             if (
@@ -1250,7 +1239,7 @@ def make_opt_step(
             xvgname = str(jobname + insert + ".edr.xvg")
             g16name = str(jobname + insert + ".gjf.log")
             fortname = str(jobname + insert + ".fort.7")
-            call(
+            subprocess.call(
                 [
                     "rm",
                     trrname,
@@ -1269,7 +1258,7 @@ def make_opt_step(
 
     imporved = True
     if higher_energy and float(initstep) < 0.000001:
-        call(["rm", new_gro, new_pcffile])
+        subprocess.call(["rm", new_gro, new_pcffile])
         imporved = False
     return (
         qmenergy,
@@ -1392,9 +1381,6 @@ def read_pcf_self(qmfile):
 
 
 def get_qmenergy(qmfile, qmprog, extra_string, pcffile, logfile, basedir):
-    import re
-    import imp
-
     logger(logfile, "Extracting QM energy.\n")
     qmenergy = 0.0
     qm_corrdata = []
@@ -1462,12 +1448,9 @@ def get_qmenergy(qmfile, qmprog, extra_string, pcffile, logfile, basedir):
 
 
 def get_mmenergy(edrname, realprefix, logfile):
-    from subprocess import Popen, PIPE, STDOUT  # , call
-    import re
-
     mmenergy = 0.0
     logger(logfile, "Extracting MM energy.\n")
-    p = Popen(
+    p = subprocess.Popen(
         [
             realprefix,
             "energy",
@@ -1478,9 +1461,9 @@ def get_mmenergy(edrname, realprefix, logfile):
             "-backup",
             "no",
         ],
-        stdout=PIPE,
-        stdin=PIPE,
-        stderr=STDOUT,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
     p.communicate(input=b"11\n\n")
     with open(str(edrname + ".xvg")) as ifile:
@@ -1508,8 +1491,6 @@ def get_m2charges(xyzq, m1list, m2list):
 
 
 def read_pcffile(pcffile):
-    import re
-
     pcf = []
     with open(pcffile) as ifile:
         for line in ifile:
@@ -1646,7 +1627,9 @@ def get_linkenergy_au(
         linkenergy += z1 * z2 / dist
     # now also all atoms in the corrdata list with the mod and linkcorr point charges
     # mod first. mod is charge in pcffile minus m2charge
+    print(pcffile)
     pcf = read_pcffile(pcffile)
+    print(pcf)
     for i in range(0, len(m2list)):
         for j in range(0, len(m2list[i])):
             curr_mod = []
@@ -1712,7 +1695,7 @@ def get_linkenergy_au(
             linkatoms[i][1] / 0.52917721,
             linkatoms[i][2] / 0.52917721,
         ]
-        _flattened = _flatten(q1list)
+        _flattened = list(_flatten(q1list))
         v2 = [
             xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
             xyzq[int(_flattened(q1list)[i]) - 1][1] / 0.52917721,
@@ -1751,8 +1734,6 @@ def get_energy(
     basedir,
     pathinfo,
 ):
-    from subprocess import call
-    import os.path
 
     prefix = pathinfo[3]
     realprefix = prefix + pathinfo[7]
@@ -1805,11 +1786,11 @@ def get_energy(
         g16cmd = pathinfo[4]
         if not os.path.isfile(str(qmfile) + ".log"):
             logger(logfile, "Running G16 file.\n")
-            call([g16cmd, str(qmfile)])
+            subprocess.call([g16cmd, str(qmfile)])
             logname = qmfile[:-3]
             logname += "log"
-            call(["mv", logname, str(jobname + insert + ".gjf.log")])
-            call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
+            subprocess.call(["mv", logname, str(jobname + insert + ".gjf.log")])
+            subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
             logger(logfile, "G16 done.\n")
         else:
             logger(
@@ -1823,7 +1804,7 @@ def get_energy(
                     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                 )
                 exit(1)
-            call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
+            subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
             logger(
                 logfile,
                 "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
@@ -1834,7 +1815,7 @@ def get_energy(
     outname = str(jobname + insert + ".out.gro")
     gmxlogname = str(jobname + insert + ".gmx.log")
     edrname = str(jobname + insert + ".edr")
-    call(
+    subprocess.call(
         [
             realprefix,
             "mdrun",
@@ -1854,7 +1835,7 @@ def get_energy(
             "no",
         ]
     )
-    call(["rm", outname])
+    subprocess.call(["rm", outname])
     qmenergy, qm_corrdata = get_qmenergy(
         str(qmfile), qminfo[0], qminfo[7], pcffile, logfile, basedir
     )
@@ -2295,11 +2276,8 @@ def perform_sp(
     step,
     pathinfo,
 ):
-    import imp
-    import numpy as np
 
-    g2q = imp.load_source("operations", str(basedir + "/gmx2qmmm.py"))
-    jobname = g2q.stepper(qmmminfo[0], step)
+    jobname = stepper(qmmminfo[0], step)
     qmenergy, mmenergy, qm_corrdata = get_energy(
         gro,
         jobname,
@@ -2375,8 +2353,6 @@ def perform_opt(
     basedir,
     pathinfo,
 ):
-    from subprocess import call
-    import os.path
 
     count = qmmminfo[7]
     qmenergy, mmenergy, qm_corrdata = get_energy(
@@ -2420,8 +2396,8 @@ def perform_opt(
             jobname += "." + str(int(count))
         archivename = str(jobname) + ".tar.gz"
         if os.path.isfile(archivename):
-            call(["tar", "-xf", archivename])
-            call(["rm", archivename])
+            subprocess.call(["tar", "-xf", archivename])
+            subprocess.call(["rm", archivename])
         archive = ["tar", "-cf", str(jobname) + ".tar"]
         files = [
             new_pcffile,
@@ -2481,11 +2457,11 @@ def perform_opt(
             done = 2
             break
         archive.extend(files)
-        call(archive)
-        call(["gzip", str(jobname) + ".tar"])
+        subprocess.call(archive)
+        subprocess.call(["gzip", str(jobname) + ".tar"])
         delete = ["rm"]
         delete.extend(files)
-        call(delete)
+        subprocess.call(delete)
 
         energy_file = "optenergy.txt"
         force_file = "optforce.txt"
@@ -2515,13 +2491,13 @@ def perform_opt(
 
         if not done:
             if qmmminfo[9] == "YES":
-                call(["rm", rmname + ".chk"])
-                call(["rm", rmname + ".tar.gz"])
+                subprocess.call(["rm", rmname + ".chk"])
+                subprocess.call(["rm", rmname + ".tar.gz"])
 
         count += 1
 
-    call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".chk"])
-    call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".gjf"])
+    subprocess.call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".chk"])
+    subprocess.call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".gjf"])
 
     if done == 0:
         logger(logfile, "Optimization canceled due to step limit.\n")
@@ -2568,12 +2544,8 @@ def perform_scan(
     step,
     pathinfo,
 ):
-    import numpy as np
-    import imp
-
     # SP
-    g2q = imp.load_source("operations", str(basedir + "/gmx2qmmm.py"))
-    jobname = g2q.stepper(qmmminfo[0], step)
+    jobname = stepper(qmmminfo[0], step)
     qmenergy, mmenergy, qm_corrdata = get_energy(
         gro,
         jobname,
@@ -2618,7 +2590,6 @@ def perform_scan(
         pathinfo,
     )
 
-    scan_func = imp.load_source("operations", str(basedir + "/operations/scan.py"))
     scan_data = scan_func.load_scan("scan.txt")
 
     scan_cycle(
@@ -2674,11 +2645,6 @@ def perform_nma(
     pathinfo,
 ):
 
-    nma_stuff = imp.load_source("operations", str(basedir + "/operations/nma_stuff.py"))
-    write_hess = imp.load_source(
-        "operations", str(basedir + "/operations/hes_xyz_g09RevD.01.fchk.py")
-    )
-    nma = imp.load_source("operations", str(basedir + "/operations/nma_3N-6dof.py"))
     logger(logfile, "------This will be a numerical) normal mode analysis.------\n")
     logger(
         logfile,
@@ -2806,10 +2772,7 @@ def perform_job(
     step,
     pathinfo,
 ):
-    import imp
-    import numpy as np
 
-    g2q = imp.load_source("operations", str(basedir + "/gmx2qmmm.py"))
     if jobtype == "SINGLEPOINT":
         perform_sp(
             gro,
@@ -2862,7 +2825,7 @@ def perform_job(
             pathinfo,
         )
     elif jobtype == "NMA":
-        jobname = g2q.stepper(qmmminfo[0], step)
+        jobname = stepper(qmmminfo[0], step)
 
         perform_nma(
             gro,
