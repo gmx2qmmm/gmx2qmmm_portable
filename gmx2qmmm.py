@@ -5,7 +5,7 @@ import sys
 
 import numpy as np
 from gmx2qmmm._helper import _flatten, logger, stepper
-from gmx2qmmm.input.readInput import MMParams, QMParams, QMMMParams, PathParams
+from readInput import QMMMInputs
 
 def userInputs():
     from argparse import ArgumentParser
@@ -33,20 +33,18 @@ def userInputs():
     return args
 
 
-def gmx2qmmm(inputFile):
+def gmx2qmmm(inputFiles):
     print("gmx2qmmm, a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation")
     basedir = os.path.dirname(os.path.abspath(__file__))
-    if os.path.isfile(inputFile.logfile):
-        subprocess.call(["rm", inputFile.logfile])
-    mmparams = MMParams(inputFile.mmFile)
-    qmparams = MMParams(inputFile.qmFile)
-    pathparams = PathParams(inputFile.pathFile)
-    qmmmparams = QMMMParams(inputFile.qmmmFile)
+    if os.path.isfile(inputFiles.logfile):
+        subprocess.call(["rm", inputFiles.logfile])
+    qmmmInputs = QMMMInputs(inputFiles)
+    
     
 
 
 if __name__ == "__main__":
-    inputFile = userInputs()
-    gmx2qmmm(inputFile)
+    inputFiles = userInputs()
+    gmx2qmmm(inputFiles)
 
 

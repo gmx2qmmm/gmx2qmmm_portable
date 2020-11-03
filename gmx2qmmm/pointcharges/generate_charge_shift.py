@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #encoding: ISO-8859-15
 
 # To change this license header, choose License Headers in Project Properties.
@@ -89,7 +89,6 @@ def write_new_pcf(inp,out,m1line,m1,m2list,m2atoms,disp_vec,dispcharge,distrib_c
 			match=re.search('\$end', line)
 			if match:
 				for i in range(0,len(m2list)):
-					#print m2atoms[i]
 					ab_vecq=arr(m2atoms[i])-arr(m1)
 					ab_vec=arr([ab_vecq[0],ab_vecq[1],ab_vecq[2]])
 					length_ab=LA.norm(ab_vec)
@@ -121,7 +120,7 @@ def write_new_field_to_disk_listsonly(inp,ofilename,new_field,getlist,m2_nolist)
 		count+=1
 		if int(count) in arr(flatten(m2list)).astype(int):
 			if len(element)!=4:
-				print "Line " + str(count) + " does not contain data. Exiting."
+				print("Line " + str(count) + " does not contain data. Exiting.")
 				exit(1)
 			ofile.write("{:<.10f} {:<.10f} {:<.10f} {:<.10f}\n".format(float(element[0]),float(element[1]),float(element[2]),float(new_field[m2count][3])+float(element[3])))
 			m2count+=1
@@ -154,7 +153,7 @@ def write_new_field_to_disk(inp,ofilename,new_field,getlist,m2_nolist):
 			if count in m2list.astype(int):
 				match=re.search(r'^\s*([-]*\d+\.\d+)\s+([-]*\d+\.\d+)\s+([-]*\d+\.\d+)\s+([-]*\d+\.\d+)', line,flags=re.MULTILINE)
 				if not match:
-					print "Line " + str(count) + " does not contain data. Exiting."
+					print("Line " + str(count) + " does not contain data. Exiting.")
 					exit(1)
 				m2pos=0
 				for i in range(0,len(m2list)):
@@ -187,7 +186,7 @@ def read_xyzq(inp,qline):
 			if int(count)==int(qline):
 				match=re.search(r'^\s*([-]*\d+\.\d+)\s+([-]*\d+\.\d+)\s+([-]*\d+\.\d+)\s+([-]*\d+\.\d+)', line,flags=re.MULTILINE)
 				if not match:
-					print "Line " + str(qline) + " does not contain data. Exiting."
+					print("Line " + str(qline) + " does not contain data. Exiting.")
 					exit(1)
 				xyzq.extend([float(match.group(1)),float(match.group(2)),float(match.group(3)),float(match.group(4))])
 				break
@@ -266,7 +265,7 @@ def generate_charge_shift_fieldsonly(pcf,m1list,qmcoords,m2list,jobname,basedir)
 			m2coordsq.append(list(m2coordsqthing[i]))
 		
 		if m1==[] or m2coordsq==[]:
-			print "Ding"
+			print("Ding")
 			continue
 		for entry in m2coordsq:
 
@@ -554,5 +553,5 @@ def generate_charge_shift(syscmds):
 	write_new_field_to_disk(inp,ofilename,new_field,getlist,m2_nolist)
 			
 if __name__ == '__main__':
-        import sys
+	import sys
 	generate_charge_shift(sys.argv)

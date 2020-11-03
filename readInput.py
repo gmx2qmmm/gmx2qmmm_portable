@@ -1,9 +1,16 @@
+from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
+from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
+from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
+from gmx2qmmm.operations import generate_top as topprep
+from gmx2qmmm.operations import qmmm
+
 class QMParams:
     def __init__(self, inp):
         self.inp = inp
         self.program, self.method, self.basis, self.charge, self.multi, self.cores, self.memory, self.extra = self.read_qmparams(inp)
     
     def read_qmparams(self, inp):
+        import re
         info = [
             "G16",
             "BP86",
@@ -179,6 +186,16 @@ class QMMMParams:
                     info[9]=str(match.group(1)).upper()
         return info
 
+class QMMMInputs:
+    """docstring for ClassName"""
+    def __init__(self, inputFiles):
+        self.inputFiles = inputFiles
+        self.mmparams = MMParams(inputFiles.mmFile)
+        self.qmparams = QMParams(inputFiles.qmFile)
+        self.pathparams = PathParams(inputFiles.pathFile)
+        self.qmmmparams = QMMMParams(inputFiles.qmmmFile)
+        self.logfile = inputFiles.logfile
 
 
+    
         

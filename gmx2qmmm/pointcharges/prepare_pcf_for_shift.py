@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #encoding: ISO-8859-15
 
 # To change this license header, choose License Headers in Project Properties.
@@ -107,7 +107,7 @@ def eliminate_and_shift_to_m1(qmatoms,charges,m1list,qmcharge,qmcoordsq):
 	for element in qmcoordsq:
 		curr_charge+=float(element[3])
 	count=0
-        parentcharge=float(curr_charge)-float(qmcharge)
+	parentcharge=float(curr_charge)-float(qmcharge)
 	for element in charges:
 		count+=1
 		if count in arr(qmatoms).astype(int):
@@ -165,5 +165,5 @@ def prepare_pcf_for_shift(inp,qmatoms,qmcharge,connfile,qmcoords,m1file,m2file,o
 		ofile.write("$end\n")
 		
 if __name__ == '__main__':
-        import sys
+	import sys
 	prepare_pcf_for_shift(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5],sys.argv[6],sys.argv[7],sys.argv[8])

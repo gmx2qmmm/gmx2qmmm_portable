@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #encoding: ISO-8859-15
 
 # To change this license header, choose License Headers in Project Properties.
@@ -71,7 +71,7 @@ def getincludelist(inp,pathinfo):
 					foundname=gmxtop_path+foundname
 					check=os.path.isfile(foundname)
 					if not check:
-						print "File " + foundname + " was not found. Maybe update the gmxpath variable in the script? Exiting."
+						print("File " + foundname + " was not found. Maybe update the gmxpath variable in the script? Exiting.")
 						exit(1)
 				toplist.append(foundname)
 			
@@ -96,7 +96,7 @@ def readcharges(molvecentry,top,pathinfo):
 				curr_top=element
 				break
 	if not found:
-		print "No charges found for " + str(molname) + ". Exiting."
+		print("No charges found for " + str(molname) + ". Exiting.")
 		exit(1)
 	with open(curr_top) as ifile:
 		for line in ifile:
@@ -173,19 +173,19 @@ def readgeo(inp):
 				n_a=int(match.group(1))
 				break
 			else:
-				print ".gro is corrupt (no number of atoms found, second line). Exiting."
+				print(".gro is corrupt (no number of atoms found, second line). Exiting.")
 				exit(1)
 		count=1
 		for line in ifile:
-                        match=re.search(r'^(.{5})(.{5})(.{5})(.{5})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)', line,flags=re.MULTILINE)
+			match=re.search(r'^(.{5})(.{5})(.{5})(.{5})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)', line,flags=re.MULTILINE)
 			if match:
 				coords.append(float(match.group(5))*10.)
 				coords.append(float(match.group(6))*10.)
 				coords.append(float(match.group(7))*10.)
 			else:
-				print ".gro is corrupt. Exiting."
-				print "Last line:"
-				print line
+				print(".gro is corrupt. Exiting.")
+				print("Last line:")
+				print(line)
 				exit(1)
 			count+=1
 			if count>n_a:
@@ -203,7 +203,7 @@ def readmols(top):
 				found=True
 				break
 		if not found:
-			print "No \"molecules\" entry in " + str(top) + " found. Exiting."
+			print("No \"molecules\" entry in " + str(top) + " found. Exiting.")
 			exit(1)
 		for line in ifile:
 			match=re.search(r'^;', line,flags=re.MULTILINE)
@@ -214,9 +214,9 @@ def readmols(top):
 				if match:
 					mollist.append([match.group(1),match.group(2)])
 				else:
-					print "Found an incomprehensible line in molecules list. Exiting."
-					print "Last line was:"
-					print line
+					print("Found an incomprehensible line in molecules list. Exiting.")
+					print("Last line was:")
+					print(line)
 					exit(1)
 	return mollist
 				
@@ -236,19 +236,18 @@ def generate_pcf_from_top(gro,top,out,pathinfo):
 	mollist=readmols(top)
 	for element in mollist:
 		chargevec.extend(readcharges(element,top,pathinfo))
-        term=str(str(gro[-3])+str(gro[-2])+str(gro[-1]))
-        geo=[]
-        if term=="g96":
-            geo=readg96(gro)
-        else:
-	    geo=readgeo(gro)
+		term=str(str(gro[-3])+str(gro[-2])+str(gro[-1]))
+		geo=[]
+		if term=="g96":
+			geo=readg96(gro)
+		else:
+			geo=readgeo(gro)
 	
 	if len(geo)!=3*len(chargevec):
-		print "Not all atoms (" + str(len(geo)/3.) + ") were replaced by charges (" + str(len(chargevec)) + ") in full iteration step! Exiting."
+		print("Not all atoms (" + str(len(geo)/3.) + ") were replaced by charges (" + str(len(chargevec)) + ") in full iteration step! Exiting.")
 		exit(1)
 	makeout(geo,chargevec,out)
 		
 if __name__ == '__main__':
-        import sys
-        
+	import sys
 	generate_pcf_from_top(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])

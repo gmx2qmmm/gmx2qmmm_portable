@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #encoding: ISO-8859-15
 
 # To change this license header, choose License Headers in Project Properties.
@@ -82,7 +82,7 @@ def molfinder(top,includelist,molname):
 		if foundtop!="":
 			break
 	if foundtop=="":
-		print "Molecule " + str(molname) + " was not found in any top. Exiting."
+		print("Molecule " + str(molname) + " was not found in any top. Exiting.")
 		exit(1)
 	return foundtop
 
@@ -692,9 +692,9 @@ def make_new_top(top,molfindlist,mollist,mollength,qmatomlist,includelist,outnam
 			for atom in qmatomlist:
 				if int(curr_offset)+int(mollength[molcount])>=int(atom) and int(atom)>int(curr_offset):
 					#the unique molecule contains a qm atom
-					print "Ding"
+					print("Ding")
 				else:
-					print "Dong"
+					print("Dong")
 		for i in range(0,int(molecule[1])):
 			curr_offset+=mollength[molcount]
 		molcount+=1
@@ -727,7 +727,7 @@ def generate_top_listsonly(top,qmatoms,outname,flaglist,q1list,q2list,q3list,m1l
 def generate_top(sysargs):
 	import imp
 	import re
-        import os
+	import os
 	basedir=os.path.dirname(os.path.abspath(__file__))
 	top=sysargs[1]
 	qmatoms=sysargs[2]
@@ -743,5 +743,5 @@ def generate_top(sysargs):
 	make_large_top(top,molfindlist,mollist,qmatomlist,includelist,outname,m1list,flaglist,logfile)
 			
 if __name__ == '__main__':
-        import sys
+	import sys
 	generate_top(sys.argv)

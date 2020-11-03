@@ -36,7 +36,7 @@ def get_full_coords_angstrom(gro):
 	with open(gro) as ifile:
 		count=0
 		for line in ifile:
-                        count+=1
+			count+=1
 			if count==4:
 				break
 		count=0
@@ -125,19 +125,19 @@ def update_gro_box(gro,groname,nbradius,logfile):
 			logger(logfile,str("Finding a larger .gro box size to avoid problems with .mdp input..."))
 			for line in ifile:
 				ofile.write(line)
-                                match=re.search(r'^BOX\s*\n', line,flags=re.MULTILINE)
-                                if match:
-                                    for line in ifile:
-                                        match=re.search(r'^\s*(\d*\.\d+)\s+(\d*\.\d+)\s+(\d*\.\d+)', line,flags=re.MULTILINE)
-                                        if not match:
-                                            logger(logfile,"\n\nError: In " + str(gro) + " box vectors were expected but not found. Exiting. Line was:\n")
-                                            logger(logfile,line)
-                                            exit(1)
-                                        else:
-    					    bv=[float(match.group(1))+10.*nbradius,float(match.group(2))+10.*nbradius,float(match.group(3))+10.*nbradius]
-					    ofile.write(" {:>15.9f} {:>15.9f} {:>15.9f}\nEND\n".format(float(bv[0]),float(bv[1]),float(bv[2])))
-                                        break
-                                    break
+				match=re.search(r'^BOX\s*\n', line,flags=re.MULTILINE)
+				if match:
+					for line in ifile:
+						match=re.search(r'^\s*(\d*\.\d+)\s+(\d*\.\d+)\s+(\d*\.\d+)', line,flags=re.MULTILINE)
+						if not match:
+							logger(logfile,"\n\nError: In " + str(gro) + " box vectors were expected but not found. Exiting. Line was:\n")
+							logger(logfile,line)
+							exit(1)
+						else:
+							bv=[float(match.group(1))+10.*nbradius,float(match.group(2))+10.*nbradius,float(match.group(3))+10.*nbradius]
+							ofile.write(" {:>15.9f} {:>15.9f} {:>15.9f}\nEND\n".format(float(bv[0]),float(bv[1]),float(bv[2])))
+							break
+						break
 	logger(logfile,str("done.\n"))
 
 def make_gmx_inp(jobname,gro,qmmmtop,qmatomlist,curr_step,logfile,basedir,realprefix):
@@ -505,19 +505,19 @@ def make_new_g96(propagator, xyzq, new_xyzq, total_force,last_forces,gro,new_gro
 		
 	with open(new_gro,"w") as ofile:
 		with open(gro) as ifile:
-                        counter=0
+			counter=0
 			for line in ifile:
 				ofile.write(line)
-                                counter+=1
-                                if counter==4:
-                                    break
+				counter+=1
+				if counter==4:
+					break
 			counter=0
 			for line in ifile:
 				match=re.search(r'^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)', line,flags=re.MULTILINE)
 				if not match:
 					ofile.write(line)
-                                        logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to new g96 file.\n"))
-                                        break
+					logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to new g96 file.\n"))
+					break
 				else:
 					dispx=dispvec[counter][0]*0.052917721
 					dispy=dispvec[counter][1]*0.052917721
@@ -892,9 +892,9 @@ def get_linkenergy_au(xyzq,qmatomlist,qm_corrdata,linkcorrlist,m1list,m2list,q1l
 		v2=[xyzq[int(flatten(q1list)[i])-1][0]/0.52917721,xyzq[int(flatten(q1list)[i])-1][1]/0.52917721,xyzq[int(flatten(q1list)[i])-1][2]/0.52917721]
 		v12=arr(v2)-arr(v1)
 		dist=LA.norm(v12)
-        dist = dist * 0.7409471631 
-        energycorr = databasecorrection("ENERGY", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir,logfile)
-        linkenergy-=energycorr
+		dist = dist * 0.7409471631
+		energycorr = databasecorrection("ENERGY", "aminoacid_CACB", dist, mminfo, qminfo, qmmminfo, basedir,logfile)
+		linkenergy-=energycorr
 		#sign inverted due to correction convention (subtracting)
 	return linkenergy
 
@@ -1045,19 +1045,19 @@ def scan_cycle(scan_data,gro,top,xyzq,connlist,qmatomlist,qm_corrdata,m1list,m2l
 	#make new geo
 	with open(new_gro,"w") as ofile:
 		with open(gro) as ifile:
-                        counter=0
+			counter=0
 			for line in ifile:
 				ofile.write(line)
-                                counter+=1
-                                if counter==4:
-                                    break
+				counter+=1
+				if counter==4:
+					break
 			counter=0
 			for line in ifile:
 				match=re.search(r'^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)', line,flags=re.MULTILINE)
 				if not match:
 					ofile.write(line)
-                                        logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to new g96 file.\n"))
-                                        break
+					logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to new g96 file.\n"))
+					break
 				else:
 					dispx=dispvec[counter][0]*0.052917721
 					dispy=dispvec[counter][1]*0.052917721
@@ -1211,7 +1211,7 @@ def perform_nma(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qm
 	write_hess.hes_xyz_fchk(str(qmmminfo[0]+".pseudofchk"),str(qmmminfo[0]+".hess"))
 	logger(logfile,"Wrote orca format .hess file.\n")
 	evals,nm_matrix=nma.nma_3Nminus6dof_asfunction(str(qmmminfo[0]+".hess"),basedir)
-	print nma_stuff.log_nma(qmmminfo,logfile,evals,nm_matrix,active,qmmmtop,xyzq,prep_hess)	
+	print(nma_stuff.log_nma(qmmminfo,logfile,evals,nm_matrix,active,qmmmtop,xyzq,prep_hess))	
 
 def perform_job(gro,top,xyzq,connlist,qmatomlist,m1list,m2list,q1list,qmmmtop,qminfo,mminfo,qmmminfo,jobtype,linkcorrlist,flaglist,pcffile,linkatoms,active,logfile,basedir,step,pathinfo):
 	import imp
@@ -1251,11 +1251,11 @@ def databasecorrection(energy_or_force, cut, dist, mminfo, qminfo, qmmminfo, bas
     method_set.execute('SELECT * FROM ' + cut + ' WHERE forcefield="' + forcefield + '" AND method="' + method + '" AND basisset ="' + basisset + '"')
     method_set_value = method_set.fetchall()
     if len(method_set_value) == 0:
-		cut = "aminoacid_CACB"
-		forcefield = 'amberGS'
-		method = 'CAM-B3LYP'
-		basisset = '6-31++G**' 
-		logger(logfile,"Unexisted method in correction database, changing to default correction method...\n") 
+    	cut = "aminoacid_CACB"
+    	forcefield = 'amberGS'
+    	method = 'CAM-B3LYP'
+    	basisset = '6-31++G**'
+    	logger(logfile,"Unexisted method in correction database, changing to default correction method...\n") 
 
     c = conn.cursor()
     c.execute('SELECT * FROM ' + cut + ' WHERE forcefield="' + forcefield + '" AND method="' + method + '" AND basisset ="' + basisset + '"')
@@ -1314,5 +1314,5 @@ def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess,logfile):
 	return new_hess, eigvals.min(), WARN
 
 if __name__ == '__main__':
-	print "This file serves as a library for gmx2qmmm-related functions."
-        print "Do not execute directly. Use gmx2qmmm instead."
+	print ("This file serves as a library for gmx2qmmm-related functions.")
+	print ("Do not execute directly. Use gmx2qmmm instead.")
