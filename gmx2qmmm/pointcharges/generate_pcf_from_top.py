@@ -40,11 +40,11 @@ def checkformol(molname,inp):
 				break
 	return correct
 
-def getincludelist(inp,pathinfo):
+def getincludelist(inp,gmxtop_path):
 	import re
 	import os.path
 	
-	gmxtop_path=pathinfo[8]
+	#gmxtop_path=pathinfo[8]
 	toplist=[]
 	with open(inp) as ifile:
 		for line in ifile:
@@ -75,7 +75,7 @@ def getincludelist(inp,pathinfo):
 						exit(1)
 				toplist.append(foundname)
 			
-				toplist.extend(getincludelist(foundname,pathinfo))
+				toplist.extend(getincludelist(foundname,gmxtop_path))
 	return toplist	
 
 def readcharges(molvecentry,top,pathinfo):

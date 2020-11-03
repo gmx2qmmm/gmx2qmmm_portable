@@ -13,6 +13,13 @@
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$" #during a rain storm
 
+import os
+import re
+import numpy as np
+
+from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
+from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
+
 def logger(log,logstring):
 	from datetime import datetime
 	with open(log,"a") as ofile:
@@ -712,14 +719,11 @@ def make_exclude_index(outname,qmatomlist):
 				count=0
 		ofile.write("\n")
 
-def generate_top_listsonly(top,qmatoms,outname,flaglist,q1list,q2list,q3list,m1list,m2list,m3list,basedir,logfile,pathinfo):
-	import imp
-	import re
-	make_pcf = imp.load_source("operations", str(basedir+"/pointcharges/generate_pcf_from_top.py"))
-	prep_pcf = imp.load_source("operations", str(basedir+"/pointcharges/prepare_pcf_for_shift.py"))
+def generate_top_listsonly(top,qmatoms,outname,flaglist,q1list,q2list,q3list,m1list,m2list,m3list,basedir,logfile,gmxtop_path):
+
 	qmatomlist=prep_pcf.read_qmatom_list(qmatoms)
 	mollist=make_pcf.readmols(top)
-	includelist=make_pcf.getincludelist(top,pathinfo)
+	includelist=make_pcf.getincludelist(top,gmxtop_path)
 	molfindlist=get_molfindlist(mollist,top,includelist)
 	make_exclude_index(str(outname) + ".ndx",qmatomlist)
 	make_large_top(top,molfindlist,mollist,qmatomlist,includelist,outname,q1list,q2list,q3list,m1list,m2list,m3list,flaglist,logfile)
@@ -738,7 +742,7 @@ def generate_top(sysargs):
 	prep_pcf = imp.load_source("operations", str(basedir+"/pointcharges/prepare_pcf_for_shift.py"))
 	qmatomlist=prep_pcf.read_qmatom_list(qmatoms)
 	mollist=make_pcf.readmols(top)
-	includelist=make_pcf.getincludelist(top,pathinfo)
+	includelist=make_pcf.getincludelist(top,gmxtop_path)
 	molfindlist=get_molfindlist(mollist,top,includelist)
 	make_large_top(top,molfindlist,mollist,qmatomlist,includelist,outname,m1list,flaglist,logfile)
 			

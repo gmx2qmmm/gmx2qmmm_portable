@@ -38,7 +38,7 @@ def gmx2qmmm(inputFiles):
     basedir = os.path.dirname(os.path.abspath(__file__))
     if os.path.isfile(inputFiles.logfile):
         subprocess.call(["rm", inputFiles.logfile])
-    qmmmInputs = QMMMInputs(inputFiles)
+    qmmmInputs = QMMMInputs(inputFiles, basedir)
     
     
 
