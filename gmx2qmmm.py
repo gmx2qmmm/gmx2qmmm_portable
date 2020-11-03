@@ -1,10 +1,19 @@
+import re
+import os
+import subprocess
+import sys
+
+import numpy as np
+from gmx2qmmm._helper import _flatten, logger, stepper
+from gmx2qmmm.input.readInput import MMParams, QMParams, QMMMParams, PathParams
+
 def userInputs():
     from argparse import ArgumentParser
     from argparse import RawDescriptionHelpFormatter
     import textwrap
     parser = ArgumentParser(description="gmx2qmmm, a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation.",
                             formatter_class=RawDescriptionHelpFormatter,
-                            epilog=textwrap.dedent('''\
+                               epilog=textwrap.dedent('''\
                                 gmx2qmmm (GNU licenced) by Jan Philipp Goetze.
                                 gmx2qmmm is a free QM/MM interface for Gromacs. Compatible with most versions, starting from 5.X.
                                 gmx2qmmm uses an additive QM/MM scheme with a numerical charge shift procedure and correction of cut bonds via model potentials.\n
@@ -23,12 +32,21 @@ def userInputs():
     args = parser.parse_args()
     return args
 
-def gmx2qmmm():
-    print("gmx2qmmm, a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation")
 
+def gmx2qmmm(inputFile):
+    print("gmx2qmmm, a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation")
+    basedir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.isfile(inputFile.logfile):
+        subprocess.call(["rm", inputFile.logfile])
+    mmparams = MMParams(inputFile.mmFile)
+    qmparams = MMParams(inputFile.qmFile)
+    pathparams = PathParams(inputFile.pathFile)
+    qmmmparams = QMMMParams(inputFile.qmmmFile)
+    
 
 
 if __name__ == "__main__":
     inputFile = userInputs()
-    gmx2qmmm()
+    gmx2qmmm(inputFile)
+
 
