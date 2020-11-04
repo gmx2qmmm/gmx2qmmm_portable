@@ -44,7 +44,6 @@ def getincludelist(inp,gmxtop_path):
 	import re
 	import os.path
 	
-	#gmxtop_path=pathinfo[8]
 	toplist=[]
 	with open(inp) as ifile:
 		for line in ifile:
@@ -78,7 +77,7 @@ def getincludelist(inp,gmxtop_path):
 				toplist.extend(getincludelist(foundname,gmxtop_path))
 	return toplist	
 
-def readcharges(molvecentry,top,pathinfo):
+def readcharges(molvecentry,top,gmxtop_path):
 	import re
 	cvec=[]
 	curr_top=top
@@ -88,7 +87,7 @@ def readcharges(molvecentry,top,pathinfo):
 
 	if not found:
 
-		toplist=getincludelist(top,pathinfo)
+		toplist=getincludelist(top,gmxtop_path)
 		for element in toplist:
 			found=checkformol(molname,element)
 			if found:
@@ -229,13 +228,13 @@ def makeout(coords,charges,name):
 		ofile.write("{:>16.8f}\n".format(charges[i]))
 	ofile.close()
 
-def generate_pcf_from_top(gro,top,out,pathinfo):
+def generate_pcf_from_top(gro,top,out,gmxtop_path):
 	import re
 	
 	chargevec=[]
 	mollist=readmols(top)
 	for element in mollist:
-		chargevec.extend(readcharges(element,top,pathinfo))
+		chargevec.extend(readcharges(element,top,gmxtop_path))
 		term=str(str(gro[-3])+str(gro[-2])+str(gro[-1]))
 		geo=[]
 		if term=="g96":

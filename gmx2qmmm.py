@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 from gmx2qmmm._helper import _flatten, logger, stepper
+from gmx2qmmm.operations.qmmm import perform_sp, perform_opt, perform_nma, perform_scan
 from readInput import QMMMInputs
 
 def userInputs():
@@ -32,6 +33,28 @@ def userInputs():
     args = parser.parse_args()
     return args
 
+def perfrom_job(qmmmInputs):
+    jobtype = qmmmInputs.qmmmparams.jobtype
+    logfile = qmmmInputs.logfile
+
+    if jobtype == "SINGLEPOINT":
+        logger(logfile, "Performing an single point calculation.\n")
+        perform_sp(qmmmInputs)
+
+    elif jobtype == "OPT":
+        logger(logfile, "Performing an optimization.\n")
+        logger(logfile, "Getting initial energy:\n")
+        perform_opt(qmmmInputs)
+
+    elif jobtype == "NMA":
+        jobname = stepper(qmmminfo[0], step)
+        perform_nma(qmmmInputs)
+
+    elif jobtype == "SCAN":
+        logger(logfile, "Performing scan calculations.\n")
+        perform_scan(qmmmInputs)
+    else:
+        logger(logfile, 'Unrecognized jobtype "' + jobtype + '". Exiting.\n')
 
 def gmx2qmmm(inputFiles):
     print("gmx2qmmm, a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation")
@@ -39,7 +62,7 @@ def gmx2qmmm(inputFiles):
     if os.path.isfile(inputFiles.logfile):
         subprocess.call(["rm", inputFiles.logfile])
     qmmmInputs = QMMMInputs(inputFiles, basedir)
-    
+    perfrom_job(qmmmInputs)
     
 
 

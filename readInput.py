@@ -206,6 +206,7 @@ class QMMMInputs:
         self.qmparams = QMParams(inputFiles.qmFile)
         self.pathparams = PathParams(inputFiles.pathFile)
         self.qmmmparams = QMMMParams(inputFiles.qmmmFile)
+        self.top = inputFiles.top
         logger(logfile, "Done.\n")
 
         logger(logfile, "Initializing dependencies...")
@@ -216,14 +217,14 @@ class QMMMInputs:
         self.chargevec = []
         logger(logfile, "Trying to understand your MM files.\n")
         logger(logfile, "List of molecules...")
-        self.mollist = make_pcf.readmols(inputFiles.top)
+        self.mollist = make_pcf.readmols(self.top)
         logger(logfile, "done.\n")
         logger(logfile, "Reading charges...")
         for element in self.mollist:
             self.chargevec.extend(make_pcf.readcharges(element, inputFiles.top, self.pathparams.gmxtop))
         logger(logfile, "done.\n")
 
-        
+        #from this step, use .g96 for all coord files
         if inputFiles.coord[-4:] == ".gro":
             logger(logfile, "Reading geometry (.gro)...")
             self.geo = make_pcf.readgeo(inputFiles.coord)
