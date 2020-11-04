@@ -326,9 +326,7 @@ class QMMMInputs:
             logger(logfile, "Reading indices of active atoms...")
             active = prep_pcf.read_qmatom_list(inputFiles.act)
             logger(logfile, "done.\n")
-
-
-        
+ 
 def get_curr_top(molname, top, basedir):
     curr_top = top
     found = make_pcf.checkformol(molname, top)
