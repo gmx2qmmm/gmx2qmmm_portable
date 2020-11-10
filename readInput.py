@@ -200,6 +200,11 @@ class QMMMInputs:
         self.basedir = basedir
         self.logfile = inputFiles.logfile
         logfile = self.logfile
+
+        self.nmaflag = 0
+        if inputFiles.qmmmparams.jobtype == 'NMA':
+            self.nmaflag = 1
+            
         #Read .dat file
         logger(logfile, "Reading input parameters...\n")
         self.mmparams = MMParams(inputFiles.mmFile)
