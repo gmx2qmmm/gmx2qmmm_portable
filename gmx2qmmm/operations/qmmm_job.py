@@ -27,7 +27,786 @@ from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 
+#Run program command
+def run_g16(qmfile, qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    g16cmd = qmmmInputs.pathparams.g16cmd
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    logfile = qmmmInputs.logfile
+    
+    insert = ""
+    if int(curr_step) != 0:
+        insert = str("." + str(int(curr_step)))
 
+
+    if not os.path.isfile(str(qmfile) + ".log"):
+        logger(logfile, "Running G16 file.\n")
+        subprocess.call([g16cmd, str(qmfile)])
+        logname = qmfile[:-3]
+        logname += "log"
+        subprocess.call(["mv", logname, str(jobname + insert + ".gjf.log")])
+        subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
+        logger(logfile, "G16 done.\n")
+    else:
+        logger(
+            logfile,
+            "NOTE: Using existing G16 files, skipping calculation for this step.\n",
+        )
+    if not os.path.isfile(jobname + insert + ".fort.7"):
+        if not os.path.isfile("fort.7"):
+            logger(
+                logfile,
+                "No fort.7 file was created by the last Gaussian run! Exiting.\n",
+            )
+            exit(1)
+        subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
+        logger(
+            logfile,
+            "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
+        )
+
+def run_gmx(mmfile, qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    logfile = qmmmInputs.logfile
+
+    insert = ""
+    if int(curr_step) != 0:
+        insert = str("." + str(int(curr_step)))
+
+    logger(logfile, "Running Gromacs file.\n")
+    trrname = str(jobname + insert + ".trr")
+    xtcname = str(jobname + insert + ".xtc")
+    outname = str(jobname + insert + ".out.gro")
+    gmxlogname = str(jobname + insert + ".gmx.log")
+    edrname = str(jobname + insert + ".edr")
+    subprocess.call(
+        [
+            prefix,
+            "mdrun",
+            "-s",
+            mmfile,
+            "-o",
+            trrname,
+            "-c",
+            outname,
+            "-x",
+            xtcname,
+            "-g",
+            gmxlogname,
+            "-e",
+            edrname,
+            "-backup",
+            "no",
+        ]
+    )
+    subprocess.call(["rm", outname])
+
+    return edrname
+
+#Energy
+def get_qmenergy(qmfile, qmmmInputs, pcffile):
+    qmprog = qmmmInputs.qmparams.program
+    extra_string = qmmmInputs.qmparams.extra
+    pcffile = qmmmInputs.pcffile
+    logfile = qmmmInputs.logfile
+    basedir = qmmmInputs.basedir
+
+    logger(logfile, "Extracting QM energy.\n")
+    qmenergy = 0.0
+    qm_corrdata = []
+    if str(qmprog) == "G16":
+        with open(str(qmfile + ".log")) as ifile:
+            for line in ifile:
+                match = []
+                match2 = []
+                match2 = re.search(
+                    r"\sTD[=(\s]", extra_string.upper(), flags=re.MULTILINE
+                )
+                if not match2:
+                    match2 = re.search(
+                        r"^TD[=(\s]", extra_string.upper(), flags=re.MULTILINE
+                    )
+                if not match2:
+                    match2 = re.search(
+                        r"\sTD$", extra_string.upper(), flags=re.MULTILINE
+                    )
+                if not match2:
+                    match2 = re.search(
+                        r"^TD$", extra_string.upper(), flags=re.MULTILINE
+                    )
+                if not match2:
+                    match = re.search(
+                        r"^\s*SCF\s*Done:\s*E\(\S+\)\s*\=\s*([-]*\d+\.\d+)",
+                        line,
+                        flags=re.MULTILINE,
+                    )
+                else:
+                    match = re.search(
+                        r"^\s*Total\s*Energy,\s*E\(\S+\)\s*\=\s*([-]*\d+\.\d+)",
+                        line,
+                        flags=re.MULTILINE,
+                    )
+                if match:
+                    logger(logfile, "Obtaining charge self-interaction...")
+                    pcf_self_pot = read_pcf_self(qmfile)
+                    logger(
+                        logfile, "done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
+                    )
+                    # G16 energy needs to be corrected for self potential of PCF
+                    qmenergy = float(match.group(1)) - float(pcf_self_pot)
+                match = re.search(r"^\s*ESP\s*charges:", line, flags=re.MULTILINE)
+                if match:
+                    for line in ifile:
+                        break
+                    for line in ifile:
+                        match = re.search(
+                            r"^\s*(\d+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+                        )
+                        if match:
+                            qm_corrdata.append(
+                                [
+                                    int(match.group(1)),
+                                    match.group(2),
+                                    float(match.group(3)),
+                                ]
+                            )
+                        else:
+                            break
+                    break
+    logger(logfile, "QM energy is " + str(float(qmenergy)) + " a.u..\n")
+    return qmenergy, qm_corrdata
+
+def get_mmenergy(edrname, qmmmInputs):
+    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    logfile = qmmmInputs.logfile
+
+    mmenergy = 0.0
+    logger(logfile, "Extracting MM energy.\n")
+    p = subprocess.Popen(
+        [
+            prefix,
+            "energy",
+            "-f",
+            edrname,
+            "-o",
+            str(edrname + ".xvg"),
+            "-backup",
+            "no",
+        ],
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    p.communicate(input=b"11\n\n")
+    with open(str(edrname + ".xvg")) as ifile:
+        for line in ifile:
+            match = re.search(
+                r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
+            )
+            if match:
+                mmenergy = float(match.group(1)) * 0.00038087988
+                break
+    logger(logfile, "MM energy is " + str(float(mmenergy)) + " a.u..\n")
+    return mmenergy
+
+def get_linkenergy_au(qm_corrdata, qmmmInputs):
+    xyzq = qmmmInput.qmmmparams.xyzq
+    linkcorrlist = qmmmInput.qmmmparams.linkcorrlist
+    m1list = qmmmInput.qmmmparams.m1list
+    m2list = qmmmInput.qmmmparams.m2list
+    q1list = qmmmInput.qmmmparams.q1list
+    qmmmtop = qmmmInput.qmmmparams.qmmmtop
+    linkatoms = qmmmInput.qmmmparams.linkatoms
+    logfile = qmmmInput.qmmmparams.logfile
+
+
+
+    pcffile = qmmmInput.qmmmparams.pcffile
+    qmatomlist = qmmmInput.qmmmparams.qmatomlist
+
+    linkenergy = 0.0
+    m2charges = get_m2charges(xyzq, m1list, m2list)
+    for element in linkcorrlist:
+        z1 = 0.0
+        v1 = []
+        v2 = []
+        if int(element[0]) in np.array(list(_flatten(m2list))).astype(int):
+            for i in range(0, len(m2list)):
+                for j in range(0, len(m2list[i])):
+                    if int(m2list[i][j]) == int(element[0]):
+                        z1 = float(m2charges[i][j])
+                        v1 = [
+                            xyzq[int(element[0]) - 1][0] / 0.52917721,
+                            xyzq[int(element[0]) - 1][1] / 0.52917721,
+                            xyzq[int(element[0]) - 1][2] / 0.52917721,
+                        ]
+                        break
+                if z1 != 0.0:
+                    break
+        elif int(element[0]) in np.array(qmatomlist).astype(int):
+            for i in range(0, len(qmatomlist)):
+                if int(qmatomlist[i]) == int(element[0]):
+                    z1 = float(qm_corrdata[i][2])
+                    v1 = [
+                        xyzq[int(element[0]) - 1][0] / 0.52917721,
+                        xyzq[int(element[0]) - 1][1] / 0.52917721,
+                        xyzq[int(element[0]) - 1][2] / 0.52917721,
+                    ]
+                    break
+        elif int(element[0]) in np.array(m1list).astype(int):
+            for i in range(0, len(m1list)):
+                if int(m1list[i]) == int(element[0]):
+                    z1 = float(qm_corrdata[i + len(qmatomlist)][2])
+                    v1 = [
+                        linkatoms[i][0] / 0.52917721,
+                        linkatoms[i][1] / 0.52917721,
+                        linkatoms[i][2] / 0.52917721,
+                    ]
+                    break
+        else:
+            z1 = float(xyzq[int(element[0]) - 1][3])
+            v1 = [
+                xyzq[int(element[0]) - 1][0] / 0.52917721,
+                xyzq[int(element[0]) - 1][1] / 0.52917721,
+                xyzq[int(element[0]) - 1][2] / 0.52917721,
+            ]
+        z2 = 0.0
+        if int(element[1]) in _flatten(m2list):
+            for i in range(0, len(m2list)):
+                for j in range(0, len(m2list[i])):
+                    if int(m2list[i][j]) == int(element[1]):
+                        z2 = float(m2charges[i][j])
+                        v2 = [
+                            xyzq[int(element[1]) - 1][0] / 0.52917721,
+                            xyzq[int(element[1]) - 1][1] / 0.52917721,
+                            xyzq[int(element[1]) - 1][2] / 0.52917721,
+                        ]
+                        break
+                if z2 != 0.0:
+                    break
+        elif int(element[1]) in np.array(qmatomlist).astype(int):
+            for i in range(0, len(qmatomlist)):
+                if int(qmatomlist[i]) == int(element[1]):
+                    z2 = float(qm_corrdata[i][2])
+                    v2 = [
+                        xyzq[int(element[1]) - 1][0] / 0.52917721,
+                        xyzq[int(element[1]) - 1][1] / 0.52917721,
+                        xyzq[int(element[1]) - 1][2] / 0.52917721,
+                    ]
+                    break
+        elif int(element[1]) in np.array(m1list).astype(int):
+            for i in range(0, len(m1list)):
+                if int(m1list[i]) == int(element[1]):
+                    z2 = float(qm_corrdata[i + len(qmatomlist)][2])
+                    v2 = [
+                        linkatoms[i][0] / 0.52917721,
+                        linkatoms[i][1] / 0.52917721,
+                        linkatoms[i][2] / 0.52917721,
+                    ]
+                    break
+        else:
+            z2 = float(xyzq[int(element[1]) - 1][3])
+            v2 = [
+                xyzq[int(element[1]) - 1][0] / 0.52917721,
+                xyzq[int(element[1]) - 1][1] / 0.52917721,
+                xyzq[int(element[1]) - 1][2] / 0.52917721,
+            ]
+        v12 = np.array(v1) - np.array(v2)
+        dist = np.linalg.norm(v12)
+        linkenergy += z1 * z2 / dist
+    # now also all atoms in the corrdata list with the mod and linkcorr point charges
+    # mod first. mod is charge in pcffile minus m2charge
+    pcf = read_pcffile(pcffile)
+    for i in range(0, len(m2list)):
+        for j in range(0, len(m2list[i])):
+            curr_mod = []
+            for k in range(0, 3):
+                curr_mod.append(float(pcf[int(m2list[i][j]) - 1][k]) / 0.52917721)
+            curr_mod_charge = (
+                float(float(pcf[int(m2list[i][j]) - 1][3])) - m2charges[i][j]
+            )
+            for k in range(0, len(qmatomlist)):
+                v1 = [
+                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                linkenergy += z1 * curr_mod_charge / dist
+            for k in range(0, len(linkatoms)):
+                v1 = [
+                    linkatoms[k][0] / 0.52917721,
+                    linkatoms[k][1] / 0.52917721,
+                    linkatoms[k][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                linkenergy += z1 * curr_mod_charge / dist
+    # now linkcorr. linkcorr are last m2*2 entries in pcf
+    m2count = 0
+    linkstart = len(pcf) - 2 * len(list(_flatten(m2list)))
+    for i in range(0, len(m2list)):
+        for j in range(0, len(m2list[i])):
+            curr_mod = []
+            for k in range(0, 3):
+                curr_mod.append(float(pcf[int(linkstart) + m2count][k]) / 0.52917721)
+            curr_mod_charge = float(float(pcf[int(linkstart) + m2count][3]))
+            m2count += 1
+            for k in range(0, len(qmatomlist)):
+                v1 = [
+                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                linkenergy += z1 * curr_mod_charge / dist
+            for k in range(0, len(linkatoms)):
+                v1 = [
+                    linkatoms[k][0] / 0.52917721,
+                    linkatoms[k][1] / 0.52917721,
+                    linkatoms[k][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                linkenergy += z1 * curr_mod_charge / dist
+    # now, add the correction of energy for the link atoms. currently only C-C bond cuts supported.
+    for i in range(0, len(linkatoms)):
+        v1 = [
+            linkatoms[i][0] / 0.52917721,
+            linkatoms[i][1] / 0.52917721,
+            linkatoms[i][2] / 0.52917721,
+        ]
+        _flattened = list(_flatten(q1list))
+        v2 = [
+            xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][1] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][2] / 0.52917721,
+        ]
+        v12 = np.array(v2) - np.array(v1)
+        dist = np.linalg.norm(v12)
+    dist = dist * 0.7409471631
+    energycorr = databasecorrection("ENERGY", "aminoacid_CACB", dist, qmmmInputs)
+    linkenergy -= energycorr
+    # sign inverted due to correction convention (subtracting)
+    return linkenergy
+
+def get_energy(edrname, qmmmInputs):
+    qmenergy, qm_corrdata = get_qmenergy(qmfile, qmmmInputs)
+    mmenergy = get_mmenergy(str(edrname), qmmmInputs)
+    linkcorrenergy = get_linkenergy_au(qm_corrdata, qmmmInputs)
+
+    qmenergy -= linkcorrenergy
+    methodstring = str(qmmmInputs.qmparams.method)
+    if qminfo[2] != "NONE":
+        methodstring += str("/" + str(qmmmInputs.qmparams.basis))
+    logger(
+        logfile,
+        str(
+            "Single point energy done. QM/MM energy is {:>20.10f} (QM, link atom corrected ".format(
+                float(qmenergy)
+            )
+            + methodstring
+            + ") + {:>20.10f} (MM) = {:>20.10f} (a.u.)\n".format(
+                float(mmenergy), float(qmenergy) + float(mmenergy)
+            )
+        ),
+    )
+
+    return qmenergy, mmenergy, linkcorrenergy, qm_corrdata
+
+#Forces
+def get_qmforces_au(qmmmInputs):
+    qmatomlist = qmmmInputs.qmmmInputs
+    m1list = qmmmInputs.m1list
+    qmmmtop = qmmmInputs.qmmmtop
+    qmprogram = qmmmInputs.qmparams.qmprogram
+    jobname = qmmmInputs.qmmmparams.jobname
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    logfile = qmmmInputs.logfile
+
+    qmforces = []
+    qmonlyforcelist = []
+    pcf_grad = []
+
+    if qmprogram == "G16":
+        insert = ""
+        if int(curr_step) != 0:
+            insert = str("." + str(curr_step))
+        qmlogfile = str(jobname + insert + ".gjf.log")
+        fortfile = str(jobname + insert + ".fort.7")
+        with open(fortfile) as ifile:
+            for line in ifile:
+                match = re.search(
+                    r"^\s*(\S*)\s*(\S*)\s*(\S*)", line, flags=re.MULTILINE
+                )
+                if match:
+                    qmline = [
+                        float(str(match.group(1)).replace("D", "e")) * -1.0,
+                        float(str(match.group(2)).replace("D", "e")) * -1.0,
+                        float(str(match.group(3)).replace("D", "e")) * -1.0,
+                    ]
+                    qmonlyforcelist.append(qmline)
+        with open(qmlogfile) as i2file:
+            for line in i2file:
+                match = re.search(
+                    r"^\s*Electrostatic\s*Properties\s*\(Atomic\s*Units\)",
+                    line,
+                    flags=re.MULTILINE,
+                )
+                if match:
+                    for line in i2file:
+                        match = re.search(
+                            r"^\s*\S+\s*[-]*\d+\.\d+\s*([-]*\d+\.\d+)\s*([-]*\d+\.\d+)\s*([-]*\d+\.\d+)",
+                            line,
+                            flags=re.MULTILINE,
+                        )
+                        if match:
+                            pcf_grad_line = [
+                                float(match.group(1)),
+                                float(match.group(2)),
+                                float(match.group(3)),
+                            ]
+                            pcf_grad.append(pcf_grad_line)
+                        match = re.search(r"^\s*Leave Link", line, flags=re.MULTILINE)
+                        if match:
+                            break
+                    break
+    with open(qmmmtop) as ifile:
+        for line in ifile:
+            match = re.search(r"\[\s+moleculetype\s*\]", line)
+            if match:
+                for line in ifile:
+                    match = re.search(r"\[\s+atoms\s*\]", line)
+                    if match:
+                        count = 0
+                        qmcount = 0
+                        m1count = 0
+                        for line in ifile:
+                            match = re.search(
+                                r"^\s*(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\d+)\s+([-]*\d+\.*\d*)\s+(\d+\.*\d*)",
+                                line,
+                                flags=re.MULTILINE,
+                            )
+                            if (
+                                match
+                                and (
+                                    int(match.group(1))
+                                    not in np.array(qmatomlist).astype(int)
+                                )
+                                and (int(match.group(1)) not in np.array(m1list).astype(int))
+                            ):
+                                curr_charge = float(match.group(7))
+                                qmforces.append(
+                                    [
+                                        pcf_grad[count][0] * curr_charge,
+                                        pcf_grad[count][1] * curr_charge,
+                                        pcf_grad[count][2] * curr_charge,
+                                    ]
+                                )
+                                count += 1
+                            elif match and int(match.group(1)) in np.array(
+                                qmatomlist
+                            ).astype(int):
+                                qmforces.append(qmonlyforcelist[qmcount])
+                                qmcount += 1
+                            elif match and int(match.group(1)) in np.array(m1list).astype(
+                                int
+                            ):
+                                qmforces.append(
+                                    qmonlyforcelist[m1count + len(qmatomlist)]
+                                )
+                                m1count += 1
+                            match = re.search(r"^\s*\n", line, flags=re.MULTILINE)
+                            if match:
+                                break
+                        break
+                break
+    return qmforces
+
+def get_mmforces_au(qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    logfile = qmmmInputs.logfile
+
+    mmforces = []
+    insert = ""
+    if int(curr_step) != 0:
+        insert = str("." + str(curr_step))
+    trrname = str(jobname + insert + ".trr")
+    tprname = str(jobname + insert + ".tpr")
+    xvgname = str(jobname + insert + ".xvg")
+    p = subprocess.Popen(
+        [
+            prefix,
+            "traj",
+            "-fp",
+            "-f",
+            trrname,
+            "-s",
+            tprname,
+            "-of",
+            xvgname,
+            "-xvg",
+            "none",
+            "-backup",
+            "no",
+        ],
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    p.communicate(input=b"0\n")
+    with open(xvgname) as ifile:
+        for line in ifile:
+            forcelist = re.findall("\S+", line)
+            count = 0
+            mmforceline = []
+            for i in range(1, len(forcelist)):
+                mmforceline.append(float(forcelist[i]) * 2.0155295e-05)
+                count += 1
+                if count > 2:
+                    count = 0
+                    mmforces.append(mmforceline)
+                    mmforceline = []
+            break  # read only one line
+
+    return mmforces
+
+def get_linkforces_au(qm_corrdata,qmmmInputs):
+    linkcorrlist = qmmmInputs.linkcorrlist
+    qmatomlist = qmmmInputs.qmatomlist
+    xyzq = qmmmInputs.xyzq
+    pcffile = qmmmInputs.pcffile
+    m1list = qmmmInputs.m1list
+    m2list = qmmmInputs.m2list
+    q1list = qmmmInputs.q1list
+    linkatoms = qmmmInputs.linkatoms
+    logfile = qmmmInputs.logfile
+
+    linkforces = []
+    # Force Coulomb: z1*z2*(distance along coord)/(distance between charges)**3
+    for element in xyzq:  # this is just to count an entry for each atom!
+        linkforces.append([0.0, 0.0, 0.0])
+    m2charges = get_m2charges(xyzq, m1list, m2list)
+    for element in linkcorrlist:
+        z1 = 0.0
+        v1 = []
+        v2 = []
+        if int(element[0]) in _flatten(m2list):
+            for i in range(0, len(m2list)):
+                for j in range(0, len(m2list[i])):
+                    if int(m2list[i][j]) == int(element[0]):
+                        z1 = float(m2charges[i][j])
+                        v1 = [
+                            xyzq[int(element[0]) - 1][0] / 0.52917721,
+                            xyzq[int(element[0]) - 1][1] / 0.52917721,
+                            xyzq[int(element[0]) - 1][2] / 0.52917721,
+                        ]
+                        break
+                if z1 != 0.0:
+                    break
+        elif int(element[0]) in np.array(qmatomlist).astype(int):
+            for i in range(0, len(qmatomlist)):
+                if int(qmatomlist[i]) == int(element[0]):
+                    z1 = float(qm_corrdata[i][2])
+                    v1 = [
+                        xyzq[int(element[0]) - 1][0] / 0.52917721,
+                        xyzq[int(element[0]) - 1][1] / 0.52917721,
+                        xyzq[int(element[0]) - 1][2] / 0.52917721,
+                    ]
+                    break
+        elif int(element[0]) in np.array(m1list).astype(int):
+            for i in range(0, len(m1list)):
+                if int(m1list[i]) == int(element[0]):
+                    z1 = float(qm_corrdata[i + len(qmatomlist)][2])
+                    v1 = [
+                        linkatoms[i][0] / 0.52917721,
+                        linkatoms[i][1] / 0.52917721,
+                        linkatoms[i][2] / 0.52917721,
+                    ]
+                    break
+        else:
+            z1 = float(xyzq[int(element[0]) - 1][3])
+            v1 = [
+                xyzq[int(element[0]) - 1][0] / 0.52917721,
+                xyzq[int(element[0]) - 1][1] / 0.52917721,
+                xyzq[int(element[0]) - 1][2] / 0.52917721,
+            ]
+        z2 = 0.0
+        if int(element[1]) in _flatten(m2list):
+            for i in range(0, len(m2list)):
+                for j in range(0, len(m2list[i])):
+                    if int(m2list[i][j]) == int(element[1]):
+                        z2 = float(m2charges[i][j])
+                        v2 = [
+                            xyzq[int(element[1]) - 1][0] / 0.52917721,
+                            xyzq[int(element[1]) - 1][1] / 0.52917721,
+                            xyzq[int(element[1]) - 1][2] / 0.52917721,
+                        ]
+                        break
+                if z2 != 0.0:
+                    break
+        elif int(element[1]) in np.array(qmatomlist).astype(int):
+            for i in range(0, len(qmatomlist)):
+                if int(qmatomlist[i]) == int(element[1]):
+                    z2 = float(qm_corrdata[i][2])
+                    v2 = [
+                        xyzq[int(element[1]) - 1][0] / 0.52917721,
+                        xyzq[int(element[1]) - 1][1] / 0.52917721,
+                        xyzq[int(element[1]) - 1][2] / 0.52917721,
+                    ]
+                    break
+        elif int(element[1]) in np.array(m1list).astype(int):
+            for i in range(0, len(m1list)):
+                if int(m1list[i]) == int(element[1]):
+                    z2 = float(qm_corrdata[i + len(qmatomlist)][2])
+                    v2 = [
+                        linkatoms[i][0] / 0.52917721,
+                        linkatoms[i][1] / 0.52917721,
+                        linkatoms[i][2] / 0.52917721,
+                    ]
+                    break
+        else:
+            z2 = float(xyzq[int(element[1]) - 1][3])
+            v2 = [
+                xyzq[int(element[1]) - 1][0] / 0.52917721,
+                xyzq[int(element[1]) - 1][1] / 0.52917721,
+                xyzq[int(element[1]) - 1][2] / 0.52917721,
+            ]
+        v12 = np.array(v1) - np.array(v2)
+        dist = np.linalg.norm(v12)
+
+        for i in range(0, 3):
+            linkforces[int(element[0]) - 1][i] += (
+                z1 * z2 * v12[i] / (dist * dist * dist)
+            )
+            linkforces[int(element[1]) - 1][i] -= (
+                z1 * z2 * v12[i] / (dist * dist * dist)
+            )
+    # now also all atoms in the corrdata list with the mod and linkcorr point charges
+    # mod first. mod is charge in pcffile minus m2charge
+    pcf = read_pcffile(pcffile)
+    for i in range(0, len(m2list)):
+        for j in range(0, len(m2list[i])):
+            curr_mod = []
+            for k in range(0, 3):
+                curr_mod.append(float(pcf[int(m2list[i][j]) - 1][k]) / 0.52917721)
+            curr_mod_charge = (
+                float(float(pcf[int(m2list[i][j]) - 1][3])) - m2charges[i][j]
+            )
+            for k in range(0, len(qmatomlist)):
+                v1 = [
+                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                for l in range(0, 3):
+                    linkforces[int(qmatomlist[k]) - 1][l] += (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+                    linkforces[int(m2list[i][j]) - 1][l] -= (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+            for k in range(0, len(linkatoms)):
+                v1 = [
+                    linkatoms[k][0] / 0.52917721,
+                    linkatoms[k][1] / 0.52917721,
+                    linkatoms[k][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                for l in range(0, 3):
+                    linkforces[int(m1list[k]) - 1][l] += (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+                    linkforces[int(m2list[i][j]) - 1][l] -= (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+    m2count = 0
+    linkstart = len(pcf) - 2 * len(list(_flatten(m2list)))
+    for i in range(0, len(m2list)):
+        for j in range(0, len(m2list[i]) * 2):
+            curr_mod = []
+            for k in range(0, 3):
+                curr_mod.append(float(pcf[int(linkstart) + m2count][k]) / 0.52917721)
+            curr_mod_charge = float(float(pcf[int(linkstart) + m2count][3]))
+            m2count += 1
+            for k in range(0, len(qmatomlist)):
+                v1 = [
+                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
+                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                for l in range(0, 3):
+                    linkforces[int(qmatomlist[k]) - 1][l] += (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+            for k in range(0, len(linkatoms)):
+                v1 = [
+                    linkatoms[k][0] / 0.52917721,
+                    linkatoms[k][1] / 0.52917721,
+                    linkatoms[k][2] / 0.52917721,
+                ]
+                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
+                v12 = np.array(v1) - np.array(curr_mod)
+                dist = np.linalg.norm(v12)
+                for l in range(0, 3):
+                    linkforces[int(m1list[k]) - 1][l] += (
+                        z1 * curr_mod_charge * v12[l] / (dist * dist * dist)
+                    )
+    for i in range(0, len(linkatoms)):
+        v1 = [
+            linkatoms[i][0] / 0.52917721,
+            linkatoms[i][1] / 0.52917721,
+            linkatoms[i][2] / 0.52917721,
+        ]
+        _flattened = list(_flatten(q1list))
+        v2 = [
+            xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][1] / 0.52917721,
+            xyzq[int(_flattened[i]) - 1][2] / 0.52917721,
+        ]
+        v12 = np.array(v2) - np.array(v1)
+        dist = np.linalg.norm(v12) / 0.71290813568205
+        u_v12 = rot.uvec(v12)
+        dist = dist * 0.5282272551
+        forcecorr = databasecorrection("FORCES", "aminoacid_CACB", dist, qmmmInputs)
+        for j in range(0, 3):
+            linkforces[int(_flattened[i]) - 1][j] += -u_v12[j] * forcecorr * 0.5
+            linkforces[int(m1list[i]) - 1][j] += u_v12[j] * forcecorr * 0.5
+    return linkforces
+
+def read_forces(qm_corrdata,qmmmInputs):
+    qmforces = []
+    mmforces = []
+    qmforces = get_qmforces_au(qmmmInputs)
+    logger(logfile, str("QM forces read.\n"))
+    mmforces = get_mmforces_au(qmmmInputs)
+    logger(logfile, str("MM forces read.\n"))
+    linkcorrforces = get_linkforces_au(qm_corrdata, qmmmInputs)
+    logger(logfile, str("Forces for link atom correction read.\n"))
+    total_force = np.array(qmforces) + np.array(mmforces) - np.array(linkcorrforces)
+    # logger(logfile,str("\n"+str(total_force[106][0])+" "+str(total_force[106][1])+" "+str(total_force[106][2])+"\n"))
+    logger(logfile, str("Total forces obtained.\n"))
+    # total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
+    # logger(logfile, str("Deleted forces of inactive atoms.\n"))
+    return total_force
 
 
 def perform_sp(qmmmInputs):
@@ -48,8 +827,9 @@ def perform_sp(qmmmInputs):
 
         run_g16(qmfile, qmmmInputs)
         edrname = run_gmx(mmfile, qmmmInputs)
-
+        logger(logfile, str("Reading energies.\n"))
         qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(edrname,qmmmInputs)
+        logger(logfile, str("Reading forces.\n"))
         total_force = read_forces(qmmmInputs, qmenergy, mmenergy, qm_corrdata)
 
     elif qmprogram == "TM":
@@ -742,404 +1522,6 @@ def perform_nma(qmmmInputs):
         qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, prep_hess
     ))
 
-
-def run_g16(qmfile, qmmmInputs):
-    jobname = qmmmInputs.qmmmparams.jobname
-    g16cmd = qmmmInputs.pathinfo.g16cmd
-    curr_step = qmmmInputs.qmmmparams.curr_step
-    logfile = qmmmInputs.logfile
-    
-    insert = ""
-    if int(curr_step) != 0:
-        insert = str("." + str(int(curr_step)))
-
-
-    if not os.path.isfile(str(qmfile) + ".log"):
-        logger(logfile, "Running G16 file.\n")
-        subprocess.call([g16cmd, str(qmfile)])
-        logname = qmfile[:-3]
-        logname += "log"
-        subprocess.call(["mv", logname, str(jobname + insert + ".gjf.log")])
-        subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
-        logger(logfile, "G16 done.\n")
-    else:
-        logger(
-            logfile,
-            "NOTE: Using existing G16 files, skipping calculation for this step.\n",
-        )
-    if not os.path.isfile(jobname + insert + ".fort.7"):
-        if not os.path.isfile("fort.7"):
-            logger(
-                logfile,
-                "No fort.7 file was created by the last Gaussian run! Exiting.\n",
-            )
-            exit(1)
-        subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
-        logger(
-            logfile,
-            "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
-        )
-
-def run_gmx(mmfile, qmmmInputs):
-    jobname = qmmmInputs.qmmmparams.jobname
-    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
-    curr_step = qmmmInputs.qmmmparams.curr_step
-    logfile = qmmmInputs.logfile
-
-    insert = ""
-    if int(curr_step) != 0:
-        insert = str("." + str(int(curr_step)))
-
-    logger(logfile, "Running Gromacs file.\n")
-    trrname = str(jobname + insert + ".trr")
-    xtcname = str(jobname + insert + ".xtc")
-    outname = str(jobname + insert + ".out.gro")
-    gmxlogname = str(jobname + insert + ".gmx.log")
-    edrname = str(jobname + insert + ".edr")
-    subprocess.call(
-        [
-            prefix,
-            "mdrun",
-            "-s",
-            mmfile,
-            "-o",
-            trrname,
-            "-c",
-            outname,
-            "-x",
-            xtcname,
-            "-g",
-            gmxlogname,
-            "-e",
-            edrname,
-            "-backup",
-            "no",
-        ]
-    )
-    subprocess.call(["rm", outname])
-
-    return edrname
-
-
-def get_energy(edrname, qmmmInputs):
-    qmenergy, qm_corrdata = get_qmenergy(qmfile, qmmmInputs)
-    mmenergy = get_mmenergy(str(edrname), qmmmInputs)
-    linkcorrenergy = get_linkenergy_au(qm_corrdata, qmmmInputs)
-
-    qmenergy -= linkcorrenergy
-    methodstring = str(qmmmInputs.qmparams.method)
-    if qminfo[2] != "NONE":
-        methodstring += str("/" + str(qmmmInputs.qmparams.basis))
-    logger(
-        logfile,
-        str(
-            "Single point energy done. QM/MM energy is {:>20.10f} (QM, link atom corrected ".format(
-                float(qmenergy)
-            )
-            + methodstring
-            + ") + {:>20.10f} (MM) = {:>20.10f} (a.u.)\n".format(
-                float(mmenergy), float(qmenergy) + float(mmenergy)
-            )
-        ),
-    )
-
-    return qmenergy, mmenergy, linkcorrenergy, qm_corrdata
-
-def get_qmenergy(qmfile, qmmmInputs, pcffile):
-    qmprog = qmmmInputs.qmparams.program
-    extra_string = qmmmInputs.qmparams.extra
-    pcffile = qmmmInputs.qmmmparams.pcffile
-    logfile = qmmmInputs.logfile
-    basedir = qmmmInputs.qmmmparams.basedir
-
-    logger(logfile, "Extracting QM energy.\n")
-    qmenergy = 0.0
-    qm_corrdata = []
-    if str(qmprog) == "G16":
-        with open(str(qmfile + ".log")) as ifile:
-            for line in ifile:
-                match = []
-                match2 = []
-                match2 = re.search(
-                    r"\sTD[=(\s]", extra_string.upper(), flags=re.MULTILINE
-                )
-                if not match2:
-                    match2 = re.search(
-                        r"^TD[=(\s]", extra_string.upper(), flags=re.MULTILINE
-                    )
-                if not match2:
-                    match2 = re.search(
-                        r"\sTD$", extra_string.upper(), flags=re.MULTILINE
-                    )
-                if not match2:
-                    match2 = re.search(
-                        r"^TD$", extra_string.upper(), flags=re.MULTILINE
-                    )
-                if not match2:
-                    match = re.search(
-                        r"^\s*SCF\s*Done:\s*E\(\S+\)\s*\=\s*([-]*\d+\.\d+)",
-                        line,
-                        flags=re.MULTILINE,
-                    )
-                else:
-                    match = re.search(
-                        r"^\s*Total\s*Energy,\s*E\(\S+\)\s*\=\s*([-]*\d+\.\d+)",
-                        line,
-                        flags=re.MULTILINE,
-                    )
-                if match:
-                    logger(logfile, "Obtaining charge self-interaction...")
-                    pcf_self_pot = read_pcf_self(qmfile)
-                    logger(
-                        logfile, "done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
-                    )
-                    # G16 energy needs to be corrected for self potential of PCF
-                    qmenergy = float(match.group(1)) - float(pcf_self_pot)
-                match = re.search(r"^\s*ESP\s*charges:", line, flags=re.MULTILINE)
-                if match:
-                    for line in ifile:
-                        break
-                    for line in ifile:
-                        match = re.search(
-                            r"^\s*(\d+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
-                        )
-                        if match:
-                            qm_corrdata.append(
-                                [
-                                    int(match.group(1)),
-                                    match.group(2),
-                                    float(match.group(3)),
-                                ]
-                            )
-                        else:
-                            break
-                    break
-    logger(logfile, "QM energy is " + str(float(qmenergy)) + " a.u..\n")
-    return qmenergy, qm_corrdata
-
-
-def get_mmenergy(edrname, qmmmInputs):
-    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
-    logfile = qmmmInputs.logfile
-
-    mmenergy = 0.0
-    logger(logfile, "Extracting MM energy.\n")
-    p = subprocess.Popen(
-        [
-            prefix,
-            "energy",
-            "-f",
-            edrname,
-            "-o",
-            str(edrname + ".xvg"),
-            "-backup",
-            "no",
-        ],
-        stdout=subprocess.PIPE,
-        stdin=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    p.communicate(input=b"11\n\n")
-    with open(str(edrname + ".xvg")) as ifile:
-        for line in ifile:
-            match = re.search(
-                r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
-            )
-            if match:
-                mmenergy = float(match.group(1)) * 0.00038087988
-                break
-    logger(logfile, "MM energy is " + str(float(mmenergy)) + " a.u..\n")
-    return mmenergy
-
-
-def get_linkenergy_au(qm_corrdata, qmmmInputs):
-    xyzq = qmmmInput.qmmmparams.xyzq
-    linkcorrlist = qmmmInput.qmmmparams.linkcorrlist
-    m1list = qmmmInput.qmmmparams.m1list
-    m2list = qmmmInput.qmmmparams.m2list
-    q1list = qmmmInput.qmmmparams.q1list
-    qmmmtop = qmmmInput.qmmmparams.qmmmtop
-    linkatoms = qmmmInput.qmmmparams.linkatoms
-    logfile = qmmmInput.qmmmparams.logfile
-
-
-
-    pcffile = qmmmInput.qmmmparams.pcffile
-    qmatomlist = qmmmInput.qmmmparams.qmatomlist
-
-    linkenergy = 0.0
-    m2charges = get_m2charges(xyzq, m1list, m2list)
-    for element in linkcorrlist:
-        z1 = 0.0
-        v1 = []
-        v2 = []
-        if int(element[0]) in np.array(list(_flatten(m2list))).astype(int):
-            for i in range(0, len(m2list)):
-                for j in range(0, len(m2list[i])):
-                    if int(m2list[i][j]) == int(element[0]):
-                        z1 = float(m2charges[i][j])
-                        v1 = [
-                            xyzq[int(element[0]) - 1][0] / 0.52917721,
-                            xyzq[int(element[0]) - 1][1] / 0.52917721,
-                            xyzq[int(element[0]) - 1][2] / 0.52917721,
-                        ]
-                        break
-                if z1 != 0.0:
-                    break
-        elif int(element[0]) in np.array(qmatomlist).astype(int):
-            for i in range(0, len(qmatomlist)):
-                if int(qmatomlist[i]) == int(element[0]):
-                    z1 = float(qm_corrdata[i][2])
-                    v1 = [
-                        xyzq[int(element[0]) - 1][0] / 0.52917721,
-                        xyzq[int(element[0]) - 1][1] / 0.52917721,
-                        xyzq[int(element[0]) - 1][2] / 0.52917721,
-                    ]
-                    break
-        elif int(element[0]) in np.array(m1list).astype(int):
-            for i in range(0, len(m1list)):
-                if int(m1list[i]) == int(element[0]):
-                    z1 = float(qm_corrdata[i + len(qmatomlist)][2])
-                    v1 = [
-                        linkatoms[i][0] / 0.52917721,
-                        linkatoms[i][1] / 0.52917721,
-                        linkatoms[i][2] / 0.52917721,
-                    ]
-                    break
-        else:
-            z1 = float(xyzq[int(element[0]) - 1][3])
-            v1 = [
-                xyzq[int(element[0]) - 1][0] / 0.52917721,
-                xyzq[int(element[0]) - 1][1] / 0.52917721,
-                xyzq[int(element[0]) - 1][2] / 0.52917721,
-            ]
-        z2 = 0.0
-        if int(element[1]) in _flatten(m2list):
-            for i in range(0, len(m2list)):
-                for j in range(0, len(m2list[i])):
-                    if int(m2list[i][j]) == int(element[1]):
-                        z2 = float(m2charges[i][j])
-                        v2 = [
-                            xyzq[int(element[1]) - 1][0] / 0.52917721,
-                            xyzq[int(element[1]) - 1][1] / 0.52917721,
-                            xyzq[int(element[1]) - 1][2] / 0.52917721,
-                        ]
-                        break
-                if z2 != 0.0:
-                    break
-        elif int(element[1]) in np.array(qmatomlist).astype(int):
-            for i in range(0, len(qmatomlist)):
-                if int(qmatomlist[i]) == int(element[1]):
-                    z2 = float(qm_corrdata[i][2])
-                    v2 = [
-                        xyzq[int(element[1]) - 1][0] / 0.52917721,
-                        xyzq[int(element[1]) - 1][1] / 0.52917721,
-                        xyzq[int(element[1]) - 1][2] / 0.52917721,
-                    ]
-                    break
-        elif int(element[1]) in np.array(m1list).astype(int):
-            for i in range(0, len(m1list)):
-                if int(m1list[i]) == int(element[1]):
-                    z2 = float(qm_corrdata[i + len(qmatomlist)][2])
-                    v2 = [
-                        linkatoms[i][0] / 0.52917721,
-                        linkatoms[i][1] / 0.52917721,
-                        linkatoms[i][2] / 0.52917721,
-                    ]
-                    break
-        else:
-            z2 = float(xyzq[int(element[1]) - 1][3])
-            v2 = [
-                xyzq[int(element[1]) - 1][0] / 0.52917721,
-                xyzq[int(element[1]) - 1][1] / 0.52917721,
-                xyzq[int(element[1]) - 1][2] / 0.52917721,
-            ]
-        v12 = np.array(v1) - np.array(v2)
-        dist = np.linalg.norm(v12)
-        linkenergy += z1 * z2 / dist
-    # now also all atoms in the corrdata list with the mod and linkcorr point charges
-    # mod first. mod is charge in pcffile minus m2charge
-    pcf = read_pcffile(pcffile)
-    for i in range(0, len(m2list)):
-        for j in range(0, len(m2list[i])):
-            curr_mod = []
-            for k in range(0, 3):
-                curr_mod.append(float(pcf[int(m2list[i][j]) - 1][k]) / 0.52917721)
-            curr_mod_charge = (
-                float(float(pcf[int(m2list[i][j]) - 1][3])) - m2charges[i][j]
-            )
-            for k in range(0, len(qmatomlist)):
-                v1 = [
-                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
-                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
-                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
-                ]
-                z1 = float(qm_corrdata[k][2])
-                v12 = np.array(v1) - np.array(curr_mod)
-                dist = np.linalg.norm(v12)
-                linkenergy += z1 * curr_mod_charge / dist
-            for k in range(0, len(linkatoms)):
-                v1 = [
-                    linkatoms[k][0] / 0.52917721,
-                    linkatoms[k][1] / 0.52917721,
-                    linkatoms[k][2] / 0.52917721,
-                ]
-                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = np.array(v1) - np.array(curr_mod)
-                dist = np.linalg.norm(v12)
-                linkenergy += z1 * curr_mod_charge / dist
-    # now linkcorr. linkcorr are last m2*2 entries in pcf
-    m2count = 0
-    linkstart = len(pcf) - 2 * len(list(_flatten(m2list)))
-    for i in range(0, len(m2list)):
-        for j in range(0, len(m2list[i])):
-            curr_mod = []
-            for k in range(0, 3):
-                curr_mod.append(float(pcf[int(linkstart) + m2count][k]) / 0.52917721)
-            curr_mod_charge = float(float(pcf[int(linkstart) + m2count][3]))
-            m2count += 1
-            for k in range(0, len(qmatomlist)):
-                v1 = [
-                    xyzq[int(qmatomlist[k]) - 1][0] / 0.52917721,
-                    xyzq[int(qmatomlist[k]) - 1][1] / 0.52917721,
-                    xyzq[int(qmatomlist[k]) - 1][2] / 0.52917721,
-                ]
-                z1 = float(qm_corrdata[k][2])
-                v12 = np.array(v1) - np.array(curr_mod)
-                dist = np.linalg.norm(v12)
-                linkenergy += z1 * curr_mod_charge / dist
-            for k in range(0, len(linkatoms)):
-                v1 = [
-                    linkatoms[k][0] / 0.52917721,
-                    linkatoms[k][1] / 0.52917721,
-                    linkatoms[k][2] / 0.52917721,
-                ]
-                z1 = float(qm_corrdata[k + len(qmatomlist)][2])
-                v12 = np.array(v1) - np.array(curr_mod)
-                dist = np.linalg.norm(v12)
-                linkenergy += z1 * curr_mod_charge / dist
-    # now, add the correction of energy for the link atoms. currently only C-C bond cuts supported.
-    for i in range(0, len(linkatoms)):
-        v1 = [
-            linkatoms[i][0] / 0.52917721,
-            linkatoms[i][1] / 0.52917721,
-            linkatoms[i][2] / 0.52917721,
-        ]
-        _flattened = list(_flatten(q1list))
-        v2 = [
-            xyzq[int(_flattened[i]) - 1][0] / 0.52917721,
-            xyzq[int(_flattened[i]) - 1][1] / 0.52917721,
-            xyzq[int(_flattened[i]) - 1][2] / 0.52917721,
-        ]
-        v12 = np.array(v2) - np.array(v1)
-        dist = np.linalg.norm(v12)
-    dist = dist * 0.7409471631
-    energycorr = databasecorrection(
-        "ENERGY", "aminoacid_CACB", dist, qmmmInputs, basedir, logfile
-    )
-    linkenergy -= energycorr
-    # sign inverted due to correction convention (subtracting)
-    return linkenergy
 
 
 
