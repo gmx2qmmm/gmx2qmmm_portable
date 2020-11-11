@@ -359,7 +359,9 @@ def get_full_coords_nm(gro):  # read g96
 def make_g16_inp(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     gro = qmmmInputs.gro
+    #1111
     qmmmtop = qmmmInputs.top
+    #qmmmtop = qmmmInputs.qmmmtop
     qmatomlist = qmmmInputs.qmatomlist
     pcffile = qmmmInputs.pcffile
     curr_step = qmmmInputs.qmmmparams.curr_step
@@ -465,7 +467,7 @@ def make_g16_inp(qmmmInputs):
 def make_gmx_inp(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     gro = qmmmInputs.gro
-    qmmmtop = qmmmInputs.top
+    qmmmtop = qmmmInputs.qmmmtop
     qmatomlist = qmmmInputs.qmatomlist
     curr_step = qmmmInputs.qmmmparams.curr_step
     logfile = qmmmInputs.logfile
@@ -572,7 +574,7 @@ def databasecorrection(energy_or_force, cut, dist, qmmmInputs):
     basedir = qmmmInputs.basedir
     logfile = qmmmInputs.logfile
 
-    conn = sqlite3.connect(basedir + "/../correction_database/database.sqlite")
+    conn = sqlite3.connect(basedir + "/correction_database/database.sqlite")
 
     # check if method exist in database
     method_set = conn.cursor()
@@ -875,19 +877,16 @@ def get_mmenergy(edrname, qmmmInputs):
     return mmenergy
 
 def get_linkenergy_au(qm_corrdata, qmmmInputs):
-    xyzq = qmmmInput.qmmmparams.xyzq
-    linkcorrlist = qmmmInput.qmmmparams.linkcorrlist
-    m1list = qmmmInput.qmmmparams.m1list
-    m2list = qmmmInput.qmmmparams.m2list
-    q1list = qmmmInput.qmmmparams.q1list
-    qmmmtop = qmmmInput.qmmmparams.qmmmtop
-    linkatoms = qmmmInput.qmmmparams.linkatoms
-    logfile = qmmmInput.qmmmparams.logfile
-
-
-
-    pcffile = qmmmInput.qmmmparams.pcffile
-    qmatomlist = qmmmInput.qmmmparams.qmatomlist
+    xyzq = qmmmInputs.xyzq
+    linkcorrlist = qmmmInputs.linkcorrlist
+    m1list = qmmmInputs.m1list
+    m2list = qmmmInputs.m2list
+    q1list = qmmmInputs.q1list
+    qmmmtop = qmmmInputs.qmmmtop
+    linkatoms = qmmmInputs.linkatoms
+    logfile = qmmmInputs.logfile
+    pcffile = qmmmInputs.pcffile
+    qmatomlist = qmmmInputs.qmatomlist
 
     linkenergy = 0.0
     m2charges = get_m2charges(xyzq, m1list, m2list)
@@ -1062,14 +1061,15 @@ def get_linkenergy_au(qm_corrdata, qmmmInputs):
     return linkenergy
 
 def get_energy(qmfile, edrname, qmmmInputs):
+    logfile = qmmmInputs.logfile
     qmenergy, qm_corrdata = get_qmenergy(qmfile, qmmmInputs)
     mmenergy = get_mmenergy(str(edrname), qmmmInputs)
     linkcorrenergy = get_linkenergy_au(qm_corrdata, qmmmInputs)
-
+    basis = qmmmInputs.qmparams.basis
     qmenergy -= linkcorrenergy
     methodstring = str(qmmmInputs.qmparams.method)
-    if qminfo[2] != "NONE":
-        methodstring += str("/" + str(qmmmInputs.qmparams.basis))
+    if basis != "NONE":
+        methodstring += str("/" + str(basis))
     logger(
         logfile,
         str(
@@ -1087,10 +1087,10 @@ def get_energy(qmfile, edrname, qmmmInputs):
 
 #Forces
 def get_qmforces_au(qmmmInputs):
-    qmatomlist = qmmmInputs.qmmmInputs
+    qmatomlist = qmmmInputs.qmatomlist
     m1list = qmmmInputs.m1list
     qmmmtop = qmmmInputs.qmmmtop
-    qmprogram = qmmmInputs.qmparams.qmprogram
+    qmprogram = qmmmInputs.qmparams.program
     jobname = qmmmInputs.qmmmparams.jobname
     curr_step = qmmmInputs.qmmmparams.curr_step
     logfile = qmmmInputs.logfile
@@ -1456,6 +1456,7 @@ def get_linkforces_au(qm_corrdata,qmmmInputs):
     return linkforces
 
 def read_forces(qm_corrdata,qmmmInputs):
+    logfile = qmmmInputs.logfile
     qmforces = []
     mmforces = []
     qmforces = get_qmforces_au(qmmmInputs)
@@ -1472,291 +1473,11 @@ def read_forces(qm_corrdata,qmmmInputs):
     return total_force
 
 #Job cycle
-def opt_cycle(
-    gro,
-    top,
-    xyzq,
-    connlist,
-    qmatomlist,
-    qm_corrdata,
-    m1list,
-    m2list,
-    q1list,
-    qmmmtop,
-    qminfo,
-    mminfo,
-    qmmminfo,
-    linkcorrlist,
-    flaglist,
-    pcffile,
-    linkatoms,
-    curr_step,
-    last_energy,
-    last_forces,
-    initstep,
-    active,
-    logfile,
-    basedir,
-    pathparams,
-):
+def opt_cycle(qmmmInputs):
+    return 0
 
-    done = 0
-    f_thresh = float(qmmminfo[2])
-    jobname = str(qmmminfo[0])
-    total_force = read_forces(
-        qmatomlist,
-        m1list,
-        qmmmtop,
-        qminfo,
-        qmmminfo[0],
-        curr_step,
-        logfile,
-        linkcorrlist,
-        xyzq,
-        pcffile,
-        qm_corrdata,
-        m2list,
-        q1list,
-        linkatoms,
-        active,
-        basedir,
-        mminfo,
-        qmmminfo,
-        pathparams,
-    )
-    clean_force = make_clean_force(total_force)
-    maxforce = 0.0
-    for element in _flatten(clean_force):
-        if abs(float(element)) > abs(maxforce):
-            maxforce = float(element)
-    if abs(maxforce) < float(f_thresh):
-        logger(
-            logfile,
-            str(
-                "Max force "
-                + str(maxforce)
-                + " below threshold ("
-                + str(f_thresh)
-                + "). Finishing.\n"
-            ),
-        )
-        done = 1
-        return (
-            done,
-            last_energy,
-            gro,
-            pcffile,
-            xyzq,
-            linkatoms,
-            initstep,
-            qm_corrdata,
-            clean_force,
-        )
-    else:
-        logger(logfile, str("Max force not below threshold. Continuing.\n"))
-
-    (
-        qmenergy,
-        mmenergy,
-        new_qm_corrdata,
-        new_gro,
-        new_pcffile,
-        new_xyzq,
-        new_links,
-        new_initstep,
-        imporved,
-    ) = make_opt_step(
-        jobname,
-        xyzq,
-        connlist,
-        qmmminfo[5],
-        gro,
-        top,
-        total_force,
-        initstep,
-        qmatomlist,
-        qm_corrdata,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        curr_step,
-        last_energy,
-        last_forces,
-        logfile,
-        basedir,
-        pathparams,
-    )
-    curr_energy = float(qmenergy) + float(mmenergy)
-    if float(new_initstep) < 0.000001:
-        done = 2
-        logger(
-            logfile,
-            str(
-                "Step became lower than 0.000001 a.u., optimization is considered done for now. This is the best we can do unless reaching unacceptable numerical noise levels.\n"
-            ),
-        )
-    if float(curr_energy) > float(last_energy):
-        done = 1
-        logger(
-            logfile,
-            str(
-                "Energy did not drop! Exiting optimizer, this might indicate an error!\n"
-            ),
-        )
-    return (
-        done,
-        curr_energy,
-        new_gro,
-        new_pcffile,
-        new_xyzq,
-        new_links,
-        new_initstep,
-        new_qm_corrdata,
-        clean_force,
-        imporved,
-    )
-
-def scan_cycle(
-    scan_data,
-    gro,
-    top,
-    xyzq,
-    connlist,
-    qmatomlist,
-    qm_corrdata,
-    m1list,
-    m2list,
-    q1list,
-    qmmmtop,
-    qminfo,
-    mminfo,
-    qmmminfo,
-    linkcorrlist,
-    flaglist,
-    pcffile,
-    linkatoms,
-    curr_step,
-    last_energy,
-    last_forces,
-    initstep,
-    active,
-    logfile,
-    basedir,
-    pathparams,
-):
-
-    # already run sp once
-
-    jobname = str(qmmminfo[0])
-    total_force = read_forces(
-        qmatomlist,
-        m1list,
-        qmmmtop,
-        qminfo,
-        qmmminfo[0],
-        curr_step,
-        logfile,
-        linkcorrlist,
-        xyzq,
-        pcffile,
-        qm_corrdata,
-        m2list,
-        q1list,
-        linkatoms,
-        active,
-        basedir,
-        mminfo,
-        qmmminfo,
-        pathparams,
-    )
-    clean_force = make_clean_force(total_force)
-
-    # function xyz2zmatrix
-    # function write Gaussian input with zmat
-    # function z2g
-
-    # make new geo
-    with open(new_gro, "w") as ofile:
-        with open(gro) as ifile:
-            counter = 0
-            for line in ifile:
-                ofile.write(line)
-                counter += 1
-                if counter == 4:
-                    break
-            counter = 0
-            for line in ifile:
-                match = re.search(
-                    r"^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)",
-                    line,
-                    flags=re.MULTILINE,
-                )
-                if not match:
-                    ofile.write(line)
-                    logger(
-                        logfile,
-                        str(
-                            "Successfully wrote "
-                            + str(int(counter))
-                            + " atoms to new g96 file.\n"
-                        ),
-                    )
-                    break
-                else:
-                    dispx = dispvec[counter][0] * 0.052917721
-                    dispy = dispvec[counter][1] * 0.052917721
-                    dispz = dispvec[counter][2] * 0.052917721
-                    ofile.write(
-                        str(match.group(1))
-                        + " "
-                        + str(match.group(2))
-                        + " "
-                        + str(match.group(3))
-                        + " "
-                        + str(match.group(4))
-                        + " {:>15.9f} {:>15.9f} {:>15.9f}\n".format(
-                            float(match.group(5)) + float(dispx),
-                            float(match.group(6)) + float(dispy),
-                            float(match.group(7)) + float(dispz),
-                        )
-                    )
-                    counter += 1
-            for line in ifile:
-                ofile.write(line)
-
-    perform_sp(
-        gro,
-        top,
-        xyzq,
-        connlist,
-        qmatomlist,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        active,
-        logfile,
-        basedir,
-        step,
-        pathparams,
-    )
-
-    return done
+def scan_cycle(qmmmInputs):
+    return 0
 
 #Job
 def perform_sp(qmmmInputs):
@@ -1786,7 +1507,7 @@ def perform_sp(qmmmInputs):
         qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(qmfile, edrname, qmmmInputs)
         energies = (qmenergy, mmenergy, linkcorrenergy)
         logger(logfile, str("Reading forces.\n"))
-        total_force = read_forces(qmmmInputs, qmenergy, mmenergy, qm_corrdata)
+        total_force = read_forces(qm_corrdata,qmmmInputs)
 
     elif qmprogram == "TM":
         logger(logfile,"Turbomole is not avalible currently.\n")

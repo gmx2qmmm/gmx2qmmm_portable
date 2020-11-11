@@ -210,8 +210,10 @@ class QMMMInputs:
         self.top = inputFiles.top
         logger(logfile, "Done.\n")
 
-        logger(logfile, "Initializing dependencies...")
+
         self.gro = stepper(inputFiles.coord, self.qmmmparams.curr_step)
+
+        logger(logfile, "Initializing dependencies...")
         logger(self.logfile, "complete.\n")
 
 
@@ -236,7 +238,7 @@ class QMMMInputs:
         logger(logfile, "done.\n")
 
         logger(logfile, "Reading connectivity matrix...")
-        self.connlist = read_conn_list_from_top(inputFiles.top, self.mollist, self.basedir)
+        self.connlist = read_conn_list_from_top(self.top, self.mollist, self.pathparams.gmxtop)
         logger(logfile, "done.\n")
         
         logger(logfile, "Trying to understand your QM, MM and QM/MM parameters.\n")
@@ -334,12 +336,12 @@ class QMMMInputs:
             active = prep_pcf.read_qmatom_list(inputFiles.act)
             logger(logfile, "done.\n")
  
-def get_curr_top(molname, top, basedir):
+def get_curr_top(molname, top, gmxtop_path):
     curr_top = top
     found = make_pcf.checkformol(molname, top)
 
     if not found:
-        toplist = make_pcf.getincludelist(top)
+        toplist = make_pcf.getincludelist(top, gmxtop_path)
         for element in toplist:
             found = make_pcf.checkformol(molname, element)
             if found:
@@ -475,11 +477,11 @@ def get_connlist(offset, molname, top):
                 break
     return connlist
 
-def read_conn_list_from_top(top, mollist, basedir):
+def read_conn_list_from_top(top, mollist, gmxtop_path):
     count = 0
     connlist = []
     for element in mollist:
-        curr_top = get_curr_top(element[0], top, basedir)
+        curr_top = get_curr_top(element[0], top, gmxtop_path)
         for i in range(0, int(element[1])):
             mollength = get_mollength_direct(element[0], curr_top)
             connset = get_connlist(count, element[0], curr_top)
