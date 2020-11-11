@@ -27,6 +27,636 @@ from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 
+#Ultilites
+def get_m2charges(xyzq, m1list, m2list):
+    m2charges = []
+    count = 0
+    for element in m1list:
+        m2chargeline = []
+        for i in range(0, len(m2list[count])):
+            m2chargeline.append(float(xyzq[int(m2list[count][i]) - 1][3]))
+        count += 1
+        m2charges.append(m2chargeline)
+    return m2charges
+
+def read_pcffile(pcffile):
+    pcf = []
+    with open(pcffile) as ifile:
+        for line in ifile:
+            match = re.search(r"^QM", line, flags=re.MULTILINE)
+            if match:
+                pcf.append(["QM"])
+                continue
+            match = re.search(
+                r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+            )
+            if match:
+                pcf.append(
+                    [
+                        float(match.group(1)),
+                        float(match.group(2)),
+                        float(match.group(3)),
+                        float(match.group(4)),
+                    ]
+                )
+                continue
+            match = re.search(r"^$end", line, flags=re.MULTILINE)
+            if match:
+                break
+    return pcf
+
+def read_pcf_self(qmfile):
+    pcf_self = 0.0
+    with open(qmfile + ".log") as ifile:
+        for line in ifile:
+            match = re.search(
+                r"^\s+Self\s+energy\s+of\s+the\s+charges\s+=\s+([-]*\d+\.\d+)\s+a\.u\.",
+                line,
+                flags=re.MULTILINE,
+            )
+            if match:
+                pcf_self = float(match.group(1))
+                break
+    return pcf_self
+
+def remove_inactive(total_force, active):
+    new_total_force = []
+    for i in range(0, len(total_force)):
+        if (i + 1) in np.array(active).astype(int):
+            new_total_force.append(total_force[i])
+        else:
+            new_total_force.append([0.0, 0.0, 0.0])
+    return new_total_force
+
+def make_clean_force(total_force):
+
+    clean_force = []
+    for element in np.array(total_force):
+        forceline = []
+        for entry in np.array(element):
+            forceline.append(float(entry))
+        clean_force.append(forceline)
+    return clean_force
+
+def get_full_coords_angstrom(gro):
+    fullcoords = []
+    with open(gro) as ifile:
+        count = 0
+        for line in ifile:
+            count += 1
+            if count == 4:
+                break
+        count = 0
+        for line in ifile:
+            count += 1
+            match = re.search(
+                r"^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)",
+                line,
+                flags=re.MULTILINE,
+            )
+            if not match:
+                break
+            full_coord_line = [
+                float(match.group(5)) * 10.0,
+                float(match.group(6)) * 10.0,
+                float(match.group(7)) * 10.0,
+            ]
+            fullcoords.append(full_coord_line)
+    return fullcoords
+
+def get_atoms(qmmmtop, logfile):
+    atoms = []
+    mass_map = {
+        "H": "1.008",
+        "He": "4.0026",
+        "Li": "6.94",
+        "Be": "9.0122",
+        "B": "10.81",
+        "C": "12.011",
+        "N": "14.007",
+        "O": "15.999",
+        "F": "18.998",
+        "Ne": "20.180",
+        "Na": "22.990",
+        "Mg": "24.305",
+        "Al": "26.982",
+        "Si": "28.085",
+        "P": "30.974",
+        "S": "32.06",
+        "Cl": "35.45",
+        "Ar": "39.948",
+        "K": "39.098",
+        "Ca": "40.0784",
+        "Sc": "44.956",
+        "Ti": "47.867",
+        "V": "50.942",
+        "Cr": "51.996",
+        "Mn": "54.938",
+        "Fe": "55.8452",
+        "Co": "58.933",
+        "Ni": "58.693",
+        "Cu": "63.5463",
+        "Zn": "65.382",
+        "Ga": "69.723",
+        "Ge": "72.6308",
+        "As": "74.922",
+        "Se": "78.9718",
+        "Br": "79.904",
+        "Kr": "83.7982",
+        "Rb": "85.468",
+        "Sr": "87.62",
+        "Y": "88.906",
+        "Zr": "91.2242",
+        "Nb": "92.906",
+        "Mo": "95.95",
+        "Tc": "98.906254721",
+        "Ru": "101.072",
+        "Rh": "102.91",
+        "Pd": "106.42",
+        "Ag": "107.87",
+        "Cd": "112.41",
+        "In": "114.82",
+        "Sn": "118.71",
+        "Sb": "121.76",
+        "Te": "127.603",
+        "I": "126.90",
+        "Xe": "131.29",
+        "Cs": "132.91",
+        "Ba": "137.33",
+        "La": "138.91",
+        "Ce": "140.12",
+        "Pr": "140.91",
+        "Nd": "144.24",
+        "Pm": "144.9127493",
+        "Sm": "150.362",
+        "Eu": "151.96",
+        "Gd": "157.253",
+        "Tb": "158.93",
+        "Dy": "162.50",
+        "Ho": "164.93",
+        "Er": "167.26",
+        "Tm": "168.93",
+        "Yb": "173.05",
+        "Lu": "174.97",
+        "Hf": "178.492",
+        "Ta": "180.95",
+        "W": "183.84",
+        "Re": "186.21",
+        "Os": "190.233",
+        "Ir": "192.22",
+        "Pt": "195.08",
+        "Au": "196.97",
+        "Hg": "200.59",
+        "Tl": "204.38",
+        "Pb": "207.2",
+        "Bi": "208.98",
+        "Po": "208.982430420",
+        "At": "209.9871488",
+        "Rn": "222.017577725",
+        "Fr": "223.019735926",
+        "Ra": "226.025409825",
+        "Ac": "227.027752126",
+        "Th": "232.04",
+        "Pa": "231.04",
+        "U": "238.03",
+        "Np": "237.04817342",
+        "Pu": "244.0642045",
+        "Am": "243.061381125",
+        "Cm": "247.0703545",
+        "Bk": "247.0703076",
+        "Cf": "251.0795875",
+        "Es": "252.082985",
+        "Fm": "257.0951067",
+        "Md": "258.0984315",
+        "No": "259.1010311",
+        "Lr": "266.1198356",
+        "Rf": "267.1217962",
+        "Db": "268.1256757",
+        "Sg": "269.1286339",
+        "Bh": "270.1333631",
+        "Hs": "277.1519058",
+        "Mt": "278.1563168",
+        "Ds": "281.1645159",
+        "Rg": "282.1691272",
+        "Cn": "285.177126",
+        "Nh": "286.1822172",
+        "Fl": "289.190426",
+        "Mc": "289.1936389",
+        "Lv": "293.204496",
+        "Ts": "294.2104674",
+        "Og": "295.2162469",
+    }
+    name_map = {value: key for key, value in mass_map.items()}
+
+    with open(qmmmtop) as ifile:
+        for line in ifile:
+            match = re.search(r"\[\s+moleculetype\s*\]", line, flags=re.MULTILINE)
+            if match:
+                break
+        for line in ifile:
+            match = re.search(r"\[\s+atoms\s*\]", line, flags=re.MULTILINE)
+            if match:
+                break
+        for line in ifile:
+            match = re.search(r"^\s*\[", line, flags=re.MULTILINE)
+            if match:
+                break
+            match = re.search(
+                r"^\s*(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\d+)\s+([-]*\d+[\.]*[\d+]*)\s+(\d+[\.]*[\d+]*)",
+                line,
+                flags=re.MULTILINE,
+            )
+            if match:
+                atomtype = str(match.group(2))
+                atommass = float(match.group(8))
+                foundname = ""
+                # find atom type based on mass
+                for key in name_map.items():
+                    foundmass = key[0]
+                    massdiff = math.sqrt(
+                        (float(atommass) - float(foundmass))
+                        * (float(atommass) - float(foundmass))
+                    )
+                    if massdiff < 0.05:
+                        foundname = name_map[foundmass]
+                        break
+                if foundname != "":
+                    testmass = mass_map[foundname]
+                    massdiff = math.sqrt(
+                        (float(atommass) - float(foundmass))
+                        * (float(atommass) - float(foundmass))
+                    )
+                    if massdiff > 0.01:
+                        logger(
+                            logfile,
+                            str(
+                                "Found a mass of "
+                                + str(atommass)
+                                + " for atom type "
+                                + str(atomtype)
+                                + ' (identified as atom name "'
+                                + str(foundname)
+                                + '"), which is more than 0.01 different from the expected mass of '
+                                + str(testmass)
+                                + ". Atom index was "
+                                + str(match.group(1))
+                                + ". This has no effect except unless the atom was identified wrongly or dynamics are intended. Clean your ffnonbonded.itp to avoid these messages!\n"
+                            ),
+                        )
+                    atoms.append(foundname)
+                else:
+                    logger(
+                        logfile,
+                        str(
+                            "Atom type "
+                            + str(atomtype)
+                            + " could not be translated to a regular atom name. Exiting. Last line:\n"
+                        ),
+                    )
+                    logger(logfile, line)
+                    exit(1)
+    return atoms
+
+def get_nbradius(gro):
+
+    fullcoords = np.array(get_full_coords_nm(gro))
+    mindist = fullcoords[0]
+    maxdist = fullcoords[1]
+    for element in fullcoords:
+        for i in range(0, 3):
+            if float(mindist[i]) > float(element[i]):
+                mindist[i] = element[i]
+            if float(maxdist[i]) < float(element[i]):
+                maxdist[i] = element[i]
+    maxcoords = np.array(maxdist) - np.array(mindist)
+    return np.linalg.norm(maxcoords)
+
+def get_full_coords_nm(gro):  # read g96
+    fullcoords = []
+    with open(gro) as ifile:
+        count = 0
+        for line in ifile:
+            if count == 4:
+                break
+            count += 1
+        for line in ifile:
+            match = re.search(
+                r"^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)",
+                line,
+                flags=re.MULTILINE,
+            )
+            if not match:
+                break
+            full_coord_line = [
+                float(match.group(5)),
+                float(match.group(6)),
+                float(match.group(7)),
+            ]
+            fullcoords.append(full_coord_line)
+    return fullcoords
+
+#qm & mm program ulti
+def make_g16_inp(qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    gro = qmmmInputs.gro
+    qmmmtop = qmmmInputs.top
+    qmatomlist = qmmmInputs.qmatomlist
+    pcffile = qmmmInputs.pcffile
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    linkatoms = qmmmInputs.linkatoms
+    logfile = qmmmInputs.logfile
+    nmaflag = qmmmInputs.nmaflag
+
+    method = qmmmInputs.qmparams.method
+    basis = qmmmInputs.qmparams.basis
+    charge = qmmmInputs.qmparams.charge
+    multi = qmmmInputs.qmparams.multi
+    cores = qmmmInputs.qmparams.cores
+    memory = qmmmInputs.qmparams.memory
+    extra = qmmmInputs.qmparams.extra
+
+    insert = ""
+    oldinsert = ""
+    if int(curr_step) != 0:
+        insert = str("." + str(int(curr_step)))
+        if int(curr_step) > 1:
+            oldinsert = str("." + str(int(curr_step) - 1))
+    gaufile = str(jobname + insert + ".gjf")
+    chkfile = str(jobname + insert + ".chk")
+    oldchkfile = str(jobname + oldinsert + ".chk")
+    if nmaflag == 1:
+        oldchkfile = str(jobname + ".chk")
+    with open(gaufile, "w") as ofile:
+        fullcoords = get_full_coords_angstrom(gro)
+        atoms = get_atoms(qmmmtop, logfile)
+        ofile.write("%NPROCSHARED=" + str(cores) + "\n")
+        ofile.write("%MEM=" + str(memory) + "MB\n")
+        ofile.write("%CHK=" + chkfile + "\n")
+        if int(curr_step) != 0 or nmaflag == 1:
+            ofile.write("%OLDCHK=" + oldchkfile + "\n")
+        ofile.write("#P " + str(method))
+        if str(basis) != "NONE":
+            ofile.write("/" + str(basis))
+        if str(extra) != "NONE":
+            ofile.write(" " + str(extra))
+        if int(curr_step) != 0 or nmaflag == 1:
+            ofile.write(" guess=read")
+        ofile.write(
+            " nosymm gfinput gfprint force charge guess=huckel punch=derivatives iop(3/33=1) prop(field,read) pop=esp\n"
+        )
+        ofile.write(
+            "\nQMMM Calc QM part\n\n"
+            + str(int(charge))
+            + " "
+            + str(int(multi))
+            + "\n"
+        )
+        count = 0
+        for element in fullcoords:
+            if int(count + 1) in np.array(qmatomlist).astype(int):
+                ofile.write(
+                    "{:<2s} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                        str(atoms[count]),
+                        float(element[0]),
+                        float(element[1]),
+                        float(element[2]),
+                    )
+                )
+            count += 1
+        for element in linkatoms:
+            # links are already in angstrom
+            ofile.write(
+                "{:<2s} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                    str("H"), float(element[0]), float(element[1]), float(element[2])
+                )
+            )
+        ofile.write("\n")
+        with open(pcffile) as ifile:
+            for line in ifile:
+                match = re.search(
+                    r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+                )
+                if match:
+                    ofile.write(
+                        "{:>12.6f} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                            float(match.group(1)),
+                            float(match.group(2)),
+                            float(match.group(3)),
+                            float(match.group(4)),
+                        )
+                    )
+        ofile.write("\n")
+        with open(pcffile) as ifile:
+            for line in ifile:
+                match = re.search(
+                    r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+                )
+                if match:
+                    ofile.write(
+                        "{:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                            float(match.group(1)),
+                            float(match.group(2)),
+                            float(match.group(3)),
+                        )
+                    )
+        ofile.write("\n\n")
+    return gaufile
+
+def make_gmx_inp(qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    gro = qmmmInputs.gro
+    qmmmtop = qmmmInputs.top
+    qmatomlist = qmmmInputs.qmatomlist
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    logfile = qmmmInputs.logfile
+    basedir = qmmmInputs.basedir
+    prefix =  qmmmInputs.pathparams.gmxpath + qmmmInputs.pathparams.gmxcmd
+
+    insert = ""
+    if int(curr_step) != 0:
+        insert = str("." + str(int(curr_step)))
+    mdpname = str(jobname + ".mdp")
+    groname = str(jobname + ".boxlarge.g96")
+    ndxname = str(qmmmtop + ".ndx")
+    tprname = str(jobname + insert + ".tpr")
+    nbradius = get_nbradius(gro)
+    write_mdp(mdpname, nbradius)
+    update_gro_box(gro, groname, nbradius, logfile)
+    subprocess.call(
+        [
+            prefix,
+            "grompp",
+            "-p",
+            str(qmmmtop),
+            "-c",
+            str(groname),
+            "-n",
+            str(ndxname),
+            "-f",
+            str(mdpname),
+            "-o",
+            str(tprname),
+            "-backup",
+            "no",
+        ]
+    )
+    subprocess.call(["rm", "mdout.mdp"])
+    return tprname
+
+def write_mdp(mdpname, nbradius):
+    with open(mdpname, "w") as ofile:
+        ofile.write(
+            "title               =  Yo\ncpp                 =  /usr/bin/cpp\nconstraints         =  none\nintegrator          =  md\ndt                  =  0.001 ; ps !\nnsteps              =  1\nnstcomm             =  0\nnstxout             =  1\nnstvout             =  1\nnstfout             =   1\nnstlog              =  1\nnstenergy           =  1\nnstlist             =  1\nns_type             =  grid\nrlist               =  "
+        )
+        ofile.write(str(float(nbradius)))
+        ofile.write(
+            "\ncutoff-scheme = group\ncoulombtype    =  cut-off\nrcoulomb            =  "
+        )
+        ofile.write(str(float(nbradius)))
+        ofile.write("\nrvdw                =  ")
+        ofile.write(str(float(nbradius)))
+        ofile.write(
+            "\nTcoupl              =  no\nenergygrps          =  QM\nenergygrp-excl = QM QM\nPcoupl              =  no\ngen_vel             =  no\n"
+        )
+
+def update_gro_box(gro, groname, nbradius, logfile):
+    with open(groname, "w") as ofile:
+        with open(gro) as ifile:
+            logger(
+                logfile,
+                str(
+                    "Finding a larger .gro box size to avoid problems with .mdp input..."
+                ),
+            )
+            for line in ifile:
+                ofile.write(line)
+                match = re.search(r"^BOX\s*\n", line, flags=re.MULTILINE)
+                if match:
+                    for line in ifile:
+                        match = re.search(
+                            r"^\s*(\d*\.\d+)\s+(\d*\.\d+)\s+(\d*\.\d+)",
+                            line,
+                            flags=re.MULTILINE,
+                        )
+                        if not match:
+                            logger(
+                                logfile,
+                                "\n\nError: In "
+                                + str(gro)
+                                + " box vectors were expected but not found. Exiting. Line was:\n",
+                            )
+                            logger(logfile, line)
+                            exit(1)
+                        else:
+                            bv = [
+                                float(match.group(1)) + 10.0 * nbradius,
+                                float(match.group(2)) + 10.0 * nbradius,
+                                float(match.group(3)) + 10.0 * nbradius,
+                            ]
+                            ofile.write(
+                                " {:>15.9f} {:>15.9f} {:>15.9f}\nEND\n".format(
+                                    float(bv[0]), float(bv[1]), float(bv[2])
+                                )
+                            )
+                        break
+                    break
+    logger(logfile, str("done.\n"))
+
+#Database
+def databasecorrection(energy_or_force, cut, dist, qmmmInputs):
+    
+    forcefield = qmmmInputs.mmparams.fField
+    method = qmmmInputs.qmparams.method
+    basisset = qmmmInputs.qmparams.basis
+    fit = qmmmInputs.qmmmparams.databasefit
+    basedir = qmmmInputs.basedir
+    logfile = qmmmInputs.logfile
+
+    conn = sqlite3.connect(basedir + "/../correction_database/database.sqlite")
+
+    # check if method exist in database
+    method_set = conn.cursor()
+    method_set.execute(
+        "SELECT * FROM "
+        + cut
+        + ' WHERE forcefield="'
+        + forcefield
+        + '" AND method="'
+        + method
+        + '" AND basisset ="'
+        + basisset
+        + '"'
+    )
+    method_set_value = method_set.fetchall()
+    if len(method_set_value) == 0:
+        cut = "aminoacid_CACB"
+        forcefield = "amberGS"
+        method = "CAM-B3LYP"
+        basisset = "6-31++G**"
+        logger(
+            logfile,
+            "Unexisted method in correction database, changing to default correction method...\n",
+        )
+
+    c = conn.cursor()
+    c.execute(
+        "SELECT * FROM "
+        + cut
+        + ' WHERE forcefield="'
+        + forcefield
+        + '" AND method="'
+        + method
+        + '" AND basisset ="'
+        + basisset
+        + '"'
+    )
+    db_values = c.fetchall()[0]
+
+    conn.close()
+    returnvalue = 0
+    if len(db_values) > 0:
+        if energy_or_force == "ENERGY":
+            if fit == "POLY":
+                returnvalue = (
+                    db_values[5] * dist * dist * dist
+                    + db_values[6] * dist * dist
+                    + db_values[7] * dist
+                    + db_values[8]
+                )
+            elif fit == "MORSE":
+                returnvalue = (
+                    db_values[9]
+                    * (
+                        np.exp(-2 * db_values[10] * (dist - db_values[11]))
+                        - 2 * np.exp(-db_values[10] * (dist - db_values[11]))
+                    )
+                    + db_values[12]
+                )
+            elif fit == "NO":
+                returnvalue = 0
+                logger(logfile, "No energy correction.\n")
+        elif energy_or_force == "FORCES":
+            if fit == "POLY":
+                returnvalue = (
+                    db_values[13] * dist * dist * dist
+                    + db_values[14] * dist * dist
+                    + db_values[15] * dist
+                    + db_values[16]
+                )
+            elif fit == "MORSE":
+                returnvalue = (
+                    db_values[17]
+                    * (
+                        np.exp(-2 * db_values[18] * (dist - db_values[19]))
+                        - 2 * np.exp(-db_values[18] * (dist - db_values[19]))
+                    )
+                    + db_values[20]
+                )
+            elif fit == "NO":
+                returnvalue = 0
+                logger(logfile, "No force correction.\n")
+    return returnvalue
+
 #Run program command
 def run_g16(qmfile, qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
@@ -67,7 +697,7 @@ def run_g16(qmfile, qmmmInputs):
 
 def run_gmx(mmfile, qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
-    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    prefix =  qmmmInputs.pathparams.gmxpath + qmmmInputs.pathparams.gmxcmd
     curr_step = qmmmInputs.qmmmparams.curr_step
     logfile = qmmmInputs.logfile
 
@@ -105,8 +735,41 @@ def run_gmx(mmfile, qmmmInputs):
 
     return edrname
 
+# Write output file
+def write_output(energies, total_force, qmmmInputs):
+    qmenergy, mmenergy, linkcorrenergy = energies
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    energy_file = "oenergy.txt"
+    
+    if curr_step == 0:
+        file_flag = "w"
+    else:
+        
+        file_flag = "a+"
+    
+    oenergy = open(energy_file, file_flag)
+    oenergy.write("Step: %d\n" % curr_step)
+    oenergy.write("QM energy: %.8f\n" % qmenergy)
+    oenergy.write("MM energy: %.8f\n" % mmenergy)
+    oenergy.write("Link energy: %.8f\n" % linkcorrenergy)
+    oenergy.write(
+        "Total energy: %.8f\n"
+        % (float(qmenergy) + float(mmenergy) - float(linkcorrenergy))
+    )
+    oenergy.write("--------------------------------------------\n")
+    oenergy.close()
+
+    oforce = open("oforce.txt", file_flag)
+    for i in range(len(total_force)):
+        oforce.write(
+            "%d %.8f %.8f %.8f\n"
+            % ((i + 1), total_force[i][0], total_force[i][1], total_force[i][2])
+        )
+    oforce.write('\n')
+    oforce.close()
+
 #Energy
-def get_qmenergy(qmfile, qmmmInputs, pcffile):
+def get_qmenergy(qmfile, qmmmInputs):
     qmprog = qmmmInputs.qmparams.program
     extra_string = qmmmInputs.qmparams.extra
     pcffile = qmmmInputs.pcffile
@@ -179,7 +842,7 @@ def get_qmenergy(qmfile, qmmmInputs, pcffile):
     return qmenergy, qm_corrdata
 
 def get_mmenergy(edrname, qmmmInputs):
-    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    prefix =  qmmmInputs.pathparams.gmxpath + qmmmInputs.pathparams.gmxcmd
     logfile = qmmmInputs.logfile
 
     mmenergy = 0.0
@@ -398,7 +1061,7 @@ def get_linkenergy_au(qm_corrdata, qmmmInputs):
     # sign inverted due to correction convention (subtracting)
     return linkenergy
 
-def get_energy(edrname, qmmmInputs):
+def get_energy(qmfile, edrname, qmmmInputs):
     qmenergy, qm_corrdata = get_qmenergy(qmfile, qmmmInputs)
     mmenergy = get_mmenergy(str(edrname), qmmmInputs)
     linkcorrenergy = get_linkenergy_au(qm_corrdata, qmmmInputs)
@@ -534,7 +1197,7 @@ def get_qmforces_au(qmmmInputs):
 def get_mmforces_au(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     curr_step = qmmmInputs.qmmmparams.curr_step
-    prefix =  qmmmInputs.pathinfo.gmxpath + qmmmInputs.pathinfo.gmxcmd
+    prefix =  qmmmInputs.pathparams.gmxpath + qmmmInputs.pathparams.gmxcmd
     logfile = qmmmInputs.logfile
 
     mmforces = []
@@ -808,251 +1471,7 @@ def read_forces(qm_corrdata,qmmmInputs):
     # logger(logfile, str("Deleted forces of inactive atoms.\n"))
     return total_force
 
-
-def perform_sp(qmmmInputs):
-    qmmmInputs.qmmmparams.jobname = stepper(qmmmInputs.qmmmparams.jobname, step)
-    jobtype = qmmmInputs.qmmmparams.jobtype
-    qmprogram = qmmmInputs.qmparams
-    logfile = qmmmInputs.logfile
-
-    logger(logfile, "Computing a single point.\n")
-    logger(logfile, "Preparing QM and MM inputs: ")
-
-    if qmprogram == "G16":
-        
-        qmfile = make_g16_inp(qmmmInputs)
-        logger(logfile, "Gaussian input ready.\n")
-        mmfile, edrname = make_gmx_inp(qmmmInputs)
-        logger(logfile, "Gromacs input ready.\n")
-
-        run_g16(qmfile, qmmmInputs)
-        edrname = run_gmx(mmfile, qmmmInputs)
-        logger(logfile, str("Reading energies.\n"))
-        qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(edrname,qmmmInputs)
-        logger(logfile, str("Reading forces.\n"))
-        total_force = read_forces(qmmmInputs, qmenergy, mmenergy, qm_corrdata)
-
-    elif qmprogram == "TM":
-        logger(logfile,"Turbomole is not avalible currently.\n")
-        exit(0)
-
-    elif qmprogram == "ORCA":
-        logger(logfile,"ORCA is not avalible currently.\n")
-        exit(0)
-    else:
-        logger(logfile,"Unidentified QM program. Please check your -qm intput.\n")
-        exit(0)
-
-    # write a total force file
-    if jobtype == "SINGLEPOINT":
-        logger(logfile, "Writing SP output.\n")
-
-        energy_file = "oenergy.txt"
-        if curr_step == 0:
-            file_flag = "w"
-        else:
-            file_flag = "a+"
-        oenergy = open(energy_file, file_flag)
-        oenergy.write("Step: %d\n" % curr_step)
-        oenergy.write("QM energy: %.8f\n" % qmenergy)
-        oenergy.write("MM energy: %.8f\n" % mmenergy)
-        oenergy.write("Link energy: %.8f\n" % linkcorrenergy)
-        oenergy.write(
-            "Total energy: %.8f\n"
-            % (float(qmenergy) + float(mmenergy) - float(linkcorrenergy))
-        )
-        oenergy.write("--------------------------------------------\n")
-        oenergy.close()
-        
-
-
-        oforce = open("oforce.txt", "w")
-        for i in range(len(total_force)):
-            oforce.write(
-                "%d %.8f %.8f %.8f\n"
-                % ((i + 1), total_force[i][0], total_force[i][1], total_force[i][2])
-            )
-        oforce.close()
-
-    elif jobtype == "OPT":
-        logger(logfile, "Writing OPT output.\n")
-
-    elif jobtype == "NMA":
-        logger(logfile, "Writing NMA output.\n")
-
-    elif jobtype == "SCAN":
-        logger(logfile, "Writing SCAN output.\n")
- 
-
-def perform_opt(qmmmInputs):
-
-    count = qmmminfo[7]
-    qmenergy, mmenergy, qm_corrdata = get_energy(
-        gro,
-        qmmminfo[0],
-        xyzq,
-        connlist,
-        qmatomlist,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        int(count),
-        logfile,
-        basedir,
-        pathinfo,
-    )
-    last_energy = float(qmenergy) + float(mmenergy)
-    done = 0
-    maxcycle = int(qmmminfo[3])
-    initstep = float(qmmminfo[4])
-    new_links = linkatoms
-    new_pcffile = pcffile
-    new_gro = gro
-    new_xyzq = xyzq
-    new_qm_corrdata = qm_corrdata
-    last_forces = []
-    while not done and count <= maxcycle:
-        logger(
-            logfile, str("-----Optimization cycle " + str(int(count) + 1) + "-----\n")
-        )
-        jobname = qmmminfo[0]
-        if count > 0:
-            jobname += "." + str(int(count))
-        archivename = str(jobname) + ".tar.gz"
-        if os.path.isfile(archivename):
-            subprocess.call(["tar", "-xf", archivename])
-            subprocess.call(["rm", archivename])
-        archive = ["tar", "-cf", str(jobname) + ".tar"]
-        files = [
-            new_pcffile,
-            str(jobname) + ".edr",
-            str(jobname) + ".edr.xvg",
-            str(jobname) + ".trr",
-            str(jobname) + ".xvg",
-            str(jobname) + ".gmx.log",
-            str(jobname) + ".g96",
-            str(jobname) + ".gjf",
-            str(jobname) + ".mdp",
-            str(jobname) + ".boxlarge.g96",
-            str(jobname) + ".tpr",
-            str(jobname) + ".gjf.log",
-            str(jobname) + ".fort.7",
-        ]
-        (
-            done,
-            last_energy,
-            new_gro,
-            new_pcffile,
-            new_xyzq,
-            new_links,
-            initstep,
-            new_qm_corrdata,
-            last_forces,
-            imporved,
-        ) = opt_cycle(
-            new_gro,
-            top,
-            new_xyzq,
-            connlist,
-            qmatomlist,
-            new_qm_corrdata,
-            m1list,
-            m2list,
-            q1list,
-            qmmmtop,
-            qminfo,
-            mminfo,
-            qmmminfo,
-            linkcorrlist,
-            flaglist,
-            new_pcffile,
-            new_links,
-            count,
-            last_energy,
-            last_forces,
-            initstep,
-            active,
-            logfile,
-            basedir,
-            pathinfo,
-        )
-        if not imporved:
-            logger(logfile, str("No imporvement. Optimization stopped.\n"))
-            done = 2
-            break
-        archive.extend(files)
-        subprocess.call(archive)
-        subprocess.call(["gzip", str(jobname) + ".tar"])
-        delete = ["rm"]
-        delete.extend(files)
-        subprocess.call(delete)
-
-        energy_file = "optenergy.txt"
-        force_file = "optforce.txt"
-        rm_file = "orm.txt"
-        rmname = qmmminfo[0] + "." + str(int(count))
-        if count == 0:
-            file_flag = "w"
-        elif count > 0:
-            file_flag = "a+"
-            if qmmminfo[9] == "YES":
-                orm = open(rm_file, file_flag)
-                orm.write("%s\n" % rmname)
-                orm.close()
-        if count >= 0:
-            oenergy = open(energy_file, file_flag)
-            oenergy.write("%d %.8f \n" % (count + 1, last_energy))
-            oenergy.close()
-
-            oforce = open(force_file, file_flag)
-            oforce.write("Step %d \n" % (count + 1))
-            for i in range(len(last_forces)):
-                oforce.write(
-                    "%d %.8f %.8f %.8f\n"
-                    % ((i + 1), last_forces[i][0], last_forces[i][1], last_forces[i][2])
-                )
-            oforce.close()
-
-        if not done:
-            if qmmminfo[9] == "YES":
-                subprocess.call(["rm", rmname + ".chk"])
-                subprocess.call(["rm", rmname + ".tar.gz"])
-
-        count += 1
-
-    subprocess.call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".chk"])
-    subprocess.call(["rm", qmmminfo[0] + "." + str(int(count + 1)) + ".gjf"])
-
-    if done == 0:
-        logger(logfile, "Optimization canceled due to step limit.\n")
-    elif done == 1:
-        logger(logfile, "Optimization finished due to energy threshold.\n")
-    elif done == 2:
-        logger(logfile, "Optimization finished due to step size.\n")
-    g96_to_gro(
-        str(qmmminfo[0] + "." + str(count) + ".g96"),
-        str(qmmminfo[0] + ".opt.gro"),
-        logfile,
-    )
-    logger(logfile, "Final geometry written to " + str(qmmminfo[0]) + ".opt.gro.\n")
-
-    optforce = open("oforce.txt", "w")
-    for i in range(len(last_forces)):
-        optforce.write(
-            "%d %.8f %.8f %.8f\n"
-            % ((i + 1), last_forces[i][0], last_forces[i][1], last_forces[i][2])
-        )
-    optforce.close()
-
-
+#Job cycle
 def opt_cycle(
     gro,
     top,
@@ -1078,7 +1497,7 @@ def opt_cycle(
     active,
     logfile,
     basedir,
-    pathinfo,
+    pathparams,
 ):
 
     done = 0
@@ -1103,7 +1522,7 @@ def opt_cycle(
         basedir,
         mminfo,
         qmmminfo,
-        pathinfo,
+        pathparams,
     )
     clean_force = make_clean_force(total_force)
     maxforce = 0.0
@@ -1173,7 +1592,7 @@ def opt_cycle(
         last_forces,
         logfile,
         basedir,
-        pathinfo,
+        pathparams,
     )
     curr_energy = float(qmenergy) + float(mmenergy)
     if float(new_initstep) < 0.000001:
@@ -1205,84 +1624,6 @@ def opt_cycle(
         imporved,
     )
 
-def perform_scan(qmmmInputs):
-    # SP
-    jobname = stepper(qmmminfo[0], step)
-    qmenergy, mmenergy, qm_corrdata = get_energy(
-        gro,
-        jobname,
-        xyzq,
-        connlist,
-        qmatomlist,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        int(0),
-        logfile,
-        basedir,
-        pathinfo,
-    )
-    total_force = read_forces(
-        qmatomlist,
-        m1list,
-        qmmmtop,
-        qminfo,
-        jobname,
-        int(0),
-        logfile,
-        linkcorrlist,
-        xyzq,
-        pcffile,
-        qm_corrdata,
-        m2list,
-        q1list,
-        linkatoms,
-        active,
-        basedir,
-        mminfo,
-        qmmminfo,
-        pathinfo,
-    )
-
-    scan_data = scan_func.load_scan("scan.txt")
-
-    scan_cycle(
-        scan_data,
-        gro,
-        top,
-        xyzq,
-        connlist,
-        qmatomlist,
-        qm_corrdata,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        curr_step,
-        last_energy,
-        last_forces,
-        initstep,
-        active,
-        logfile,
-        basedir,
-        pathinfo,
-    )
-
 def scan_cycle(
     scan_data,
     gro,
@@ -1309,7 +1650,7 @@ def scan_cycle(
     active,
     logfile,
     basedir,
-    pathinfo,
+    pathparams,
 ):
 
     # already run sp once
@@ -1334,7 +1675,7 @@ def scan_cycle(
         basedir,
         mminfo,
         qmmminfo,
-        pathinfo,
+        pathparams,
     )
     clean_force = make_clean_force(total_force)
 
@@ -1412,117 +1753,73 @@ def scan_cycle(
         logfile,
         basedir,
         step,
-        pathinfo,
+        pathparams,
     )
 
     return done
 
+#Job
+def perform_sp(qmmmInputs):
+    jobtype = qmmmInputs.qmmmparams.jobtype
+    qmprogram = qmmmInputs.qmparams.program
+    logfile = qmmmInputs.logfile
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    qmmmInputs.qmmmparams.jobname = stepper(qmmmInputs.qmmmparams.jobname, curr_step)
+    
+    logger(logfile, "Computing a single point.\n")
+    logger(logfile, "Preparing QM and MM inputs: ")
+
+    if qmprogram == "G16":
+        #qm
+        qmfile = make_g16_inp(qmmmInputs)
+        logger(logfile, "Gaussian input ready.\n")
+        run_g16(qmfile, qmmmInputs)
+
+        #mm
+        mmfile = make_gmx_inp(qmmmInputs)
+        logger(logfile, "Gromacs input ready.\n")      
+        edrname = run_gmx(mmfile, qmmmInputs)
+        
+
+
+        logger(logfile, str("Reading energies.\n"))
+        qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(qmfile, edrname, qmmmInputs)
+        energies = (qmenergy, mmenergy, linkcorrenergy)
+        logger(logfile, str("Reading forces.\n"))
+        total_force = read_forces(qmmmInputs, qmenergy, mmenergy, qm_corrdata)
+
+    elif qmprogram == "TM":
+        logger(logfile,"Turbomole is not avalible currently.\n")
+        exit(0)
+
+    elif qmprogram == "ORCA":
+        logger(logfile,"ORCA is not avalible currently.\n")
+        exit(0)
+    else:
+        logger(logfile,"Unidentified QM program. Please check your -qm intput.\n")
+        exit(0)
+
+    # write a total force file
+    if jobtype == "SINGLEPOINT":
+        logger(logfile, "Writing SP output.\n")
+        write_output(energies, total_force,qmmmInputs)
+    elif jobtype == "OPT":
+        logger(logfile, "Writing OPT output.\n")
+
+    elif jobtype == "NMA":
+        logger(logfile, "Writing NMA output.\n")
+
+    elif jobtype == "SCAN":
+        logger(logfile, "Writing SCAN output.\n")
+ 
+def perform_opt(qmmmInputs):
+    return 0
+   
+def perform_scan(qmmmInputs):
+    return 0
 
 def perform_nma(qmmmInputs):
-
-    logger(logfile, "------This will be a numerical) normal mode analysis.------\n")
-    logger(
-        logfile,
-        "Generating a numerical Hessian for the active region using a displacement step of "
-        + str(qmmminfo[6])
-        + " a.u.\n",
-    )
-    logger(
-        logfile,
-        "Will require " + str(len(active) * 6 + 1) + " single point calculations!\n",
-    )
-    qmenergy, mmenergy, qm_corrdata = get_energy(
-        gro,
-        qmmminfo[0],
-        xyzq,
-        connlist,
-        qmatomlist,
-        m1list,
-        m2list,
-        q1list,
-        qmmmtop,
-        qminfo,
-        mminfo,
-        qmmminfo,
-        linkcorrlist,
-        flaglist,
-        pcffile,
-        linkatoms,
-        0,
-        logfile,
-        basedir,
-        pathinfo,
-    )
-    start_energy = float(qmenergy) + float(mmenergy)
-    start_forces = read_forces(
-        qmatomlist,
-        m1list,
-        qmmmtop,
-        qminfo,
-        qmmminfo[0],
-        0,
-        logfile,
-        linkcorrlist,
-        xyzq,
-        pcffile,
-        qm_corrdata,
-        m2list,
-        q1list,
-        linkatoms,
-        active,
-        basedir,
-        mminfo,
-        qmmminfo,
-        pathinfo,
-    )
-    start_grad = np.array(start_forces) * -1.0
-    hessian_xyz_full = []
-    for curr_atom in active:
-        grad_deriv_vec = nma_stuff.get_xyz_2nd_deriv(
-            curr_atom,
-            start_energy,
-            start_grad,
-            gro,
-            top,
-            xyzq,
-            connlist,
-            qmatomlist,
-            m1list,
-            m2list,
-            q1list,
-            qmmmtop,
-            qminfo,
-            mminfo,
-            qmmminfo,
-            linkcorrlist,
-            flaglist,
-            pcffile,
-            linkatoms,
-            active,
-            logfile,
-            basedir,
-        )
-        hessian_xyz_full.extend(grad_deriv_vec)
-    prep_hess = nma_stuff.prepare_hess(hessian_xyz_full, active)
-    evals = []
-    for i in range(0, len(prep_hess[0]) - 6):
-        evals.extend([float(1000.0)])
-    nma_stuff.write_pseudofchk_file(
-        qmmminfo[0], evals, prep_hess, prep_hess, active, qmmmtop, logfile, xyzq
-    )  # using prep_hess as pseudo-nm_matrix since we do not know yet
-    logger(logfile, "Wrote pseudofchk (G03 format).\n")
-    write_hess.hes_xyz_fchk(
-        str(qmmminfo[0] + ".pseudofchk"), str(qmmminfo[0] + ".hess")
-    )
-    logger(logfile, "Wrote orca format .hess file.\n")
-    evals, nm_matrix = nma.nma_3Nminus6dof_asfunction(
-        str(qmmminfo[0] + ".hess"), basedir
-    )
-    print(nma_stuff.log_nma(
-        qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, prep_hess
-    ))
-
-
+    return 0
 
 
 if __name__ == "__main__":

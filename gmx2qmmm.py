@@ -5,7 +5,7 @@ import sys
 
 import numpy as np
 from gmx2qmmm._helper import _flatten, logger, stepper
-from gmx2qmmm.operations.qmmm import perform_sp, perform_opt, perform_nma, perform_scan
+from gmx2qmmm.operations.qmmm_job import perform_sp, perform_opt, perform_nma, perform_scan
 from readInput import QMMMInputs
 
 def userInputs():
@@ -64,8 +64,6 @@ def gmx2qmmm(inputFiles):
     qmmmInputs = QMMMInputs(inputFiles, basedir)
     perfrom_job(qmmmInputs)
     
-
-
 if __name__ == "__main__":
     inputFiles = userInputs()
     gmx2qmmm(inputFiles)

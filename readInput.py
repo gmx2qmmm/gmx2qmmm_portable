@@ -200,10 +200,6 @@ class QMMMInputs:
         self.basedir = basedir
         self.logfile = inputFiles.logfile
         logfile = self.logfile
-
-        self.nmaflag = 0
-        if inputFiles.qmmmparams.jobtype == 'NMA':
-            self.nmaflag = 1
             
         #Read .dat file
         logger(logfile, "Reading input parameters...\n")
@@ -327,8 +323,13 @@ class QMMMInputs:
             self.pathparams.gmxtop,
         )
         logger(logfile, "done.\n")
+
+        self.nmaflag = 0
+        if self.qmmmparams.jobtype == 'NMA':
+            self.nmaflag = 1
+
         active = []
-        if jobtype != "SINGLEPOINT":
+        if self.qmmmparams.jobtype != "SINGLEPOINT":
             logger(logfile, "Reading indices of active atoms...")
             active = prep_pcf.read_qmatom_list(inputFiles.act)
             logger(logfile, "done.\n")
