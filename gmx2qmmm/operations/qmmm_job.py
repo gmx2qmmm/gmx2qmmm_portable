@@ -355,7 +355,37 @@ def get_full_coords_nm(gro):  # read g96
             fullcoords.append(full_coord_line)
     return fullcoords
 
-#qm & mm program ulti
+def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess, logfile):
+    s = xyz - old_xyz
+    if s.shape[1] != 1:
+        s = s.reshape(3 * len(s), 1)  # reshape s so it can be used in dot products
+    g = grad - old_grad
+    if g.shape[1] != 1:
+        g = g.reshape(3 * len(g), 1)  # reshape g so it can be used in dot products
+    # Broyden-Fletcher-Goldfarb-Shanno
+    # Define a few values and matrices first for convenience
+    mat = old_hess.dot(s)
+    factor1 = g.T.dot(s)
+    factor2 = s.T.dot(mat)
+    idmat = np.eye(len(g))
+
+    # update formula
+    new_hess = old_hess + g.dot(g.T) / factor1 - mat.dot(mat.T) / factor2
+    # moreover, we calculate eigenvalues as they are indicative of the curvature of the current PES
+    eigvals, eigvecs = np.linalg.eig(new_hess)
+
+    # Check BFGS condition
+    if factor1 > 0:
+        logger(logfile, "BFGS condition fulfilled.\n")
+        WARN = False
+    else:
+        logger(logfile, "BFGS condition not fulfilled! We keep the old Hessian.\n")
+        WARN = True
+        new_hess = old_hess
+
+    return new_hess, eigvals.min(), WARN
+
+#qm & mm program ultis
 def make_g16_inp(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     gro = qmmmInputs.gro
@@ -376,18 +406,21 @@ def make_g16_inp(qmmmInputs):
     cores = qmmmInputs.qmparams.cores
     memory = qmmmInputs.qmparams.memory
     extra = qmmmInputs.qmparams.extra
-
+    
     insert = ""
     oldinsert = ""
-    if int(curr_step) != 0:
-        insert = str("." + str(int(curr_step)))
+    if int(curr_step) > 0:
+        #2222
+        insert = str("." + str(int(curr_step) ))
         if int(curr_step) > 1:
             oldinsert = str("." + str(int(curr_step) - 1))
     gaufile = str(jobname + insert + ".gjf")
     chkfile = str(jobname + insert + ".chk")
     oldchkfile = str(jobname + oldinsert + ".chk")
+
     if nmaflag == 1:
         oldchkfile = str(jobname + ".chk")
+    print('-----------------gaufile:%s\n'%gaufile)
     with open(gaufile, "w") as ofile:
         fullcoords = get_full_coords_angstrom(gro)
         atoms = get_atoms(qmmmtop, logfile)
@@ -414,6 +447,7 @@ def make_g16_inp(qmmmInputs):
             + "\n"
         )
         count = 0
+
         for element in fullcoords:
             if int(count + 1) in np.array(qmatomlist).astype(int):
                 ofile.write(
@@ -433,6 +467,7 @@ def make_g16_inp(qmmmInputs):
                 )
             )
         ofile.write("\n")
+
         with open(pcffile) as ifile:
             for line in ifile:
                 match = re.search(
@@ -448,6 +483,7 @@ def make_g16_inp(qmmmInputs):
                         )
                     )
         ofile.write("\n")
+
         with open(pcffile) as ifile:
             for line in ifile:
                 match = re.search(
@@ -462,6 +498,7 @@ def make_g16_inp(qmmmInputs):
                         )
                     )
         ofile.write("\n\n")
+
     return gaufile
 
 def make_gmx_inp(qmmmInputs):
@@ -475,7 +512,7 @@ def make_gmx_inp(qmmmInputs):
     prefix =  qmmmInputs.pathparams.gmxpath + qmmmInputs.pathparams.gmxcmd
 
     insert = ""
-    if int(curr_step) != 0:
+    if int(curr_step) > 0:
         insert = str("." + str(int(curr_step)))
     mdpname = str(jobname + ".mdp")
     groname = str(jobname + ".boxlarge.g96")
@@ -562,7 +599,232 @@ def update_gro_box(gro, groname, nbradius, logfile):
                             )
                         break
                     break
-    logger(logfile, str("done.\n"))
+    logger(logfile, str("Done.\n"))
+
+#Propagated
+#initstep = stepsize
+def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile):
+    dispvec = []
+    maxforce = 0.0
+    clean_force = make_clean_force(total_force)
+    old_clean_force = make_clean_force(last_forces)
+    maxatom = -1
+    maxcoord = -1
+    check_force = list(_flatten(clean_force))
+    #search index of max info
+    for i in range(0, int(len(check_force) / 3)):
+        for j in range(0, 3):
+            if abs(float(check_force[i * 3 + j])) > abs(maxforce):
+                maxforce = float(check_force[i * 3 + j])
+                maxatom = i
+                maxcoord = j
+    logger(
+        logfile,
+        str(
+            "Maximum force is "
+            + str(float(maxforce))
+            + " a.u. at coord "
+            + str(int(maxatom) + 1)
+            + "/"
+            + str(int(maxcoord) + 1)
+            + ".\n"
+        ),
+    )
+    #All use steep for first propagation
+    if (propagator == "STEEP") or (len(last_forces) == 0) or (len(new_xyzq) == 0) :
+        for element in clean_force:
+            dispvec.append(
+                [
+                    float(element[0]) * float(stepsize) / abs(float(maxforce)),
+                    float(element[1]) * float(stepsize) / abs(float(maxforce)),
+                    float(element[2]) * float(stepsize) / abs(float(maxforce)),
+                ]
+            )
+        corr_length = np.array(total_force)
+
+    elif propagator == "CONJGRAD" and (len(last_forces) == 0) and (len(new_xyzq) == 0):
+        # Fletcher-Reeves
+        _flattened = list(_flatten(clean_force))
+        corr_fac = np.array(_flattened).dot(np.array(_flattened))
+        _flattened = list(_flatten(old_clean_force))
+        corr_fac /= np.array(_flattened).dot(np.array(_flattened))
+        #2222
+        if curr_step == 1: #0
+            corr_length = np.array(total_force)
+            flag += 1
+        else:
+            corr_length = np.array(total_force) + corr_fac * corr_length
+        #counter = 0
+        for i in range(len(total_force)):
+            dispvec.append(
+                [
+                    float(stepsize) * corr_length[i][0],
+                    float(stepsize) * corr_length[i][1],
+                    float(stepsize) * corr_length[i][2],
+                ]
+            )
+
+            #counter += 1
+        logger(
+            logfile,
+            str(
+                "Effective step at maximum force coord is "
+                + str(float(dispvec[maxatom][maxcoord]))
+                + " a.u.\n"
+            ),
+        )
+
+    elif propagator == "BFGS" and (len(last_forces) == 0) and (len(new_xyzq) == 0):
+        coords = np.array(new_xyzq)[:, 0:3]
+        old_coords = np.array(xyzq)[:, 0:3]
+        old_hessian = np.loadtxt("bfgs_hessian.txt")
+        gradient = np.array(total_force)
+        old_gradient = np.array(last_forces)
+        hessian, hesseig, warning_flag = get_approx_hessian(
+            coords, old_coords, gradient, old_gradient, old_hessian, logfile
+        )
+        np.savetxt("bfgs_hessian.txt", hessian)
+
+        coords = coords.reshape(
+            3 * len(coords), 1
+        )  # reshape coords to use in dot products
+        gradient = gradient.reshape(
+            3 * len(gradient), 1
+        )  # reshape grad to use in dot products
+
+        direc = -np.linalg.inv(hessian).dot(gradient)
+        direc = direc.reshape(int(len(coords) / 3), 3)
+
+        for i in range(len(total_force)):
+            dispvec.append(
+                [
+                    float(stepsize) * direc[i][0],
+                    float(stepsize) * direc[i][1],
+                    float(stepsize) * direc[i][2],
+                ]
+            )
+    return dispvec
+
+def make_g96_inp(dispvec, gro, new_gro, logfile):
+    with open(new_gro, "w") as ofile:
+    #with open("test.g96", "w") as ofile:
+        with open(gro) as ifile:
+            counter = 0
+            for line in ifile:
+                ofile.write(line)
+                counter += 1
+                if counter == 4:
+                    break
+            counter = 0
+            for line in ifile:
+                match = re.search(
+                    r"^(.{5})\s(.{5})\s(.{5})\s(.{6})\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)\s*([-]*\d+\.*\d*)",
+                    line,
+                    flags=re.MULTILINE,
+                )
+                if not match:
+                    ofile.write(line)
+                    logger(
+                        logfile,
+                        str(
+                            "Successfully wrote "
+                            + str(int(counter))
+                            + " atoms to new g96 file.\n"
+                        ),
+                    )
+                    break
+                else:
+                    dispx = dispvec[counter][0] * 0.052917721
+                    dispy = dispvec[counter][1] * 0.052917721
+                    dispz = dispvec[counter][2] * 0.052917721
+                    ofile.write(
+                        str(match.group(1))
+                        + " "
+                        + str(match.group(2))
+                        + " "
+                        + str(match.group(3))
+                        + " "
+                        + str(match.group(4))
+                        + " {:>15.9f} {:>15.9f} {:>15.9f}\n".format(
+                            float(match.group(5)) + float(dispx),
+                            float(match.group(6)) + float(dispy),
+                            float(match.group(7)) + float(dispz),
+                        )
+                    )
+                    counter += 1
+            for line in ifile:
+                ofile.write(line) 
+    
+    ifile.close()
+    ofile.close()   
+
+def qmmm_prep(new_qmmmInputs):
+    new_gro = new_qmmmInputs.gro
+    top = new_qmmmInputs.top
+    jobname = new_qmmmInputs.qmmmparams.jobname
+    qmatomlist = new_qmmmInputs.qmatomlist
+    connlist = new_qmmmInputs.connlist
+    linkatoms = new_qmmmInputs.linkatoms
+    logfile = new_qmmmInputs.logfile
+    basedir = new_qmmmInputs.basedir
+    gmxtop = new_qmmmInputs.pathparams.gmxtop 
+    charge = new_qmmmInputs.qmparams.charge
+    geo = make_pcf.readg96(new_gro)
+    curr_step = new_qmmmInputs.qmmmparams.curr_step
+
+
+    logger(logfile, "List of molecules...\n")
+    # 6277
+    mollist = make_pcf.readmols(top)
+    logger(logfile, "Done.\n")
+    logger(logfile, "Reading charges...\n")
+    chargevec = []
+    for element in mollist:
+        chargevec.extend(make_pcf.readcharges(element, top, gmxtop))
+    logger(logfile, "Done.\n")
+    new_xyzq = make_xyzq(geo, chargevec)
+    logger(logfile, str("Made new xyzq matrix.\n"))
+    logger(
+        logfile,
+        "Preparing the point charge field for a numerically optimized charge shift...\n",
+    )
+    (
+        qmcoordlist,
+        m1list,
+        m2list,
+        updated_chargelist,
+    ) = prep_pcf.prepare_pcf_for_shift_fieldsonly(
+        new_xyzq, qmatomlist, charge, connlist
+    )
+    logger(logfile, "Done.\n")
+    new_links = get_linkatoms_ang(
+        new_xyzq, qmatomlist, m1list, connlist, linkatoms
+    )
+    logger(logfile, str("Updated positions of link atoms.\n"))
+    filename = jobname
+    if curr_step > 0:
+        filename += "." + str(int(curr_step))
+    if not os.path.isfile(str(filename + ".pointcharges")):
+        logger(logfile, "Shifting...\n")
+        final_pcf.generate_charge_shift_fieldsonly(
+            updated_chargelist, m1list, qmcoordlist, m2list, filename, basedir
+        )
+        logger(logfile, str("Made new PCF file.\n"))
+    else:
+        logger(
+            logfile,
+            "NOTE: Shifting omitted due to "
+            + str(filename + ".pointcharges")
+            + " being an existing file!\n",
+        )
+    logger(logfile, "Done.\n")
+
+    new_qmmmInputs.xyzq = new_xyzq
+    new_qmmmInputs.m1list = m1list
+    new_qmmmInputs.m2list = m2list
+    new_qmmmInputs.linkatoms = new_links
+
+    return new_qmmmInputs
 
 #Database
 def databasecorrection(energy_or_force, cut, dist, qmmmInputs):
@@ -665,9 +927,9 @@ def run_g16(qmfile, qmmmInputs):
     g16cmd = qmmmInputs.pathparams.g16cmd
     curr_step = qmmmInputs.qmmmparams.curr_step
     logfile = qmmmInputs.logfile
-    
+    #2222
     insert = ""
-    if int(curr_step) != 0:
+    if int(curr_step) > 0:
         insert = str("." + str(int(curr_step)))
 
 
@@ -678,7 +940,7 @@ def run_g16(qmfile, qmmmInputs):
         logname += "log"
         subprocess.call(["mv", logname, str(jobname + insert + ".gjf.log")])
         subprocess.call(["mv", "fort.7", str(jobname + insert + ".fort.7")])
-        logger(logfile, "G16 done.\n")
+        logger(logfile, "G16 Done.\n")
     else:
         logger(
             logfile,
@@ -738,9 +1000,8 @@ def run_gmx(mmfile, qmmmInputs):
     return edrname
 
 # Write output file
-def write_output(energies, total_force, qmmmInputs):
-    qmenergy, mmenergy, linkcorrenergy = energies
-    curr_step = qmmmInputs.qmmmparams.curr_step
+def write_output(energies, total_force, curr_step):
+    qmenergy, mmenergy, linkcorrenergy, total_energy = energies
     energy_file = "oenergy.txt"
     
     if curr_step == 0:
@@ -754,10 +1015,7 @@ def write_output(energies, total_force, qmmmInputs):
     oenergy.write("QM energy: %.8f\n" % qmenergy)
     oenergy.write("MM energy: %.8f\n" % mmenergy)
     oenergy.write("Link energy: %.8f\n" % linkcorrenergy)
-    oenergy.write(
-        "Total energy: %.8f\n"
-        % (float(qmenergy) + float(mmenergy) - float(linkcorrenergy))
-    )
+    oenergy.write("Total energy: %.8f\n"% total_energy)
     oenergy.write("--------------------------------------------\n")
     oenergy.close()
 
@@ -769,6 +1027,56 @@ def write_output(energies, total_force, qmmmInputs):
         )
     oforce.write('\n')
     oforce.close()
+
+def write_test(qmmmInputs, curr_step):
+    qmenergy, mmenergy, linkcorrenergy, total_energy = qmmmInputs.energies
+    total_force = qmmmInputs.forces
+    #qmenergy, mmenergy, linkcorrenergy, total_energy = energies
+    energy_file = "testE.txt"
+    
+    if curr_step == 0:
+        file_flag = "w"
+    else:
+        
+        file_flag = "a+"
+    
+    oenergy = open(energy_file, file_flag)
+    oenergy.write("Step: %d\n" % curr_step)
+    oenergy.write("QM energy: %.8f\n" % qmenergy)
+    oenergy.write("MM energy: %.8f\n" % mmenergy)
+    oenergy.write("Link energy: %.8f\n" % linkcorrenergy)
+    oenergy.write("Total energy: %.8f\n"% total_energy)
+    oenergy.write("--------------------------------------------\n")
+    oenergy.close()
+
+    oforce = open("testF.txt", file_flag)
+    for i in range(len(total_force)):
+        oforce.write(
+            "%d %.8f %.8f %.8f\n"
+            % ((i + 1), total_force[i][0], total_force[i][1], total_force[i][2])
+        )
+    oforce.write('\n')
+    oforce.close()
+
+def write_opt(qmmmInputs, curr_step):
+    qmenergy, mmenergy, linkcorrenergy, total_energy = qmmmInputs.energies
+    energy_file = "testoptE.txt"
+    
+    if curr_step == 0:
+        file_flag = "w"
+    else:
+        file_flag = "a+"
+
+    oenergy = open(energy_file, file_flag)
+    
+    if curr_step == 0:
+        oenergy.write("Step\tQM\tMM\tLink\tTotal\n")
+        oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (curr_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
+    else:
+        
+        oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (curr_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
+    oenergy.close()
+
 
 #Energy
 def get_qmenergy(qmfile, qmmmInputs):
@@ -814,10 +1122,10 @@ def get_qmenergy(qmfile, qmmmInputs):
                         flags=re.MULTILINE,
                     )
                 if match:
-                    logger(logfile, "Obtaining charge self-interaction...")
+                    logger(logfile, "Obtaining charge self-interaction...\n")
                     pcf_self_pot = read_pcf_self(qmfile)
                     logger(
-                        logfile, "done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
+                        logfile, "Done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
                     )
                     # G16 energy needs to be corrected for self potential of PCF
                     qmenergy = float(match.group(1)) - float(pcf_self_pot)
@@ -1066,7 +1374,7 @@ def get_energy(qmfile, edrname, qmmmInputs):
     mmenergy = get_mmenergy(str(edrname), qmmmInputs)
     linkcorrenergy = get_linkenergy_au(qm_corrdata, qmmmInputs)
     basis = qmmmInputs.qmparams.basis
-    qmenergy -= linkcorrenergy
+    #qmenergy -= linkcorrenergy
     methodstring = str(qmmmInputs.qmparams.method)
     if basis != "NONE":
         methodstring += str("/" + str(basis))
@@ -1074,11 +1382,11 @@ def get_energy(qmfile, edrname, qmmmInputs):
         logfile,
         str(
             "Single point energy done. QM/MM energy is {:>20.10f} (QM, link atom corrected ".format(
-                float(qmenergy)
+                float(qmenergy-linkcorrenergy)
             )
             + methodstring
             + ") + {:>20.10f} (MM) = {:>20.10f} (a.u.)\n".format(
-                float(mmenergy), float(qmenergy) + float(mmenergy)
+                float(mmenergy), float(qmenergy-linkcorrenergy) + float(mmenergy)
             )
         ),
     )
@@ -1472,8 +1780,13 @@ def read_forces(qm_corrdata,qmmmInputs):
     # logger(logfile, str("Deleted forces of inactive atoms.\n"))
     return total_force
 
-#Job cycle
+
+#update input
+def make_opt_step(qmmmInputs):
+    return 0
+#step cycle
 def opt_cycle(qmmmInputs):
+
     return 0
 
 def scan_cycle(qmmmInputs):
@@ -1485,29 +1798,35 @@ def perform_sp(qmmmInputs):
     qmprogram = qmmmInputs.qmparams.program
     logfile = qmmmInputs.logfile
     curr_step = qmmmInputs.qmmmparams.curr_step
-    qmmmInputs.qmmmparams.jobname = stepper(qmmmInputs.qmmmparams.jobname, curr_step)
-    
+    #qmmmInputs.qmmmparams.jobname = stepper(qmmmInputs.qmmmparams.jobname, curr_step)
+
     logger(logfile, "Computing a single point.\n")
-    logger(logfile, "Preparing QM and MM inputs: ")
+    logger(logfile, "Preparing QM and MM inputs:\n ")
+    if jobtype == "OPT":
+        logger(logfile, "=========OPT %d=========.\n"%curr_step)
 
     if qmprogram == "G16":
         #qm
         qmfile = make_g16_inp(qmmmInputs)
-        logger(logfile, "Gaussian input ready.\n")
+        logger(logfile, "Gaussian input file, %s, is ready.\n"%qmfile)
         run_g16(qmfile, qmmmInputs)
 
         #mm
         mmfile = make_gmx_inp(qmmmInputs)
-        logger(logfile, "Gromacs input ready.\n")      
+        logger(logfile, "Gromacs input file, %s, is ready.\n"%mmfile)      
         edrname = run_gmx(mmfile, qmmmInputs)
         
 
 
         logger(logfile, str("Reading energies.\n"))
         qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(qmfile, edrname, qmmmInputs)
-        energies = (qmenergy, mmenergy, linkcorrenergy)
+        total_energy = qmenergy + mmenergy - linkcorrenergy
+        energies = (qmenergy, mmenergy, linkcorrenergy, total_energy)
         logger(logfile, str("Reading forces.\n"))
         total_force = read_forces(qm_corrdata,qmmmInputs)
+
+        qmmmInputs.energies = energies
+        qmmmInputs.forces = total_force
 
     elif qmprogram == "TM":
         logger(logfile,"Turbomole is not avalible currently.\n")
@@ -1521,9 +1840,9 @@ def perform_sp(qmmmInputs):
         exit(0)
 
     # write a total force file
-    if jobtype == "SINGLEPOINT":
+    if jobtype == "SINGLEPOINT" or curr_step == 0:
         logger(logfile, "Writing SP output.\n")
-        write_output(energies, total_force,qmmmInputs)
+        write_output(energies, total_force, curr_step)
     elif jobtype == "OPT":
         logger(logfile, "Writing OPT output.\n")
 
@@ -1534,7 +1853,167 @@ def perform_sp(qmmmInputs):
         logger(logfile, "Writing SCAN output.\n")
  
 def perform_opt(qmmmInputs):
-    return 0
+    import copy
+    #define done
+    STEPLIMIT = 0
+    FTHRESH = 1
+    STEPSIZE = 2 
+    
+
+    logfile = qmmmInputs.logfile
+    propagator = qmmmInputs.qmmmparams.propagater
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    maxcycle = qmmmInputs.qmmmparams.maxcycle
+    f_thresh = qmmmInputs.qmmmparams.f_thresh
+    optlastonly = qmmmInputs.qmmmparams.optlastonly
+    stepsize = qmmmInputs.qmmmparams.initstep
+    jobname = qmmmInputs.qmmmparams.jobname
+
+    maxcycle = 10
+
+    gro = qmmmInputs.gro
+    xyzq = qmmmInputs.xyzq
+    new_xyzq = []
+    count = 0
+    # init BFGS hessian: initial guess for identity hessian
+    if propagator == "BFGS":
+        init_hessian = np.eye(3 * len(xyzq))
+        np.savetxt("bfgs_hessian.txt", init_hessian)
+
+    #First calculation 
+    perform_sp(qmmmInputs)
+    old_qmmmInputs = copy.deepcopy(qmmmInputs)
+    write_test(qmmmInputs, qmmmInputs.qmmmparams.curr_step)
+    write_opt(qmmmInputs, curr_step)
+    #1st force check
+    total_force = qmmmInputs.forces
+    last_forces = []
+    clean_force = make_clean_force(total_force)
+    maxforce = 0.0
+    done = STEPLIMIT
+    improved = True
+
+    for element in _flatten(clean_force):
+        if abs(float(element)) > abs(maxforce):
+            maxforce = float(element)
+    if abs(maxforce) < float(f_thresh):
+        logger(logfile,"Max force (%f) below threshold (%f) Finishing.\n"%(maxforce,f_thresh))
+        done = FTHRESH    
+    else:
+        logger(logfile, "Max force not below threshold. Continuing.\n")
+
+        ############## start optimization loop ##############
+        while not done and count <= maxcycle:
+            old_qmmmInputs = copy.deepcopy(qmmmInputs)
+            qmmmInputs.qmmmparams.curr_step += 1
+            curr_step = qmmmInputs.qmmmparams.curr_step
+            
+            new_gro = str(jobname + "." + str(curr_step) + ".g96")
+            new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
+            
+            qmmmInputs.gro = new_gro
+            qmmmInputs.pcffile = new_pcffile
+
+            total_force = qmmmInputs.forces
+            last_forces = old_qmmmInputs.forces 
+
+            
+            dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
+            new_xyzq = qmmmInputs.xyzq
+            make_g96_inp(dispvec, gro, new_gro, logfile)
+            qmmm_prep(qmmmInputs)
+            
+
+            perform_sp(qmmmInputs) #make g16 & gmx input
+            
+            write_opt(qmmmInputs, curr_step)
+            ############## start energy check & update stepsize ##############
+            curr_energy = qmmmInputs.energies[-1] #total energy
+            last_energy = old_qmmmInputs.energies[-1]
+            if curr_energy > last_energy:
+                logger(logfile, "Rejected one optimization step due to energy increasing. Trying again, with smaller step.\n")
+                improved = False
+                stepsize *= 0.2
+
+                #remove files
+                insert = str("." + str(curr_step))
+                trrname = str(jobname + insert + ".trr")
+                tprname = str(jobname + insert + ".tpr")
+                gmxlogname = str(jobname + insert + ".gmx.log")
+                edrname = str(jobname + insert + ".edr")
+                xvgname = str(jobname + insert + ".edr.xvg")
+                g16name = str(jobname + insert + ".gjf.log")
+                fortname = str(jobname + insert + ".fort.7")
+                subprocess.call(
+                    [
+                        "rm",
+                        trrname,
+                        tprname,
+                        gmxlogname,
+                        edrname,
+                        xvgname,
+                        g16name,
+                        fortname,
+                    ]
+                )
+                
+
+            else:
+                stepsize *= 1.2
+                improved = True
+
+
+            ############## end energy check & update stepsize ##############
+            
+            ############## start force check ##############
+            total_force = qmmmInputs.forces
+            last_forces = []
+            clean_force = make_clean_force(total_force)
+            maxforce = 0.0
+            
+
+            for element in _flatten(clean_force):
+                if abs(float(element)) > abs(maxforce):
+                    maxforce = float(element)
+            if abs(maxforce) < float(f_thresh):
+                logger(logfile,"Max force (%f) below threshold (%f) Finishing.\n"%(maxforce,f_thresh))
+                done = FTHRESH
+                break
+            ############## end force check ##############
+
+            ############## stepsize check ##############
+
+            if float(stepsize) < 1e-7: #0.000001 a.u.
+                done = STEPSIZE
+                logger(
+                    logfile,
+                        ("Step became lower than 0.000001 a.u., optimization is considered done for now. " + 
+                         "This is the best we can do unless reaching unacceptable numerical noise levels.\n"),
+                )
+                break
+            ############## end stepsize check ##############
+
+            if improved:              
+                #new_xyzq = qmmmInputs.xyzq
+                old_qmmmInputs = copy.deepcopy(qmmmInputs)
+                #qmmmInputs.qmmmparams.curr_step += 1
+                count += 1
+                write_test(qmmmInputs, qmmmInputs.qmmmparams.curr_step)
+            else:
+                #rejected and use prvious
+                qmmmInputs.qmmmparams.curr_step -= 1
+                qmmmInputs = copy.deepcopy(old_qmmmInputs)
+
+
+        ############## end optimization loop ##############
+
+    # opt status 
+    if done == STEPLIMIT:
+        logger(logfile, "Optimization canceled due to step limit.\n")
+    elif done == FTHRESH:
+        logger(logfile, "Optimization finished due to force threshold.\n")
+    elif done == STEPSIZE:
+        logger(logfile, "Optimization finished due to step size.\n")
    
 def perform_scan(qmmmInputs):
     return 0

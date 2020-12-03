@@ -12,6 +12,11 @@ def _flatten(x):
         else:
             yield from _flatten(e)
 
+def create_dict(label, info):
+    out_dict = {}
+    for i in range(len(label)):
+        out_dict[label[i]] = info[i]
+    return out_dict
 
 def logger(log, logstring):
     with open(log, "a") as ofile:
