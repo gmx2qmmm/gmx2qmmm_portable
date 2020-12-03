@@ -1,4 +1,4 @@
 jobtype=opt
 jobname=testopt
 maxcycle=100
-propagator=CONJGRAD
+propagator=BFGS

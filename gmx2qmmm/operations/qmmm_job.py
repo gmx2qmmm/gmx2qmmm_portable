@@ -420,7 +420,7 @@ def make_g16_inp(qmmmInputs):
 
     if nmaflag == 1:
         oldchkfile = str(jobname + ".chk")
-    print('-----------------gaufile:%s\n'%gaufile)
+
     with open(gaufile, "w") as ofile:
         fullcoords = get_full_coords_angstrom(gro)
         atoms = get_atoms(qmmmtop, logfile)
@@ -632,6 +632,7 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
     )
     #All use steep for first propagation
     if (propagator == "STEEP") or (len(last_forces) == 0) or (len(new_xyzq) == 0) :
+        logger(logfile, "Propagate with steepest descent...\n")
         for element in clean_force:
             dispvec.append(
                 [
@@ -642,19 +643,21 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
             )
         corr_length = np.array(total_force)
 
-    elif propagator == "CONJGRAD" and (len(last_forces) == 0) and (len(new_xyzq) == 0):
+
+    #elif propagator == "CONJGRAD" and (len(last_forces) != 0) and (len(new_xyzq) != 0):
+    elif ((propagator == "CONJGRAD") and (curr_step > 1)):
+        logger(logfile, "Propagate with conjugate gradient...\n")
         # Fletcher-Reeves
         _flattened = list(_flatten(clean_force))
         corr_fac = np.array(_flattened).dot(np.array(_flattened))
         _flattened = list(_flatten(old_clean_force))
         corr_fac /= np.array(_flattened).dot(np.array(_flattened))
+
         #2222
-        if curr_step == 1: #0
-            corr_length = np.array(total_force)
-            flag += 1
-        else:
+        corr_length = np.array(total_force)
+        if curr_step > 1:   #0 step for the inital SP 
             corr_length = np.array(total_force) + corr_fac * corr_length
-        #counter = 0
+
         for i in range(len(total_force)):
             dispvec.append(
                 [
@@ -664,7 +667,6 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
                 ]
             )
 
-            #counter += 1
         logger(
             logfile,
             str(
@@ -674,7 +676,9 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
             ),
         )
 
-    elif propagator == "BFGS" and (len(last_forces) == 0) and (len(new_xyzq) == 0):
+    #elif (propagator == "BFGS" and ((len(last_forces) != 0) or (len(new_xyzq) != 0))):    
+    elif ((propagator == "BFGS") and  (curr_step > 1)):
+        logger(logfile, "Propagate with BFGS method...\n")
         coords = np.array(new_xyzq)[:, 0:3]
         old_coords = np.array(xyzq)[:, 0:3]
         old_hessian = np.loadtxt("bfgs_hessian.txt")
@@ -1000,7 +1004,8 @@ def run_gmx(mmfile, qmmmInputs):
     return edrname
 
 # Write output file
-def write_output(energies, total_force, curr_step):
+    #old output
+def old_write_output(energies, total_force, curr_step):
     qmenergy, mmenergy, linkcorrenergy, total_energy = energies
     energy_file = "oenergy.txt"
     
@@ -1027,7 +1032,7 @@ def write_output(energies, total_force, curr_step):
         )
     oforce.write('\n')
     oforce.close()
-
+    #test output
 def write_test(qmmmInputs, curr_step):
     qmenergy, mmenergy, linkcorrenergy, total_energy = qmmmInputs.energies
     total_force = qmmmInputs.forces
@@ -1058,9 +1063,9 @@ def write_test(qmmmInputs, curr_step):
     oforce.write('\n')
     oforce.close()
 
-def write_opt(qmmmInputs, curr_step):
-    qmenergy, mmenergy, linkcorrenergy, total_energy = qmmmInputs.energies
-    energy_file = "testoptE.txt"
+def write_output(energies, total_force, curr_step):
+    qmenergy, mmenergy, linkcorrenergy, total_energy = energies
+    energy_file = "ooenergy.txt"
     
     if curr_step == 0:
         file_flag = "w"
@@ -1070,12 +1075,21 @@ def write_opt(qmmmInputs, curr_step):
     oenergy = open(energy_file, file_flag)
     
     if curr_step == 0:
-        oenergy.write("Step\tQM\tMM\tLink\tTotal\n")
+        oenergy.write("Step\tQM\t\tMM\t\tLink\t\tTotal\n")
         oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (curr_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
     else:
         
         oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (curr_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
     oenergy.close()
+
+    oforce = open("ooforces.txt", file_flag)
+    for i in range(len(total_force)):
+        oforce.write(
+            "%d %.8f %.8f %.8f\n"
+            % ((i + 1), total_force[i][0], total_force[i][1], total_force[i][2])
+        )
+    oforce.write("\n")
+    oforce.close()
 
 
 #Energy
@@ -1798,7 +1812,6 @@ def perform_sp(qmmmInputs):
     qmprogram = qmmmInputs.qmparams.program
     logfile = qmmmInputs.logfile
     curr_step = qmmmInputs.qmmmparams.curr_step
-    #qmmmInputs.qmmmparams.jobname = stepper(qmmmInputs.qmmmparams.jobname, curr_step)
 
     logger(logfile, "Computing a single point.\n")
     logger(logfile, "Preparing QM and MM inputs:\n ")
@@ -1809,6 +1822,7 @@ def perform_sp(qmmmInputs):
         #qm
         qmfile = make_g16_inp(qmmmInputs)
         logger(logfile, "Gaussian input file, %s, is ready.\n"%qmfile)
+        print('-----Run g16file:%s---------------\n'%qmfile)
         run_g16(qmfile, qmmmInputs)
 
         #mm
@@ -1816,8 +1830,6 @@ def perform_sp(qmmmInputs):
         logger(logfile, "Gromacs input file, %s, is ready.\n"%mmfile)      
         edrname = run_gmx(mmfile, qmmmInputs)
         
-
-
         logger(logfile, str("Reading energies.\n"))
         qmenergy, mmenergy, linkcorrenergy, qm_corrdata = get_energy(qmfile, edrname, qmmmInputs)
         total_energy = qmenergy + mmenergy - linkcorrenergy
@@ -1883,8 +1895,7 @@ def perform_opt(qmmmInputs):
     #First calculation 
     perform_sp(qmmmInputs)
     old_qmmmInputs = copy.deepcopy(qmmmInputs)
-    write_test(qmmmInputs, qmmmInputs.qmmmparams.curr_step)
-    write_opt(qmmmInputs, curr_step)
+    write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
     #1st force check
     total_force = qmmmInputs.forces
     last_forces = []
@@ -1910,7 +1921,6 @@ def perform_opt(qmmmInputs):
             
             new_gro = str(jobname + "." + str(curr_step) + ".g96")
             new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
-            
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
 
@@ -1925,8 +1935,6 @@ def perform_opt(qmmmInputs):
             
 
             perform_sp(qmmmInputs) #make g16 & gmx input
-            
-            write_opt(qmmmInputs, curr_step)
             ############## start energy check & update stepsize ##############
             curr_energy = qmmmInputs.energies[-1] #total energy
             last_energy = old_qmmmInputs.energies[-1]
@@ -1998,7 +2006,7 @@ def perform_opt(qmmmInputs):
                 old_qmmmInputs = copy.deepcopy(qmmmInputs)
                 #qmmmInputs.qmmmparams.curr_step += 1
                 count += 1
-                write_test(qmmmInputs, qmmmInputs.qmmmparams.curr_step)
+                write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
             else:
                 #rejected and use prvious
                 qmmmInputs.qmmmparams.curr_step -= 1
