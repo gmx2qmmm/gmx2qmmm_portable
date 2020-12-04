@@ -631,8 +631,8 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
         ),
     )
     #All use steep for first propagation
-    if (propagator == "STEEP") or (len(last_forces) == 0) or (len(new_xyzq) == 0) :
-        logger(logfile, "Propagate with steepest descent...\n")
+    if curr_step <= 1:
+        logger(logfile, "Propagate with steepest descent for first step...\n")
         for element in clean_force:
             dispvec.append(
                 [
@@ -641,72 +641,89 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
                     float(element[2]) * float(stepsize) / abs(float(maxforce)),
                 ]
             )
-        corr_length = np.array(total_force)
+    else:
+        if propagator == "STEEP":
+            logger(logfile, "Propagate with steepest descent...\n")
+            for element in clean_force:
+                dispvec.append(
+                    [
+                        float(element[0]) * float(stepsize) / abs(float(maxforce)),
+                        float(element[1]) * float(stepsize) / abs(float(maxforce)),
+                        float(element[2]) * float(stepsize) / abs(float(maxforce)),
+                    ]
+                )
+            corr_length = np.array(total_force)
 
 
-    #elif propagator == "CONJGRAD" and (len(last_forces) != 0) and (len(new_xyzq) != 0):
-    elif ((propagator == "CONJGRAD") and (curr_step > 1)):
-        logger(logfile, "Propagate with conjugate gradient...\n")
-        # Fletcher-Reeves
-        _flattened = list(_flatten(clean_force))
-        corr_fac = np.array(_flattened).dot(np.array(_flattened))
-        _flattened = list(_flatten(old_clean_force))
-        corr_fac /= np.array(_flattened).dot(np.array(_flattened))
+        #elif propagator == "CONJGRAD" and (len(last_forces) != 0) and (len(new_xyzq) != 0):
+        elif propagator == "CONJGRAD" :
+            logger(logfile, "Propagate with conjugate gradient...\n")
+            # Fletcher-Reeves
+            _flattened = list(_flatten(clean_force))
+            corr_fac = np.array(_flattened).dot(np.array(_flattened))
+            _flattened = list(_flatten(old_clean_force))
+            corr_fac /= np.array(_flattened).dot(np.array(_flattened))
 
-        #2222
-        corr_length = np.array(total_force)
-        if curr_step > 1:   #0 step for the inital SP 
-            corr_length = np.array(total_force) + corr_fac * corr_length
+            #2222
+            corr_length = np.array(total_force)
+            if curr_step > 1:   #0 step for the inital SP 
+                corr_length = np.array(total_force) + corr_fac * corr_length
 
-        for i in range(len(total_force)):
-            dispvec.append(
-                [
-                    float(stepsize) * corr_length[i][0],
-                    float(stepsize) * corr_length[i][1],
-                    float(stepsize) * corr_length[i][2],
-                ]
+            for i in range(len(total_force)):
+                dispvec.append(
+                    [
+                        float(stepsize) * corr_length[i][0],
+                        float(stepsize) * corr_length[i][1],
+                        float(stepsize) * corr_length[i][2],
+                    ]
+                )
+
+            logger(
+                logfile,
+                str(
+                    "Effective step at maximum force coord is "
+                    + str(float(dispvec[maxatom][maxcoord]))
+                    + " a.u.\n"
+                ),
             )
 
-        logger(
-            logfile,
-            str(
-                "Effective step at maximum force coord is "
-                + str(float(dispvec[maxatom][maxcoord]))
-                + " a.u.\n"
-            ),
-        )
-
-    #elif (propagator == "BFGS" and ((len(last_forces) != 0) or (len(new_xyzq) != 0))):    
-    elif ((propagator == "BFGS") and  (curr_step > 1)):
-        logger(logfile, "Propagate with BFGS method...\n")
-        coords = np.array(new_xyzq)[:, 0:3]
-        old_coords = np.array(xyzq)[:, 0:3]
-        old_hessian = np.loadtxt("bfgs_hessian.txt")
-        gradient = np.array(total_force)
-        old_gradient = np.array(last_forces)
-        hessian, hesseig, warning_flag = get_approx_hessian(
-            coords, old_coords, gradient, old_gradient, old_hessian, logfile
-        )
-        np.savetxt("bfgs_hessian.txt", hessian)
-
-        coords = coords.reshape(
-            3 * len(coords), 1
-        )  # reshape coords to use in dot products
-        gradient = gradient.reshape(
-            3 * len(gradient), 1
-        )  # reshape grad to use in dot products
-
-        direc = -np.linalg.inv(hessian).dot(gradient)
-        direc = direc.reshape(int(len(coords) / 3), 3)
-
-        for i in range(len(total_force)):
-            dispvec.append(
-                [
-                    float(stepsize) * direc[i][0],
-                    float(stepsize) * direc[i][1],
-                    float(stepsize) * direc[i][2],
-                ]
+        #elif (propagator == "BFGS" and ((len(last_forces) != 0) or (len(new_xyzq) != 0))):    
+        elif propagator == "BFGS":
+            logger(logfile, "Propagate with BFGS method...\n")
+            coords = np.array(new_xyzq)[:, 0:3]
+            old_coords = np.array(xyzq)[:, 0:3]
+            old_hessian = np.loadtxt("bfgs_hessian.txt")
+            gradient = np.array(total_force)
+            old_gradient = np.array(last_forces)
+            np.savetxt("coords",coords)
+            np.savetxt("old_coords",old_coords)
+            np.savetxt("gradient",old_gradient)
+            np.savetxt("old_gradient",old_gradient)
+            hessian, hesseig, warning_flag = get_approx_hessian(
+                coords, old_coords, gradient, old_gradient, old_hessian, logfile
             )
+            np.savetxt("bfgs_hessian.txt", hessian)
+
+            coords = coords.reshape(
+                3 * len(coords), 1
+            )  # reshape coords to use in dot products
+            gradient = gradient.reshape(
+                3 * len(gradient), 1
+            )  # reshape grad to use in dot products
+
+            direc = -np.linalg.inv(hessian).dot(gradient)
+            direc = direc.reshape(int(len(coords) / 3), 3)
+
+            for i in range(len(total_force)):
+                dispvec.append(
+                    [
+                        float(stepsize) * direc[i][0],
+                        float(stepsize) * direc[i][1],
+                        float(stepsize) * direc[i][2],
+                    ]
+                )
+    
+
     return dispvec
 
 def make_g96_inp(dispvec, gro, new_gro, logfile):
@@ -1933,11 +1950,16 @@ def perform_opt(qmmmInputs):
             make_g96_inp(dispvec, gro, new_gro, logfile)
             qmmm_prep(qmmmInputs)
             
-
+            #Run SP
             perform_sp(qmmmInputs) #make g16 & gmx input
-            ############## start energy check & update stepsize ##############
+
+            #Post store
             curr_energy = qmmmInputs.energies[-1] #total energy
             last_energy = old_qmmmInputs.energies[-1]
+            total_force = qmmmInputs.forces
+            last_forces = old_qmmmInputs.forces
+
+            ############## start energy check & update stepsize ############## 
             if curr_energy > last_energy:
                 logger(logfile, "Rejected one optimization step due to energy increasing. Trying again, with smaller step.\n")
                 improved = False
@@ -1974,12 +1996,9 @@ def perform_opt(qmmmInputs):
             ############## end energy check & update stepsize ##############
             
             ############## start force check ##############
-            total_force = qmmmInputs.forces
-            last_forces = []
             clean_force = make_clean_force(total_force)
             maxforce = 0.0
             
-
             for element in _flatten(clean_force):
                 if abs(float(element)) > abs(maxforce):
                     maxforce = float(element)
