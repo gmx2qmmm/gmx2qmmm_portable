@@ -20,7 +20,7 @@ gmx2qmmm v.1.0.2
 Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system) or geometry optimizations. Other functions are easily implemented in the future.
 
 ## System requirments
- - [python 2.7] (numpy, sqlite3)
+ - [python 3+] (numpy, sqlite3)
  - [Gaussian16] (and earlier version)
  - [Gromacs 5.0.2] (and earlier version)
 ## **gmx2qmmm** job
@@ -77,7 +77,7 @@ For bug reports/suggestions/complaints please raise an issue on [GitHub].
 Or contact us directly: [gmx2qmmm@gmail.com]
 
 
-[python 2.7]:<https://www.python.org/download/releases/2.7>
+[python 3+]:<https://docs.python.org/3.5>
 [Gaussian16]:<https://gaussian.com/gaussian16/>
 [Gromacs 5.0.2]:<http://www.gromacs.org>
 [Gaussian]:<https://gaussian.com/gaussian16/>
