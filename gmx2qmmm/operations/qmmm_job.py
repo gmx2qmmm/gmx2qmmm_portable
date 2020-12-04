@@ -1103,7 +1103,6 @@ def write_output(energies, total_force, curr_step):
     oforce.write("\n")
     oforce.close()
 
-
 #Energy
 def get_qmenergy(qmfile, qmmmInputs):
     qmprog = qmmmInputs.qmparams.program
@@ -1891,7 +1890,7 @@ def perform_opt(qmmmInputs):
     optlastonly = qmmmInputs.qmmmparams.optlastonly
     stepsize = qmmmInputs.qmmmparams.initstep
     jobname = qmmmInputs.qmmmparams.jobname
-
+    qmprog = qmmmInputs.qmparams.program
     maxcycle = 10
 
     gro = qmmmInputs.gro
@@ -1962,7 +1961,7 @@ def perform_opt(qmmmInputs):
                 improved = False
                 stepsize *= 0.2
 
-                #remove files
+                #remove files                
                 insert = str("." + str(curr_step))
                 trrname = str(jobname + insert + ".trr")
                 tprname = str(jobname + insert + ".tpr")
@@ -1971,18 +1970,7 @@ def perform_opt(qmmmInputs):
                 xvgname = str(jobname + insert + ".edr.xvg")
                 g16name = str(jobname + insert + ".gjf.log")
                 fortname = str(jobname + insert + ".fort.7")
-                subprocess.call(
-                    [
-                        "rm",
-                        trrname,
-                        tprname,
-                        gmxlogname,
-                        edrname,
-                        xvgname,
-                        g16name,
-                        fortname,
-                    ]
-                )
+                subprocess.call("rm %s %s %s %s %s %s %s"%(trrname,tprname,gmxlogname,edrname,xvgname,g16name,fortname), shell=True)
                 
 
             else:
@@ -2032,7 +2020,13 @@ def perform_opt(qmmmInputs):
 
 
         ############## end optimization loop ##############
-
+    #Remain first/last result 
+    if qmmmInputs.qmmmparams.optlastonly == "YES":
+        logger(logfile, "Remain first/last result. Remove other results.\n")
+        
+        for steps in range(count-1):
+            filename = jobname+('.%d*'%(steps+1))
+            subprocess.call("rm %s"%(filename), shell=True)
     # opt status 
     if done == STEPLIMIT:
         logger(logfile, "Optimization canceled due to step limit.\n")
