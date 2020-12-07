@@ -1799,10 +1799,10 @@ def read_forces(qm_corrdata,qmmmInputs):
     linkcorrforces = get_linkforces_au(qm_corrdata, qmmmInputs)
     logger(logfile, str("Forces for link atom correction read.\n"))
     total_force = np.array(qmforces) + np.array(mmforces) - np.array(linkcorrforces)
-    # logger(logfile,str("\n"+str(total_force[106][0])+" "+str(total_force[106][1])+" "+str(total_force[106][2])+"\n"))
     logger(logfile, str("Total forces obtained.\n"))
-    # total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
-    # logger(logfile, str("Deleted forces of inactive atoms.\n"))
+    if (qmmmInputs.qmmmparams.jobtype != "SINGLEPOINT") and (len(qmmmInputs.active) != 0):
+        total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
+        logger(logfile, str("Deleted forces of inactive atoms.\n"))
     return total_force
 
 
@@ -2038,6 +2038,53 @@ def perform_scan(qmmmInputs):
     return 0
 
 def perform_nma(qmmmInputs):
+    logfile = qmmmInputs.qmmmparams.logfile
+    basedir = qmmmparams.qmmmparams.basedir
+    active = qmmmInputs.active
+    jobname = qmmmInputs.qmmmparams.jobname
+
+    logger(logfile, "------This will be a numerical) normal mode analysis.------\n")
+    logger(
+        logfile,
+        "Generating a numerical Hessian for the active region using a displacement step of %f a.u.\n"%qmmmInputs.qmmmparams.disp,
+    )
+
+    logger(logfile, "Will require %d single point calculations!\n"%(len(active)*6+1))
+
+    perform_sp(qmmmInputs)
+
+    start_energy = qmmmInputs.energies[-1]
+    start_forces = qmmmInputs.forces
+    start_grad = np.array(start_forces) * -1.0
+
+    hessian_xyz_full = []
+
+    for curr_atom in active:
+        grad_deriv_vec = nma_stuff.get_xyz_2nd_deriv(qmmmInputs, curr_atom, start_energy, start_forces)
+        hessian_xyz_full.extend(grad_deriv_vec)
+    prep_hess = nma_stuff.prepare_hess(hessian_xyz_full, active)
+
+    for i in range(0, len(prep_hess[0]) - 6):
+        evals.extend([float(1000.0)])
+    
+    nma_stuff.write_pseudofchk_file(
+        jobname, evals, prep_hess, prep_hess, active, qmmmtop, logfile, xyzq
+    )  # using prep_hess as pseudo-nm_matrix since we do not know yet
+    
+    logger(logfile, "Wrote pseudofchk (G03 format).\n")
+    
+    write_hess.hes_xyz_fchk(
+        str(jobname + ".pseudofchk"), str(jobname + ".hess")
+    )
+    
+    logger(logfile, "Wrote orca format .hess file.\n")
+    evals, nm_matrix = nma.nma_3Nminus6dof_asfunction(
+        str(jobname + ".hess"), basedir
+    )
+    print(nma_stuff.log_nma(
+        qmmminfo, logfile, evals, nm_matrix, active, qmmmtop, xyzq, prep_hess
+    ))
+
     return 0
 
 

@@ -498,10 +498,10 @@ class QMMMInputs:
         if self.qmmmparams.jobtype == 'NMA':
             self.nmaflag = 1
 
-        active = []
+        self.active = []
         if self.qmmmparams.jobtype != "SINGLEPOINT":
             logger(logfile, "Reading indices of active atoms...\n")
-            active = prep_pcf.read_qmatom_list(inputFiles.act)
+            self.active = prep_pcf.read_qmatom_list(inputFiles.act)
             logger(logfile, "Done.\n")
 
         #OUTPUT: energy and force
