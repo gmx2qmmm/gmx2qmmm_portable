@@ -1891,7 +1891,6 @@ def perform_opt(qmmmInputs):
     stepsize = qmmmInputs.qmmmparams.initstep
     jobname = qmmmInputs.qmmmparams.jobname
     qmprog = qmmmInputs.qmparams.program
-    maxcycle = 10
 
     gro = qmmmInputs.gro
     xyzq = qmmmInputs.xyzq
