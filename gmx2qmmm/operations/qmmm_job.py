@@ -19,7 +19,6 @@ import sqlite3
 from gmx2qmmm._helper import logger, _flatten, stepper
 from gmx2qmmm._helper import get_linkatoms_ang, make_xyzq
 from gmx2qmmm.operations import expansion_check as rot
-from gmx2qmmm.operations import scan as scan_func
 from gmx2qmmm.operations import nma_stuff
 from gmx2qmmm.operations import nma_3N_6dof as nma
 from gmx2qmmm.operations import hes_xyz_g09RevD_01_fchk as write_hess
@@ -1805,16 +1804,8 @@ def read_forces(qm_corrdata,qmmmInputs):
         logger(logfile, str("Deleted forces of inactive atoms.\n"))
     return total_force
 
-
 #update input
 def make_opt_step(qmmmInputs):
-    return 0
-#step cycle
-def opt_cycle(qmmmInputs):
-
-    return 0
-
-def scan_cycle(qmmmInputs):
     return 0
 
 #Job
@@ -2035,11 +2026,34 @@ def perform_opt(qmmmInputs):
         logger(logfile, "Optimization finished due to step size.\n")
    
 def perform_scan(qmmmInputs):
-    return 0
+    logfile = qmmmInputs.logfile
+    qmmmInputs.qmmmparams.propagator = "BFGS"
+    r_array, a_array, d_array = qmmmInputs.qmmmparams.scan
+    
+    #Check scan input
+    if (len(r_array)+len(a_array)+len(d_array)) == 0:
+        logger(logfile, "No scan coordinates are found. Please check the scan file input.\n")
+    else:
+        logger(logfile, 'Read %d scan coordinates.\n'%(len(r_array)+len(a_array)+len(d_array)))
+    
+    #Bond scan
+    if len(r_array) > 0:
+        r_shape = r_array.shape
+        print("r_shape", r_shape, '\n')
+
+    #Angle scan
+    if len(a_array) > 0:
+        a_shape = a_array.shape
+        print("a_shape", a_shape, '\n')
+
+    #Dihedral angle scan
+    if len(d_array) > 0:
+        d_shape = d_array.shape
+        print("d_shape", d_shape, '\n')
 
 def perform_nma(qmmmInputs):
     logfile = qmmmInputs.qmmmparams.logfile
-    basedir = qmmmparams.qmmmparams.basedir
+    basedir = qmmmparams.basedir
     active = qmmmInputs.active
     jobname = qmmmInputs.qmmmparams.jobname
 

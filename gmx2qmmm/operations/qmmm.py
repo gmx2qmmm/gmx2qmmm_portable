@@ -19,7 +19,6 @@ import sqlite3
 from gmx2qmmm._helper import logger, _flatten, stepper
 from gmx2qmmm._helper import get_linkatoms_ang, make_xyzq
 from gmx2qmmm.operations import expansion_check as rot
-from gmx2qmmm.operations import scan as scan_func
 from gmx2qmmm.operations import nma_stuff
 from gmx2qmmm.operations import nma_3N_6dof as nma
 from gmx2qmmm.operations import hes_xyz_g09RevD_01_fchk as write_hess

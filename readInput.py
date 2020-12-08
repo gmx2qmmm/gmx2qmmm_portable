@@ -2,14 +2,12 @@ import re
 import os
 import numpy as np
 
-
 from gmx2qmmm._helper import _flatten, logger, stepper, create_dict
 from gmx2qmmm._helper import get_linkatoms_ang, make_xyzq
 from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 from gmx2qmmm.operations import generate_top as topprep
-from gmx2qmmm.operations import qmmm
 
 def read_qmparams(inp):
     label = ['program', 'method', 'basis', 'charge','multi','cores', 'memory', 'extra']
@@ -173,7 +171,6 @@ def read_qmmmparams(inp):
                 info[9]=str(match.group(1)).upper()
     return create_dict(label, info)
 
-
 def make_inp_dict(inputFiles, qmdict, mmdict, pathdict, qmmmdict):
     return 0
 
@@ -317,14 +314,17 @@ class QMMMParams:
     def __init__(self, inp):
         self.inp = inp
         (self.jobname, self.jobtype, self.f_thresh, self.maxcycle, self.initstep, self.propagater, 
-            self.disp, self.curr_step, self.databasefit, self.optlastonly) = self.read_qmmmparams(inp)
+            self.disp, self.curr_step, self.databasefit, self.optlastonly, self.scanfile) = self.read_qmmmparams(inp)
+        self.scan = []
+        if self.jobtype == "SCAN":
+            self.scan = self.load_scan(self.scanfile) 
 
     def read_qmmmparams(self, inp):
         jobname="testjob"
         jobtype="singlepoint"
         propa="steep"
         info=[jobname,jobtype.upper(),float(0.00001),int(5),float(0.1),
-                propa.upper(),float(0.0018897261),int(0),"MORSE","YES"]
+                propa.upper(),float(0.0018897261),int(0),"MORSE","YES", "scan.txt"]
         with open(inp) as ifile:
             for line in ifile:
                 match=re.search(r'^jobname\s*=\s*(\S+)', line,flags=re.MULTILINE)
@@ -358,7 +358,51 @@ class QMMMParams:
                 match=re.search(r'^optlastonly\s*=\s*(\S+)', line,flags=re.MULTILINE)
                 if match:
                     info[9]=str(match.group(1)).upper()
+                match=re.search(r'^scanfile\s*=\s*(\S+)', line,flags=re.MULTILINE)
+                if match:
+                    info[10]=match.group(1)
         return info
+
+    def load_scan(self, inp):
+
+        # read&match
+        with open(inp, "r") as file_object:
+            line = file_object.readlines()
+
+        r_array = []
+        a_array = []
+        d_array = []
+
+        for i in range(len(line)):
+            if len(line[i].split()) == 5:
+                temp_r = re.findall(r"R\s\d+\s\d+\s\d+\.\d+\s\d+", line[i])
+                if len(temp_r) > 0:
+                    temp_r = temp_r[0].split()
+                    for j in range(len(temp_r) - 1):
+                        r_array = np.append(r_array, float(temp_r[j + 1]))
+
+            elif len(line[i].split()) == 6:
+                temp_a = re.findall(r"A\s\d+\s\d+\s\d+\s\d+\.\d+\s\d+", line[i])
+                if len(temp_a) > 0:
+                    temp_a = temp_a[0].split()
+                    for j in range(len(temp_a) - 1):
+                        a_array = np.append(a_array, float(temp_a[j + 1]))
+
+            elif len(line[i].split()) == 7:
+                temp_d = re.findall(r"D\s\d+\s\d+\s\d+\s\d+\s\d+\.\d+\s\d+", line[i])
+                if len(temp_d) > 0:
+                    temp_d = temp_d[0].split()
+                    for j in range(len(temp_d) - 1):
+                        d_array = np.append(d_array, float(temp_d[j + 1]))
+
+        if len(r_array) > 0:
+            r_array = r_array.reshape(len(r_array) // 4, 4)
+        if len(a_array) > 0:
+            a_array = a_array.reshape(len(a_array) // 5, 5)
+        if len(d_array) > 0:
+            d_array = d_array.reshape(len(d_array) // 6, 6)
+
+        return r_array, a_array, d_array
 
 class QMMMInputs:
     """docstring for ClassName"""
