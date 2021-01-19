@@ -1789,6 +1789,7 @@ def get_linkforces_au(qm_corrdata,qmmmInputs):
 
 def read_forces(qm_corrdata,qmmmInputs):
     logfile = qmmmInputs.logfile
+    active = qmmmInputs.active
     qmforces = []
     mmforces = []
     qmforces = get_qmforces_au(qmmmInputs)
@@ -1799,7 +1800,7 @@ def read_forces(qm_corrdata,qmmmInputs):
     logger(logfile, str("Forces for link atom correction read.\n"))
     total_force = np.array(qmforces) + np.array(mmforces) - np.array(linkcorrforces)
     logger(logfile, str("Total forces obtained.\n"))
-    if (qmmmInputs.qmmmparams.jobtype != "SINGLEPOINT") and (len(qmmmInputs.active) != 0):
+    if (qmmmInputs.qmmmparams.jobtype != "SINGLEPOINT") and (len(active) != 0):
         total_force=remove_inactive(total_force,active) #in SP case I don't have inactive atoms
         logger(logfile, str("Deleted forces of inactive atoms.\n"))
     return total_force
