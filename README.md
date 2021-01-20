@@ -17,7 +17,7 @@ gmx2qmmm v.1.0.2
 ## Overview
 
 **gmx2qmmm** is a python package to bridge [Gaussian] and [Gromacs]. The test runs were performed using [Gaussian16] and [Gromacs 5.0.2], but the code should be able to read earlier Gaussian and other Gromacs versions. The only limits are the formats of the human-readable input and output files of each program, as such, conversion scripts can be written to make the interface work with any version, if the current code does not support it.
-Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system) or geometry optimizations. Other functions are easily implemented in the future.
+Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system) or geometry optimizations. (Other ultilities are ongoing)
 
 ## System requirements
  - [python 2.7] 
