@@ -76,6 +76,8 @@ For bug reports/suggestions/complaints please raise an issue on [GitHub].
 
 Or contact us directly: [gmx2qmmm@gmail.com]
 
+## Links
+[Documentation](https://gmx2qmmm.github.io/gmx2qmmm_io/)
 
 [python 2.7]:<https://www.python.org/download/releases/2.7>
 [Gaussian16]:<https://gaussian.com/gaussian16/>
