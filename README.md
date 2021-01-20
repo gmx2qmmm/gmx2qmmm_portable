@@ -5,13 +5,14 @@ gmx2qmmm v.1.0.2
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
-- [Overview](#Overview)
+- [Overview](#overview)
 - [System requirments](#system-requirments)
 - [**gmx2qmmm** job](#job-type)
 - [Input files](#input-files)
 - [Examples](#example)
 - [References](#references)
 - [Support and development](#support-and-development)
+- [Links](#links)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Overview
