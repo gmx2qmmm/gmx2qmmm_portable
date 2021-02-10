@@ -388,7 +388,7 @@ def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess, logfile):
 def make_g16_inp(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     gro = qmmmInputs.gro
-    #1111
+    print("make_g16_inp:%s"%jobname)
     qmmmtop = qmmmInputs.top
     #qmmmtop = qmmmInputs.qmmmtop
     qmatomlist = qmmmInputs.qmatomlist
@@ -408,11 +408,12 @@ def make_g16_inp(qmmmInputs):
     
     insert = ""
     oldinsert = ""
+    '''
     if int(curr_step) > 0:
-        #2222
         insert = str("." + str(int(curr_step) ))
         if int(curr_step) > 1:
             oldinsert = str("." + str(int(curr_step) - 1))
+    '''
     gaufile = str(jobname + insert + ".gjf")
     chkfile = str(jobname + insert + ".chk")
     oldchkfile = str(jobname + oldinsert + ".chk")
@@ -943,8 +944,8 @@ def run_g16(qmfile, qmmmInputs):
     logfile = qmmmInputs.logfile
     #2222
     insert = ""
-    if int(curr_step) > 0:
-        insert = str("." + str(int(curr_step)))
+    #if int(curr_step) > 0:
+    #    insert = str("." + str(int(curr_step)))
 
 
     if not os.path.isfile(str(qmfile) + ".log"):
@@ -1043,6 +1044,7 @@ def old_write_output(energies, total_force, curr_step):
     oforce.write('\n')
     oforce.close()
     #test output
+
 def write_test(qmmmInputs, curr_step):
     qmenergy, mmenergy, linkcorrenergy, total_energy = qmmmInputs.energies
     total_force = qmmmInputs.forces
@@ -1101,6 +1103,33 @@ def write_output(energies, total_force, curr_step):
         )
     oforce.write("\n")
     oforce.close()
+
+# Read output file
+def read_oenergy(step):
+    oenergy = np.loadtxt('oenergy.txt',dtype=float,skiprows=1,usecols=(1,2,3,4))
+    return oenergy[step]
+
+def read_oforces(step):
+    file_info = open('oforces.txt', 'r')
+    step_index = []
+    for i, line in enumerate(file_info.readlines()): 
+        if 'Step' in line:
+            step_index.append(i)
+    steps = len(step_index)
+    with open('oforces.txt','r') as file_object:
+        line = file_object.readlines()
+    for i in range(len(step_index)):
+        if i < len(step_index)-1:
+            outlines = step_index[i+1] - step_index[i]
+        else:
+            outlines = len(line) - step_index[i] - 1
+    forces = []
+    for i in range(outlines):
+        force = line[step_index[step]+i+1].split()[1:]
+        for j in range(3):
+            force[j] = float(force[j])
+        forces.append(force)
+    return np.array(forces)
 
 #Energy
 def get_qmenergy(qmfile, qmmmInputs):
@@ -1433,10 +1462,13 @@ def get_qmforces_au(qmmmInputs):
 
     if qmprogram == "G16":
         insert = ""
-        if int(curr_step) != 0:
-            insert = str("." + str(curr_step))
+        #2222
+        if (int(curr_step) > 1) and (qmmmInputs.qmmmparams.jobname == 'OPT'):
+            insert = str("." + str(curr_step-1))
+        
         qmlogfile = str(jobname + insert + ".gjf.log")
         fortfile = str(jobname + insert + ".fort.7")
+
         with open(fortfile) as ifile:
             for line in ifile:
                 match = re.search(
@@ -1889,14 +1921,17 @@ def perform_opt(qmmmInputs):
     new_xyzq = []
     count = 0
 
-
-    #First calculation 
-    perform_sp(qmmmInputs)
-    old_qmmmInputs = copy.deepcopy(qmmmInputs)
-    write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
-    #Store 1st result
-    curr_energy = qmmmInputs.energies[-1] #total energy
-    total_force = qmmmInputs.forces
+    if curr_step == 0:
+        #First calculation 
+        perform_sp(qmmmInputs)
+        old_qmmmInputs = copy.deepcopy(qmmmInputs)
+        write_output(qmmmInputs.energies, qmmmInputs.forces, curr_step)
+        #Store 1st result
+        curr_energy = qmmmInputs.energies[-1] #total energy
+        total_force = qmmmInputs.forces
+    else:
+        curr_energy = read_oenergy(curr_step) #total energy
+        total_force = read_oforces(curr_step)
     last_forces = []
     clean_force = make_clean_force(total_force)
     maxforce = 0.0
@@ -1932,7 +1967,8 @@ def perform_opt(qmmmInputs):
             new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
-
+            print('new_gro:%s\n'%qmmmInputs.gro)
+            print('new_pcffile:%s\n'%qmmmInputs.pcffile)
             dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
             make_g96_inp(dispvec, gro, new_gro, logfile)
             qmmm_prep(qmmmInputs)

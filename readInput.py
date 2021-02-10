@@ -421,9 +421,12 @@ class QMMMInputs:
         self.top = inputFiles.top
         logger(logfile, "Done.\n")
 
-
-        self.gro = stepper(inputFiles.coord, self.qmmmparams.curr_step)
-
+        
+        self.gro = inputFiles.coord
+        # The name of checkpoint gro file is related to jobname already, jobname is unchanged in any case
+        if self.qmmmparams.curr_step > 0:
+            self.gro = str(self.qmmmparams.jobname + '.' + str(self.qmmmparams.curr_step) + self.gro[-4:])
+        
         logger(logfile, "Initializing dependencies...\n")
         logger(self.logfile, "complete.\n")
 
@@ -432,6 +435,7 @@ class QMMMInputs:
         logger(logfile, "Trying to understand your MM files.\n")
         logger(logfile, "List of molecules...\n")
         self.mollist = make_pcf.readmols(self.top)
+        print('mollist:',self.mollist)
         logger(logfile, "Done.\n")
         logger(logfile, "Reading charges...")
         for element in self.mollist:
@@ -445,7 +449,7 @@ class QMMMInputs:
         elif inputFiles.coord[-4:] == ".g96":
             logger(logfile, "Reading geometry (.g96)...\n")
             self.geo = make_pcf.readg96(inputFiles.coord)
-        #logger(logfile, "%s\n" % self.geo)
+        self.numatoms = make_pcf.read_numatoms(inputFiles.coord)
         logger(logfile, "Done.\n")
 
         logger(logfile, "Reading connectivity matrix...")
@@ -474,6 +478,7 @@ class QMMMInputs:
         )
 
         self.qmmmtop = str(self.qmmmparams.jobname + ".qmmm.top")
+        
         self.pcffile = str(self.qmmmparams.jobname + ".pointcharges")
         self.pcffile = stepper(self.pcffile, self.qmmmparams.curr_step)
 
@@ -504,9 +509,8 @@ class QMMMInputs:
         )
         logger(logfile, "Done.\n")
 
-        if self.qmmmparams.curr_step > 0:
-            self.qmmmparams.jobname = str(self.qmmmparams.jobname + "." + str(self.qmmmparams.curr_step))
-        if not os.path.isfile(str(self.qmmmparams.jobname + ".pointcharges")):
+
+        if not os.path.isfile(self.pcffile):
             logger(logfile, "Shifting...\n")
             final_pcf.generate_charge_shift_fieldsonly(
                 self.updated_chargelist, self.m1list, self.qmcoordlist, self.m2list, self.qmmmparams.jobname, self.basedir
@@ -515,7 +519,7 @@ class QMMMInputs:
             logger(
                 logfile,
                 "NOTE: Shifting omitted due to "
-                + str(self.qmmmparams.jobname + ".pointcharges")
+                + self.pcffile
                 + " being an existing file!\n",
             )
         logger(logfile, "Done.\n")
