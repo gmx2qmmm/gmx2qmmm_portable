@@ -18,7 +18,7 @@ __date__ = "$15-May-2018 17:02:17$"  # during a rain storm
 import re
 import os
 import sys
-
+import numpy as np
 
 def checkformol(molname, inp):
     with open(inp) as ifile:
@@ -42,7 +42,6 @@ def checkformol(molname, inp):
             if correct:
                 break
     return correct
-
 
 def getincludelist(inp, gmxtop_path):
     toplist = []
@@ -77,7 +76,6 @@ def getincludelist(inp, gmxtop_path):
 
                 toplist.extend(getincludelist(foundname, gmxtop_path))
     return toplist
-
 
 def readcharges(molvecentry, top, gmxtop_path):
     cvec = []
@@ -146,7 +144,6 @@ def readcharges(molvecentry, top, gmxtop_path):
         finalcvec.extend(cvec)
     return finalcvec
 
-
 def readg96(inp):
     coords = []
     with open(inp) as ifile:
@@ -169,7 +166,6 @@ def readg96(inp):
             else:
                 break
     return coords
-
 
 def readgeo(inp):
     coords = []
@@ -206,7 +202,6 @@ def readgeo(inp):
                 break
     return coords
 
-
 def readmols(top):
     mollist = []
     with open(top) as ifile:
@@ -234,6 +229,25 @@ def readmols(top):
                     exit(1)
     return mollist
 
+def read_numatoms(inp):
+    file_info = open(inp, 'r')
+    filetype = inp[-3:]
+    if filetype == 'g96':
+        pos_searched = False
+        for i, line in enumerate(file_info.readlines()): 
+            if 'POSITION' in line:
+                pos_start = i
+                pos_searched = True
+            elif ('END' in line) and pos_searched:
+                pos_end = i
+                pos_searched = False
+        return pos_end - (pos_start + 1)
+    elif filetype == 'gro':
+        file = open("conf.gro", "r")
+        for i in range(2):
+            num = file.readline().split()
+        file.close()
+        return int(num[0])
 
 def makeout(coords, charges, name):
     ofile = open(name, "w")
