@@ -27,6 +27,12 @@ def stepper(filename, step):
     """Move to more appropriate module"""
     if step == 0:
         return filename
+    elif filename[-4:] == ".g96":
+        return str(filename[:-4] + "." + str(step) + ".g96")
+    elif filename[-4:] == ".gro":
+        return str(filename[:-4] + "." + str(step) + ".gro")
+    elif filename[-13:] == ".pointcharges":
+        return str(filename[:-13] + "." + str(step) + ".pointcharges")
     else:
         if len(filename) > 7:
             if filename[-7:] == ".fort.7":
