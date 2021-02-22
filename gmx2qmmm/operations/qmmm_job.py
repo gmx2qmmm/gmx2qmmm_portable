@@ -602,7 +602,7 @@ def update_gro_box(gro, groname, nbradius, logfile):
 
 #Propagated
 #initstep = stepsize
-def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile):
+def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, scan_flag=False):
     dispvec = []
     maxforce = 0.0
     clean_force = make_clean_force(total_force)
@@ -1994,7 +1994,10 @@ def perform_opt(qmmmInputs):
             new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
-            dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
+            if qmmmInputs.qmmmparams.jobtype == "SCAN" :
+                dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, True)
+            else :
+                dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
             make_g96_inp(dispvec, gro, new_gro, logfile)
             qmmm_prep(qmmmInputs)
 
