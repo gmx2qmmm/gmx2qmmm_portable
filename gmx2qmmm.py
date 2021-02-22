@@ -61,7 +61,6 @@ def gmx2qmmm(inputFiles):
     basedir = os.path.dirname(os.path.abspath(__file__))
     if os.path.isfile(inputFiles.logfile):
         subprocess.call(["rm", inputFiles.logfile])
-    #qminfo, mminfo, pathinfo, qmmminfo =  
 
     qmmmInputs = QMMMInputs(inputFiles, basedir)
     perfrom_job(qmmmInputs)

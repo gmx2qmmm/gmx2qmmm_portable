@@ -435,7 +435,6 @@ class QMMMInputs:
         logger(logfile, "Trying to understand your MM files.\n")
         logger(logfile, "List of molecules...\n")
         self.mollist = make_pcf.readmols(self.top)
-        print('mollist:',self.mollist)
         logger(logfile, "Done.\n")
         logger(logfile, "Reading charges...")
         for element in self.mollist:

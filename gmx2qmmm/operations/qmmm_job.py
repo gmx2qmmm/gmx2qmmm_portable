@@ -388,7 +388,6 @@ def get_approx_hessian(xyz, old_xyz, grad, old_grad, old_hess, logfile):
 def make_g16_inp(qmmmInputs):
     jobname = qmmmInputs.qmmmparams.jobname
     gro = qmmmInputs.gro
-    print("make_g16_inp:%s"%jobname)
     qmmmtop = qmmmInputs.top
     #qmmmtop = qmmmInputs.qmmmtop
     qmatomlist = qmmmInputs.qmatomlist
@@ -1130,6 +1129,32 @@ def read_oforces(step):
             force[j] = float(force[j])
         forces.append(force)
     return np.array(forces)
+
+# Archive & remove
+def archive(jobname, curr_step):
+    if curr_step == 0 :
+        insert = '' 
+    else:
+        insert = str("." + str(curr_step))
+
+    output_filename = str(jobname + insert + ".tar")
+    archive_files = str(jobname + insert + "*")  
+    subprocess.call("tar -czf %s %s"%(output_filename, archive_files), shell=True)
+
+def remove_files(jobname, curr_step, tar=False):
+    if curr_step == 0 :
+        insert = '' 
+    else:
+        insert = str("." + str(curr_step))
+
+    extend = np.array([".g96",".boxlarge.g96",".chk",".edr",".edr.xvg",".fort.7",".gjf",".gjf.log",
+        ".gmx.log", ".mdp", ".pointcharges", ".qmmm.top",".qmmm.top.ndx", ".tpr", ".trr", ".xvg"])
+
+    for i in range(len(extend)):
+        subprocess.call("rm -f %s"%str(jobname + insert + extend[i]), shell=True)
+
+    if tar:
+        subprocess.call("rm -f %s"%str(jobname + insert + '.tar'), shell=True)
 
 #Energy
 def get_qmenergy(qmfile, qmmmInputs):
@@ -1890,6 +1915,7 @@ def perform_sp(qmmmInputs):
     if jobtype == "SINGLEPOINT" or curr_step == 0:
         logger(logfile, "Writing SP output.\n")
         write_output(energies, total_force, curr_step)
+
     elif jobtype == "OPT":
         logger(logfile, "Writing OPT output.\n")
 
@@ -1919,7 +1945,7 @@ def perform_opt(qmmmInputs):
     gro = qmmmInputs.gro
     xyzq = qmmmInputs.xyzq
     new_xyzq = []
-    count = 0
+    count = 0 #for each calculation counting for archiving
 
     if curr_step == 0:
         #First calculation 
@@ -1932,6 +1958,7 @@ def perform_opt(qmmmInputs):
     else:
         curr_energy = read_oenergy(curr_step) #total energy
         total_force = read_oforces(curr_step)
+    
     last_forces = []
     clean_force = make_clean_force(total_force)
     maxforce = 0.0
@@ -1967,8 +1994,6 @@ def perform_opt(qmmmInputs):
             new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
-            print('new_gro:%s\n'%qmmmInputs.gro)
-            print('new_pcffile:%s\n'%qmmmInputs.pcffile)
             dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
             make_g96_inp(dispvec, gro, new_gro, logfile)
             qmmm_prep(qmmmInputs)
@@ -2003,6 +2028,10 @@ def perform_opt(qmmmInputs):
             else:
                 stepsize *= 1.2
                 improved = True
+
+                #archive remove previous
+                logger(logfile, "Archive previous files\n")
+                archive(jobname, curr_step-1) #archive previous
 
 
             ############## end energy check & update stepsize ##############
@@ -2049,11 +2078,19 @@ def perform_opt(qmmmInputs):
         ############## end optimization loop ##############
     #Remain first/last result 
     if qmmmInputs.qmmmparams.optlastonly == "YES":
-        logger(logfile, "Remain first/last result. Remove other results.\n")
-        
+        logger(logfile, "Remain last result. Remove other results.\n")
+        #remove first
+        remove_files(jobname, 0, True)
         for steps in range(count-1):
             filename = jobname+('.%d*'%(steps+1))
             subprocess.call("rm %s"%(filename), shell=True)
+    else:
+        for steps in range(count):
+            remove_files(jobname,steps)
+
+    # Remove the last but failed with criteria files         
+    subprocess.call("rm %s"%str(jobname + '.' + str(count+1) + '*'), shell=True)
+    
     # opt status 
     if done == STEPLIMIT:
         logger(logfile, "Optimization canceled due to step limit.\n")
