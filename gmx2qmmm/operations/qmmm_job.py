@@ -1955,6 +1955,11 @@ def perform_opt(qmmmInputs):
         #Store 1st result
         curr_energy = qmmmInputs.energies[-1] #total energy
         total_force = qmmmInputs.forces
+
+        # init BFGS hessian: initial guess for identity hessian
+        if propagator == "BFGS":
+            init_hessian = np.eye(3 * len(xyzq))
+            np.savetxt("bfgs_hessian.txt", init_hessian)
     else:
         curr_energy = read_oenergy(curr_step) #total energy
         total_force = read_oforces(curr_step)
@@ -1974,11 +1979,6 @@ def perform_opt(qmmmInputs):
     else:
         logger(logfile, "Max force not below threshold. Continuing.\n")
 
-        # init BFGS hessian: initial guess for identity hessian
-        if propagator == "BFGS":
-            init_hessian = np.eye(3 * len(xyzq))
-            np.savetxt("bfgs_hessian.txt", init_hessian)
-
         ############## start optimization loop ##############
         while not done and count <= maxcycle:
             #Store previous result
@@ -1994,10 +1994,12 @@ def perform_opt(qmmmInputs):
             new_pcffile = str(jobname + "." + str(curr_step) + ".pointcharges")
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
+            
             if qmmmInputs.qmmmparams.jobtype == "SCAN" :
                 dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, True)
             else :
                 dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
+            
             make_g96_inp(dispvec, gro, new_gro, logfile)
             qmmm_prep(qmmmInputs)
 

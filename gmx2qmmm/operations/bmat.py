@@ -1,10 +1,8 @@
 import numpy as np
-from scipy import linalg
 from gmx2qmmm._helper import logger
 
 #distance or angles
 def length(coord_A, coord_B):
-    import numpy as np
     return np.linalg.norm(coord_A - coord_B)
 
 def angle(coords_A, coords_B, coords_C):
