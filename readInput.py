@@ -898,3 +898,36 @@ def get_linkcorrlist(linkatoms, qmatomlist, m1list, m2list, connlist):
         q3list,
         m3list,
     )
+
+def write_highprec(gro,jobname,logfile):
+    filename=str(jobname + ".g96")
+    with open(filename,"w") as ofile:
+        with open(gro) as ifile:
+            count=0
+            for line in ifile:
+                count+=1
+                if count==2:
+                    break
+                ofile.write("TITLE\nProtein\nEND\nPOSITION\n")
+            
+            counter=0
+            finalline=""
+            for line in ifile:
+                match=re.search(r'^([\s\d]{5})(.{5})(.{5})([\s\d]{5})\s*([-]*\d+\.\d*)\s*([-]*\d+\.\d*)\s*([-]*\d+\.\d*)', line,flags=re.MULTILINE)
+                if not match:
+                    logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to internal precision format file.\n"))
+                    finalline=line
+                    break
+                else:
+                    counter+=1
+                    ofile.write(str(match.group(1))+" "+ str(match.group(2))+" "+str(match.group(3))+" {:>6d} ".format(int(counter))+ "{:>15.9f} {:>15.9f} {:>15.9f}\n".format(float(match.group(5)),float(match.group(6)),float(match.group(7))))
+            ofile.write("END\nBOX\n")
+            match=re.search(r'^\s*(\d+\.*\d*)\s*(\d+\.*\d*)\s*(\d+\.*\d*)', finalline,flags=re.MULTILINE)
+            if not match:
+                logger(logfile,str("Unexpected line instead of box vectors. Exiting. Last line:\n"))
+                logger(logfile,line)
+                exit(1)
+            else:
+                ofile.write(str(" {:>15.9f} {:>15.9f} {:>15.9f}\n".format(float(match.group(1)),float(match.group(2)),float(match.group(3)))))
+            ofile.write("END")
+    return filename
