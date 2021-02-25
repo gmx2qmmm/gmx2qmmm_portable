@@ -243,7 +243,7 @@ def read_numatoms(inp):
                 pos_searched = False
         return pos_end - (pos_start + 1)
     elif filetype == 'gro':
-        file = open("conf.gro", "r")
+        file = open(inp, "r")
         for i in range(2):
             num = file.readline().split()
         file.close()
