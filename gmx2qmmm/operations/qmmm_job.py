@@ -22,6 +22,7 @@ from gmx2qmmm.operations import expansion_check as rot
 from gmx2qmmm.operations import nma_stuff
 from gmx2qmmm.operations import nma_3N_6dof as nma
 from gmx2qmmm.operations import hes_xyz_g09RevD_01_fchk as write_hess
+from gmx2qmmm.operations import bmat
 from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
@@ -1866,6 +1867,27 @@ def read_forces(qm_corrdata,qmmmInputs):
 def make_opt_step(qmmmInputs):
     return 0
 
+#scan
+def scan_dispvec(xyzq, stepsize, scan_atoms):
+    dispvec = np.zeros((len(xyzq),3))
+    coords = np.array(xyzq)[:, 0:3]
+    #Bond length
+    if len(scan_atoms) == 2 :
+        a,b = scan_atoms
+        coord_A, coord_B = (coords[int(a-1)], coords[int(b-1)])# array index -> -1
+        line_vec = bmat.length(coord_A, coord_B)*stepsize
+        dispvec[int(b-1)] += line_vec
+    
+    #Angle
+    elif len(scan_atoms) == 3 :
+        angle_vec = bmat.angle(coords[scan_atoms[0]], coords[scan_atoms[1]], coords[scan_atoms[2]])
+
+    #Dihedral
+    elif len(scan_atoms) == 4 :
+        dihedral = bmat.angle(coords[scan_atoms[0]], coords[scan_atoms[1]], coords[scan_atoms[2]], coords[scan_atoms[3]])
+
+    return dispvec
+
 #Job
 def perform_sp(qmmmInputs):
     jobtype = qmmmInputs.qmmmparams.jobtype
@@ -2114,21 +2136,53 @@ def perform_scan(qmmmInputs):
         logger(logfile, "No scan coordinates are found. Please check the scan file input.\n")
     else:
         logger(logfile, 'Read %d scan coordinates.\n'%(len(r_array)+len(a_array)+len(d_array)))
-    
+
+    #Single scan
     #Bond scan
     if len(r_array) > 0:
         r_shape = r_array.shape
         print("r_shape", r_shape, '\n')
+        subprocess.call("mkdir scanR", shell=True)
+        for i in range(r_shape[0]):
+            scan_atoms = (r_array[i][0], r_array[i][1])
+            stepsize = r_array[0][-2]
+            steps = r_array[0][-1]
+            logger(logfile, "Scanning bond length between atom%d-%d\n"%scan_atoms)
+            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(stepsize, steps))
+            
+            direc = "scanR/R%d-%d"%scan_atoms
+            subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
+
+            dispvec = scan_dispvec(qmmmInputs.xyzq, stepsize, scan_atoms)
+            print(dispvec)
+            new_gro = "scanR%d-%d.g96"%scan_atoms
+            make_g96_inp(dispvec, qmmmInputs.gro, new_gro, logfile)
+            subprocess.call("mv %s %s"%(new_gro, direc), shell=True)
+
+            qmmmInputs.qmmmparams.jobtype = 'OPT'
+            qmmmInputs.gro = direc + '/' + new_gro
+            perform_opt(qmmmInputs)
+           
 
     #Angle scan
     if len(a_array) > 0:
         a_shape = a_array.shape
         print("a_shape", a_shape, '\n')
+        subprocess.call("mkdir scanA", shell=True)
+        for i in range(a_shape[0]):
+            logger(logfile, "Scanning angle between atom%d-%d-%d\n"%(a_array[i][0], a_array[i][1], a_array[i][2]))
+            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(a_array[0][-2], a_array[0][-1]))
+            subprocess.call("mkdir scanA/A%d-%d-%d"%(a_array[i][0], a_array[i][1], a_array[i][2]), shell=True)
 
     #Dihedral angle scan
     if len(d_array) > 0:
         d_shape = d_array.shape
         print("d_shape", d_shape, '\n')
+        subprocess.call("mkdir scanD", shell=True)
+        for i in range(d_shape[0]):
+            logger(logfile, "Scanning dihedral angle between atom%d-%d-%d-%d\n"%(d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3]))
+            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(d_array[0][-2], d_array[0][-1]))
+            subprocess.call("mkdir scanD/D%d-%d-%d-%d"%(d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3]), shell=True)
 
 def perform_nma(qmmmInputs):
     logfile = qmmmInputs.qmmmparams.logfile
