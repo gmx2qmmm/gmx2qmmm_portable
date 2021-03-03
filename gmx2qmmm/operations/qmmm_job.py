@@ -1870,12 +1870,21 @@ def scan_dispvec(xyzq, stepsize, scan_atoms):
     if len(scan_atoms) == 2 :
         a,b = scan_atoms
         coord_A, coord_B = (coords[int(a-1)], coords[int(b-1)])# array index -> -1
-        line_vec = bmat.length(coord_A, coord_B)*stepsize
+        line_vec = bmat.e_vector(coord_A, coord_B)*stepsize
         dispvec[int(b-1)] += line_vec
     
     #Angle
     elif len(scan_atoms) == 3 :
-        angle_vec = bmat.angle(coords[scan_atoms[0]], coords[scan_atoms[1]], coords[scan_atoms[2]])
+        a,b,c = scan_atoms
+        coord_A, coord_B, coord_C = (coords[int(a-1)], coords[int(b-1)], coords[int(c-1)])# array index -> -1
+        
+        theta = stepsize * 180 / np.pi #degree -> radius
+        #Dirty method
+        bc_length = bmat.length(coord_B, coord_C)
+        ba, bc = coord_B - coord_A, coord_B - coord_C
+        b_normal = np.cross(ba, bc) # rotation axis
+        bc_ = bmat.rot_mat(b_normal, theta) @ ba
+        dispvec[int(c-1)] += bc_ - bc #cc_
 
     #Dihedral
     elif len(scan_atoms) == 4 :
@@ -2145,13 +2154,18 @@ def perform_scan(qmmmInputs):
     else:
         logger(logfile, 'Read %d scan coordinates.\n'%(len(r_array)+len(a_array)+len(d_array)))
 
+    #Original calculation
+    perform_opt(qmmmInputs)
+    
     #Single scan
-    #Bond scan
+    origin_qmmmInputs = copy.deepcopy(qmmmInputs)
+
+    #Bond length scan
     if len(r_array) > 0:
         r_shape = r_array.shape
         print("r_shape", r_shape, '\n')
         subprocess.call("mkdir scanR", shell=True)
-        origin_qmmmInputs = copy.deepcopy(qmmmInputs)
+        
         # Bond length scan loop
         for i in range(r_shape[0]):
             scan_atoms = (r_array[i][0], r_array[i][1])
@@ -2162,12 +2176,12 @@ def perform_scan(qmmmInputs):
             
             direc = "scanR/R%d-%d"%scan_atoms
             subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
-            origin_gro = qmmmInputs.gro
+            origin_gro = origin_qmmmInputs.gro
+            
             # Bond length step loop
-            steps=2
-            for j in range(steps):
+            for j in range(int(steps)):
                 qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
-                logger(logfile, "Start scanned step%d...\n"%(j+1))
+                logger(logfile, "Start bond length scan step%d...\n"%(j+1))
 
                 logger(logfile, "Create new scanned geometry with increament %.3f\n"%(stepsize*(j+1)) )
                 dispvec = scan_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
@@ -2181,18 +2195,42 @@ def perform_scan(qmmmInputs):
                 logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
                 perform_opt(qmmmInputs)
 
-                logger(logfile, "End scanned step%d...\n"%(j+1))
+                logger(logfile, "End bond length scan step%d...\n"%(j+1))
            
-
     #Angle scan
     if len(a_array) > 0:
         a_shape = a_array.shape
         print("a_shape", a_shape, '\n')
         subprocess.call("mkdir scanA", shell=True)
         for i in range(a_shape[0]):
-            logger(logfile, "Scanning angle between atom%d-%d-%d\n"%(a_array[i][0], a_array[i][1], a_array[i][2]))
-            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(a_array[0][-2], a_array[0][-1]))
-            subprocess.call("mkdir scanA/A%d-%d-%d"%(a_array[i][0], a_array[i][1], a_array[i][2]), shell=True)
+            scan_atoms = (a_array[i][0], a_array[i][1], a_array[i][2])
+            stepsize = a_array[0][-2]
+            steps = a_array[0][-1]
+
+            logger(logfile, "Scanning angle between atom%d-%d-%d\n"%scan_atoms)
+            logger(logfile, "Scanned stepsize: %.3f degree, scan %d steps\n"%(stepsize, steps))
+            subprocess.call("mkdir scanA/A%d-%d-%d"%scan_atoms, shell=True)
+
+            origin_gro = origin_qmmmInputs.gro
+            
+            # Angle step loop
+            for j in range(int(steps)):
+                qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
+                logger(logfile, "Start angle scan step%d...\n"%(j+1))
+
+                logger(logfile, "Create new scanned geometry with increament %.3f degree\n"%(stepsize*(j+1)) )
+                dispvec = scan_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
+                new_gro = "scanA%d-%d-%d"%scan_atoms + "_%d.g96"%(j+1)
+                make_g96_inp(dispvec, origin_gro, new_gro, logfile)
+                
+                qmmmInputs.gro = new_gro
+                qmmmInputs.qmmmparams.jobname = "scanA%d-%d-%d"%scan_atoms + "_%d"%(j+1)
+                qmmmInputs.qmmmparams.curr_step = 0
+                
+                logger(logfile, ("Run optimization of scanA%d-%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
+                perform_opt(qmmmInputs)
+
+                logger(logfile, "End angle scan step%d...\n"%(j+1))
 
     #Dihedral angle scan
     if len(d_array) > 0:
@@ -2200,9 +2238,13 @@ def perform_scan(qmmmInputs):
         print("d_shape", d_shape, '\n')
         subprocess.call("mkdir scanD", shell=True)
         for i in range(d_shape[0]):
-            logger(logfile, "Scanning dihedral angle between atom%d-%d-%d-%d\n"%(d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3]))
-            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(d_array[0][-2], d_array[0][-1]))
-            subprocess.call("mkdir scanD/D%d-%d-%d-%d"%(d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3]), shell=True)
+            scan_atoms = (d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3])
+            stepsize = d_array[0][-2]
+            steps = d_array[0][-1]
+            
+            logger(logfile, "Scanning dihedral angle between atom%d-%d-%d-%d\n"%scan_atoms)
+            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(stepsize, steps))
+            subprocess.call("mkdir scanD/D%d-%d-%d-%d"%scan_atoms, shell=True)
 
 def perform_nma(qmmmInputs):
     logfile = qmmmInputs.qmmmparams.logfile
