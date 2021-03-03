@@ -12,6 +12,7 @@ import math
 import os
 import re
 import subprocess
+import copy
 
 import numpy as np
 import sqlite3
@@ -408,12 +409,7 @@ def make_g16_inp(qmmmInputs):
     
     insert = ""
     oldinsert = ""
-    '''
-    if int(curr_step) > 0:
-        insert = str("." + str(int(curr_step) ))
-        if int(curr_step) > 1:
-            oldinsert = str("." + str(int(curr_step) - 1))
-    '''
+
     gaufile = str(jobname + insert + ".gjf")
     chkfile = str(jobname + insert + ".chk")
     oldchkfile = str(jobname + oldinsert + ".chk")
@@ -1075,10 +1071,9 @@ def write_test(qmmmInputs, curr_step):
     oforce.write('\n')
     oforce.close()
 
-def write_output(energies, total_force, curr_step):
+def write_output(energies, total_force, curr_step, energy_file, forces_file):
     qmenergy, mmenergy, linkcorrenergy, total_energy = energies
-    energy_file = "oenergy.txt"
-    
+    #energy_file = "oenergy.txt"
     if curr_step == 0:
         file_flag = "w"
     else:
@@ -1093,8 +1088,8 @@ def write_output(energies, total_force, curr_step):
         
         oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (curr_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
     oenergy.close()
-
-    oforce = open("oforces.txt", file_flag)
+    #forces_file = "oforces.txt"
+    oforce = open(forces_file, file_flag)
     oforce.write("Step%d\n"%curr_step)
     for i in range(len(total_force)):
         oforce.write(
@@ -1934,9 +1929,10 @@ def perform_sp(qmmmInputs):
         exit(0)
 
     # write a total force file
-    if jobtype == "SINGLEPOINT" or curr_step == 0:
+    #if jobtype == "SINGLEPOINT" or curr_step == 0:
+    if jobtype == "SINGLEPOINT":
         logger(logfile, "Writing SP output.\n")
-        write_output(energies, total_force, curr_step)
+        write_output(energies, total_force, curr_step, "oenergy.txt", "oforces.txt")
 
     elif jobtype == "OPT":
         logger(logfile, "Writing OPT output.\n")
@@ -1948,7 +1944,7 @@ def perform_sp(qmmmInputs):
         logger(logfile, "Writing SCAN output.\n")
  
 def perform_opt(qmmmInputs):
-    import copy
+
     #define done
     STEPLIMIT = 0
     FTHRESH = 1
@@ -1962,6 +1958,7 @@ def perform_opt(qmmmInputs):
     optlastonly = qmmmInputs.qmmmparams.optlastonly
     stepsize = qmmmInputs.qmmmparams.initstep
     jobname = qmmmInputs.qmmmparams.jobname
+    jobtype = qmmmInputs.qmmmparams.jobtype
     qmprog = qmmmInputs.qmparams.program
 
     gro = qmmmInputs.gro
@@ -1973,7 +1970,12 @@ def perform_opt(qmmmInputs):
         #First calculation 
         perform_sp(qmmmInputs)
         old_qmmmInputs = copy.deepcopy(qmmmInputs)
-        write_output(qmmmInputs.energies, qmmmInputs.forces, curr_step)
+        
+        if jobtype == "SCAN" :
+            write_output(qmmmInputs.energies, qmmmInputs.forces, curr_step, "oenergy_%s.txt"%jobname, "oforces_%s.txt"%jobname)
+        else:
+            write_output(qmmmInputs.energies, qmmmInputs.forces, curr_step, "oenergy.txt", "oforces.txt")
+        
         #Store 1st result
         curr_energy = qmmmInputs.energies[-1] #total energy
         total_force = qmmmInputs.forces
@@ -2017,7 +2019,7 @@ def perform_opt(qmmmInputs):
             qmmmInputs.gro = new_gro
             qmmmInputs.pcffile = new_pcffile
             
-            if qmmmInputs.qmmmparams.jobtype == "SCAN" :
+            if jobtype == "SCAN" :
                 dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, True)
             else :
                 dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
@@ -2026,6 +2028,7 @@ def perform_opt(qmmmInputs):
             qmmm_prep(qmmmInputs)
 
             #Run SP
+            print("00000000000",qmmmInputs.pcffile)
             perform_sp(qmmmInputs) #make g16 & gmx input
 
             #Store new result
@@ -2095,7 +2098,12 @@ def perform_opt(qmmmInputs):
                 #Store previous 
                 old_qmmmInputs = copy.deepcopy(qmmmInputs)
                 count += 1
-                write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
+
+                if jobtype == "SCAN" :
+                    write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step, "oenergy_%s.txt"%jobname, "oforces_%s.txt"%jobname)
+                else:
+                    write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step, "oenergy.txt", "oforces.txt")
+            
             else:
                 #rejected and use prvious
                 qmmmInputs.qmmmparams.curr_step -= 1
@@ -2143,25 +2151,37 @@ def perform_scan(qmmmInputs):
         r_shape = r_array.shape
         print("r_shape", r_shape, '\n')
         subprocess.call("mkdir scanR", shell=True)
+        origin_qmmmInputs = copy.deepcopy(qmmmInputs)
+        # Bond length scan loop
         for i in range(r_shape[0]):
             scan_atoms = (r_array[i][0], r_array[i][1])
             stepsize = r_array[0][-2]
             steps = r_array[0][-1]
             logger(logfile, "Scanning bond length between atom%d-%d\n"%scan_atoms)
-            logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(stepsize, steps))
+            logger(logfile, "Scanned stepsize: %.3f, scan %d steps\n"%(stepsize, steps))
             
             direc = "scanR/R%d-%d"%scan_atoms
             subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
+            origin_gro = qmmmInputs.gro
+            # Bond length step loop
+            steps=2
+            for j in range(steps):
+                qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
+                logger(logfile, "Start scanned step%d...\n"%(j+1))
 
-            dispvec = scan_dispvec(qmmmInputs.xyzq, stepsize, scan_atoms)
-            print(dispvec)
-            new_gro = "scanR%d-%d.g96"%scan_atoms
-            make_g96_inp(dispvec, qmmmInputs.gro, new_gro, logfile)
-            subprocess.call("mv %s %s"%(new_gro, direc), shell=True)
+                logger(logfile, "Create new scanned geometry with increament %.3f\n"%(stepsize*(j+1)) )
+                dispvec = scan_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
+                new_gro = "scanR%d-%d"%scan_atoms + "_%d.g96"%(j+1)
+                make_g96_inp(dispvec, origin_gro, new_gro, logfile)
+                
+                qmmmInputs.gro = new_gro
+                qmmmInputs.qmmmparams.jobname = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
+                qmmmInputs.qmmmparams.curr_step = 0
+                
+                logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
+                perform_opt(qmmmInputs)
 
-            qmmmInputs.qmmmparams.jobtype = 'OPT'
-            qmmmInputs.gro = direc + '/' + new_gro
-            perform_opt(qmmmInputs)
+                logger(logfile, "End scanned step%d...\n"%(j+1))
            
 
     #Angle scan
