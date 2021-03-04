@@ -1,6 +1,10 @@
 import numpy as np
 from gmx2qmmm._helper import logger
 
+# unit vector
+def e_vector(atom_1, atom_2):
+    return (atom_2 - atom_1) / length(atom_1, atom_2)
+
 #distance or angles
 def length(coord_A, coord_B):
     return np.linalg.norm(coord_A - coord_B)
@@ -21,6 +25,43 @@ def dihedral(coord_A, coord_B, coord_C, coord_D):
     x = np.dot(v0xv1, v1xv2)
     return np.arctan2(y, x)
 
+# Specific B matrix
+def two_atom_B_matrix(atom_1, atom_2):
+    import numpy as np
+    #e12 = (atom_2 - atom_1) / length(atom_1, atom_2)
+    e12 = e_vector(atom_1, atom_2)
+    B_matrix = np.array([-e12, e12])
+    return B_matrix
+
+def three_atom_B_matrix(atom_1, atom_2, atom_3):
+    angle123 = angle(atom_1, atom_2, atom_3)
+    e21 = e_vector(atom_2, atom_1)
+    e23 = e_vector(atom_2, atom_3)
+    s1 = ((np.cos(angle123) * e21) - e23) / (length(atom_1, atom_2) * np.sin(angle123))
+    s3 = ((np.cos(angle123) * e23) - e21) / (length(atom_3, atom_2) * np.sin(angle123))
+    s2 = -1 * (s1 + s3)
+    B_matrix = np.stack((s1, s2, s3))
+    return B_matrix
+
+def four_atom_B_matrix(atom_1, atom_2, atom_3, atom_4):
+    angle123 = angle(atom_1, atom_2, atom_3)
+    angle234 = angle(atom_2, atom_3, atom_4)
+    e12 = e_vector(atom_1, atom_2)
+    e23 = e_vector(atom_2, atom_3)
+    s1 = -1 * np.cross(e12,e23) / (length(atom_1,atom_2) * np.sin(angle123)**2)
+    
+    e43 = e_vector(atom_4, atom_3)
+    e32 = -e23 
+    s4 = -1 * np.cross(e43,e32) / (length(atom_4,atom_3) * np.sin(angle234)**2)
+    
+    s2 = (-length(atom_3, atom_2) + length(atom_2,atom_1)*np.cos(angle123)) / length(atom_3,atom_2) * s1
+    s2 += (-length(atom_3, atom_4)*np.cos(angle234)) / length(atom_3,atom_2) * s4
+    
+    s3 = -1 * (s1 + s2 + s4)
+    
+    B_matrix = np.stack((s1, s2, s3, s4))
+    return B_matrix
+
 #ratation matrix
 def rot_mat(axis, theta): 
     """
@@ -39,10 +80,6 @@ def rot_mat(axis, theta):
                      [2 * (bd - ac), 2 * (cd + ab), aa + dd - bb - cc]])
 
 
-
-# unit vector
-def e_vector(atom_1, atom_2):
-    return (atom_2 - atom_1) / length(atom_1, atom_2)
 
 
 def length_S_vector(two_atom_list):

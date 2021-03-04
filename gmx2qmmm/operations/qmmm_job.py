@@ -599,11 +599,19 @@ def update_gro_box(gro, groname, nbradius, logfile):
 
 #Propagated
 #initstep = stepsize
-def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, scan_flag=False):
+def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, scan_flag=False, scan_atoms=[]):
     dispvec = []
     maxforce = 0.0
     clean_force = make_clean_force(total_force)
     old_clean_force = make_clean_force(last_forces)
+
+    if scan_flag :
+        scan_type = len(scan_atoms)
+        if scan_type == 2 :
+            clean_force = scan_adj_force(clean_force, xyzq, scan_atoms, 'R')
+        #elif scan_type == 3 :
+        #elif scan_type == 4 :
+
     maxatom = -1
     maxcoord = -1
     check_force = list(_flatten(clean_force))
@@ -1863,7 +1871,7 @@ def make_opt_step(qmmmInputs):
     return 0
 
 #scan
-def scan_dispvec(xyzq, stepsize, scan_atoms):
+def scan_geo_dispvec(xyzq, stepsize, scan_atoms):
     dispvec = np.zeros((len(xyzq),3))
     coords = np.array(xyzq)[:, 0:3]
     #Bond length
@@ -1891,6 +1899,26 @@ def scan_dispvec(xyzq, stepsize, scan_atoms):
         dihedral = bmat.angle(coords[scan_atoms[0]], coords[scan_atoms[1]], coords[scan_atoms[2]], coords[scan_atoms[3]])
 
     return dispvec
+
+def scan_adj_force(forces, xyzq, scan_atoms, scan_flag='R') :
+    coords = np.array(xyzq)[:, 0:3]
+    if scan_flag == 'R': # bond
+        index = np.array([int(scan_atoms[0]-1), int(scan_atoms[1]-1)])# array index -> -1
+        B_matrix = bmat.two_atom_B_matrix(coords[index[0]], coords[index[1]])
+        fix_f = np.zeros(3) # init [0,0,0]
+        for i in range(len(index)):
+            fix_f += np.multiply(forces[index[i]], B_matrix[i])
+        fix_f /= len(index)
+        for i in range(len(index)):
+            forces[index[i]] = forces[index[i]] - np.divide(fix_f,B_matrix[i])
+    #elif scan_flag == 'A': # angle
+        #B_matrix = three_atom_B_matrix(coord[index[0]], coord[index[1]], coord[index[2]])
+    #elif scan_flag == "D": # dihedral
+        #B_matrix = four_atom_B_matrix(coord[index[0]], coord[index[1]], coord[index[2]],coord[index[3]])
+        
+    
+    return forces
+
 
 #Job
 def perform_sp(qmmmInputs):
@@ -2029,7 +2057,7 @@ def perform_opt(qmmmInputs):
             qmmmInputs.pcffile = new_pcffile
             
             if jobtype == "SCAN" :
-                dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, True)
+                dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile, True, qmmmInputs.scan_atoms)
             else :
                 dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, curr_step, logfile)
             
@@ -2037,7 +2065,6 @@ def perform_opt(qmmmInputs):
             qmmm_prep(qmmmInputs)
 
             #Run SP
-            print("00000000000",qmmmInputs.pcffile)
             perform_sp(qmmmInputs) #make g16 & gmx input
 
             #Store new result
@@ -2145,7 +2172,7 @@ def perform_opt(qmmmInputs):
    
 def perform_scan(qmmmInputs):
     logfile = qmmmInputs.logfile
-    qmmmInputs.qmmmparams.propagator = "BFGS"
+    #qmmmInputs.qmmmparams.propagator = "BFGS"
     r_array, a_array, d_array = qmmmInputs.qmmmparams.scan
     
     #Check scan input
@@ -2153,13 +2180,9 @@ def perform_scan(qmmmInputs):
         logger(logfile, "No scan coordinates are found. Please check the scan file input.\n")
     else:
         logger(logfile, 'Read %d scan coordinates.\n'%(len(r_array)+len(a_array)+len(d_array)))
-
-    #Original calculation
-    perform_opt(qmmmInputs)
+        origin_qmmmInputs = copy.deepcopy(qmmmInputs)
     
     #Single scan
-    origin_qmmmInputs = copy.deepcopy(qmmmInputs)
-
     #Bond length scan
     if len(r_array) > 0:
         r_shape = r_array.shape
@@ -2175,7 +2198,7 @@ def perform_scan(qmmmInputs):
             logger(logfile, "Scanned stepsize: %.3f, scan %d steps\n"%(stepsize, steps))
             
             direc = "scanR/R%d-%d"%scan_atoms
-            subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
+            #subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
             origin_gro = origin_qmmmInputs.gro
             
             # Bond length step loop
@@ -2184,24 +2207,30 @@ def perform_scan(qmmmInputs):
                 logger(logfile, "Start bond length scan step%d...\n"%(j+1))
 
                 logger(logfile, "Create new scanned geometry with increament %.3f\n"%(stepsize*(j+1)) )
-                dispvec = scan_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
+                dispvec = scan_geo_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
                 new_gro = "scanR%d-%d"%scan_atoms + "_%d.g96"%(j+1)
                 make_g96_inp(dispvec, origin_gro, new_gro, logfile)
                 
                 qmmmInputs.gro = new_gro
                 qmmmInputs.qmmmparams.jobname = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
                 qmmmInputs.qmmmparams.curr_step = 0
+                qmmmInputs.scan_atoms = scan_atoms
                 
                 logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
                 perform_opt(qmmmInputs)
 
+                archive("scanR%d-%d"%scan_atoms + "_%d"%(j+1), (j+1))
+
                 logger(logfile, "End bond length scan step%d...\n"%(j+1))
-           
+    
+    subprocess.call("mv scanR* scanR", shell=True)      
+    
+
     #Angle scan
     if len(a_array) > 0:
         a_shape = a_array.shape
         print("a_shape", a_shape, '\n')
-        subprocess.call("mkdir scanA", shell=True)
+        #subprocess.call("mkdir scanA", shell=True)
         for i in range(a_shape[0]):
             scan_atoms = (a_array[i][0], a_array[i][1], a_array[i][2])
             stepsize = a_array[0][-2]
@@ -2209,7 +2238,7 @@ def perform_scan(qmmmInputs):
 
             logger(logfile, "Scanning angle between atom%d-%d-%d\n"%scan_atoms)
             logger(logfile, "Scanned stepsize: %.3f degree, scan %d steps\n"%(stepsize, steps))
-            subprocess.call("mkdir scanA/A%d-%d-%d"%scan_atoms, shell=True)
+            #subprocess.call("mkdir scanA/A%d-%d-%d"%scan_atoms, shell=True)
 
             origin_gro = origin_qmmmInputs.gro
             
@@ -2219,16 +2248,17 @@ def perform_scan(qmmmInputs):
                 logger(logfile, "Start angle scan step%d...\n"%(j+1))
 
                 logger(logfile, "Create new scanned geometry with increament %.3f degree\n"%(stepsize*(j+1)) )
-                dispvec = scan_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
+                dispvec = scan_geo_dispvec(qmmmInputs.xyzq, (stepsize*(j+1)), scan_atoms)
                 new_gro = "scanA%d-%d-%d"%scan_atoms + "_%d.g96"%(j+1)
                 make_g96_inp(dispvec, origin_gro, new_gro, logfile)
                 
                 qmmmInputs.gro = new_gro
                 qmmmInputs.qmmmparams.jobname = "scanA%d-%d-%d"%scan_atoms + "_%d"%(j+1)
                 qmmmInputs.qmmmparams.curr_step = 0
+                qmmmInputs.scan_atoms = scan_atoms
                 
                 logger(logfile, ("Run optimization of scanA%d-%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
-                perform_opt(qmmmInputs)
+                #perform_opt(qmmmInputs)
 
                 logger(logfile, "End angle scan step%d...\n"%(j+1))
 
@@ -2236,7 +2266,7 @@ def perform_scan(qmmmInputs):
     if len(d_array) > 0:
         d_shape = d_array.shape
         print("d_shape", d_shape, '\n')
-        subprocess.call("mkdir scanD", shell=True)
+        #subprocess.call("mkdir scanD", shell=True)
         for i in range(d_shape[0]):
             scan_atoms = (d_array[i][0], d_array[i][1], d_array[i][2], d_array[i][3])
             stepsize = d_array[0][-2]
@@ -2244,7 +2274,12 @@ def perform_scan(qmmmInputs):
             
             logger(logfile, "Scanning dihedral angle between atom%d-%d-%d-%d\n"%scan_atoms)
             logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(stepsize, steps))
-            subprocess.call("mkdir scanD/D%d-%d-%d-%d"%scan_atoms, shell=True)
+            #subprocess.call("mkdir scanD/D%d-%d-%d-%d"%scan_atoms, shell=True)
+
+    #Original: 0 Step
+    origin_qmmmInputs.qmmmparams.jobtype = "OPT"
+    perform_opt(origin_qmmmInputs)
+
 
 def perform_nma(qmmmInputs):
     logfile = qmmmInputs.qmmmparams.logfile

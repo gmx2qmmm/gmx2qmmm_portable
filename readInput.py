@@ -541,6 +541,8 @@ class QMMMInputs:
         )
         logger(logfile, "Done.\n")
 
+        self.scan_atoms ='R'
+
         self.nmaflag = 0
         if self.qmmmparams.jobtype == 'NMA':
             self.nmaflag = 1
