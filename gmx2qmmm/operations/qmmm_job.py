@@ -609,8 +609,14 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
         scan_type = len(scan_atoms)
         if scan_type == 2 :
             clean_force = scan_adj_force(clean_force, xyzq, scan_atoms, 'R')
-        #elif scan_type == 3 :
-        #elif scan_type == 4 :
+            if (propagator == "BFGS") and (len(old_clean_force) > 1):
+                old_clean_force = scan_adj_force(old_clean_force, xyzq, scan_atoms, 'R')
+        
+        elif scan_type == 3 :
+            clean_force = scan_adj_force(clean_force, xyzq, scan_atoms, 'A')
+        
+        elif scan_type == 4 :
+            clean_force = scan_adj_force(clean_force, xyzq, scan_atoms, 'B')
 
     maxatom = -1
     maxcoord = -1
@@ -693,8 +699,10 @@ def propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, step
             coords = np.array(new_xyzq)[:, 0:3]
             old_coords = np.array(xyzq)[:, 0:3]
             old_hessian = np.loadtxt("bfgs_hessian.txt")
-            gradient = np.array(total_force)
-            old_gradient = np.array(last_forces)
+            
+            gradient = np.array(clean_force)
+            old_gradient = np.array(old_clean_force)
+
             hessian, hesseig, warning_flag = get_approx_hessian(
                 coords, old_coords, gradient, old_gradient, old_hessian, logfile
             )
@@ -751,7 +759,7 @@ def make_g96_inp(dispvec, gro, new_gro, logfile):
                     )
                     break
                 else:
-                    dispx = dispvec[counter][0] * 0.052917721
+                    dispx = dispvec[counter][0] * 0.052917721 # 1 b,a.u. = 0.529177249 A
                     dispy = dispvec[counter][1] * 0.052917721
                     dispz = dispvec[counter][2] * 0.052917721
                     ofile.write(
@@ -1871,14 +1879,14 @@ def make_opt_step(qmmmInputs):
     return 0
 
 #scan
-def scan_geo_dispvec(xyzq, stepsize, scan_atoms):
+def scan_geo_dispvec(xyzq, stepsize, scan_atoms): #increment geometry
     dispvec = np.zeros((len(xyzq),3))
     coords = np.array(xyzq)[:, 0:3]
     #Bond length
     if len(scan_atoms) == 2 :
         a,b = scan_atoms
         coord_A, coord_B = (coords[int(a-1)], coords[int(b-1)])# array index -> -1
-        line_vec = bmat.e_vector(coord_A, coord_B)*stepsize
+        line_vec = bmat.e_vector(coord_A, coord_B) * stepsize  # ba * stepsize 0.052917721 # 1 b,a.u. = 0.529177249 A 
         dispvec[int(b-1)] += line_vec
     
     #Angle
@@ -1902,23 +1910,29 @@ def scan_geo_dispvec(xyzq, stepsize, scan_atoms):
 
 def scan_adj_force(forces, xyzq, scan_atoms, scan_flag='R') :
     coords = np.array(xyzq)[:, 0:3]
-    if scan_flag == 'R': # bond
+    
+    if scan_flag == 'R': # bond  remove forces
         index = np.array([int(scan_atoms[0]-1), int(scan_atoms[1]-1)])# array index -> -1
         B_matrix = bmat.two_atom_B_matrix(coords[index[0]], coords[index[1]])
         fix_f = np.zeros(3) # init [0,0,0]
+        
         for i in range(len(index)):
             fix_f += np.multiply(forces[index[i]], B_matrix[i])
         fix_f /= len(index)
+        
         for i in range(len(index)):
             forces[index[i]] = forces[index[i]] - np.divide(fix_f,B_matrix[i])
-    #elif scan_flag == 'A': # angle
-        #B_matrix = three_atom_B_matrix(coord[index[0]], coord[index[1]], coord[index[2]])
-    #elif scan_flag == "D": # dihedral
-        #B_matrix = four_atom_B_matrix(coord[index[0]], coord[index[1]], coord[index[2]],coord[index[3]])
+    
+    elif scan_flag == 'A': # angle
+        index = np.array([int(scan_atoms[0]-1), int(scan_atoms[1]-1), int(scan_atoms[2]-1)])# array index -> -1
+        B_matrix = bmat.three_atom_B_matrix(coords[index[0]], coords[index[1]], coords[index[2]])
+    
+    elif scan_flag == "D": # dihedral
+        index = np.array([int(scan_atoms[0]-1), int(scan_atoms[1]-1), int(scan_atoms[2]-1), int(scan_atoms[3]-1)])# array index -> -1
+        B_matrix = bmat.four_atom_B_matrix(coords[index[0]], coords[index[1]], coords[index[2]],coords[index[3]])
         
     
     return forces
-
 
 #Job
 def perform_sp(qmmmInputs):
@@ -2186,7 +2200,6 @@ def perform_scan(qmmmInputs):
     #Bond length scan
     if len(r_array) > 0:
         r_shape = r_array.shape
-        print("r_shape", r_shape, '\n')
         subprocess.call("mkdir scanR", shell=True)
         
         # Bond length scan loop
@@ -2198,10 +2211,10 @@ def perform_scan(qmmmInputs):
             logger(logfile, "Scanned stepsize: %.3f, scan %d steps\n"%(stepsize, steps))
             
             direc = "scanR/R%d-%d"%scan_atoms
-            #subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
+            subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
             origin_gro = origin_qmmmInputs.gro
             
-            # Bond length step loop
+            # Bond length step optimization loop
             for j in range(int(steps)):
                 qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
                 logger(logfile, "Start bond length scan step%d...\n"%(j+1))
@@ -2219,18 +2232,19 @@ def perform_scan(qmmmInputs):
                 logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
                 perform_opt(qmmmInputs)
 
-                archive("scanR%d-%d"%scan_atoms + "_%d"%(j+1), (j+1))
+                #archive("scanR%d-%d"%scan_atoms + "_%d"%(j+1), (j+1))
+                filename = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
+                folder = "scanR/R%d-%d"%scan_atoms
+                subprocess.call("mv %s* %s"%(filename, direc), shell=True) 
 
-                logger(logfile, "End bond length scan step%d...\n"%(j+1))
+                logger(logfile, "End bond length scan step%d...\n"%(j+1))   
     
-    subprocess.call("mv scanR* scanR", shell=True)      
-    
-
+    """
     #Angle scan
     if len(a_array) > 0:
         a_shape = a_array.shape
         print("a_shape", a_shape, '\n')
-        #subprocess.call("mkdir scanA", shell=True)
+        subprocess.call("mkdir scanA", shell=True)
         for i in range(a_shape[0]):
             scan_atoms = (a_array[i][0], a_array[i][1], a_array[i][2])
             stepsize = a_array[0][-2]
@@ -2275,11 +2289,11 @@ def perform_scan(qmmmInputs):
             logger(logfile, "Scanning dihedral angle between atom%d-%d-%d-%d\n"%scan_atoms)
             logger(logfile, "Scanned stepsize: %f, scan %d steps\n"%(stepsize, steps))
             #subprocess.call("mkdir scanD/D%d-%d-%d-%d"%scan_atoms, shell=True)
+    """
 
     #Original: 0 Step
-    origin_qmmmInputs.qmmmparams.jobtype = "OPT"
-    perform_opt(origin_qmmmInputs)
-
+    #origin_qmmmInputs.qmmmparams.jobtype = "OPT"
+    #perform_opt(origin_qmmmInputs)
 
 def perform_nma(qmmmInputs):
     logfile = qmmmInputs.qmmmparams.logfile

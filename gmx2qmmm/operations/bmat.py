@@ -9,7 +9,7 @@ def e_vector(atom_1, atom_2):
 def length(coord_A, coord_B):
     return np.linalg.norm(coord_A - coord_B)
 
-def angle(coords_A, coords_B, coords_C):
+def angle(coord_A, coord_B, coord_C):
     vba = coord_A - coord_B
     vbc = coord_C - coord_B
     return np.arccos(vba.dot(vbc) / length(vba,vbc))
@@ -27,7 +27,6 @@ def dihedral(coord_A, coord_B, coord_C, coord_D):
 
 # Specific B matrix
 def two_atom_B_matrix(atom_1, atom_2):
-    import numpy as np
     #e12 = (atom_2 - atom_1) / length(atom_1, atom_2)
     e12 = e_vector(atom_1, atom_2)
     B_matrix = np.array([-e12, e12])
@@ -79,9 +78,7 @@ def rot_mat(axis, theta):
                      [2 * (bc +ad), aa + cc- bb - dd, 2 * (cd - ab)],
                      [2 * (bd - ac), 2 * (cd + ab), aa + dd - bb - cc]])
 
-
-
-
+#s vector in bmat
 def length_S_vector(two_atom_list):
     e12 = e_vector(two_atom_list[0], two_atom_list[1])
     s_vector = np.append([-e12], [e12])
