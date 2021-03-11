@@ -59,7 +59,7 @@ Input files guide please execute  `python gmx2qmmm.py -h`
 
 The executed example with default parameters is  `python gmx2qmmm.py`
 
-For advance information please read [Documentation].
+For advance information please read the [Documentation].
 
 ---
 
@@ -91,7 +91,7 @@ Or contact us directly: [gmx2qmmm@gmail.com]
 - [Documentation] 
 - [gmx2qmmm reference]
 
-[python 3.6]:<https://docs.python.org/3.6>
+[python 3.6+]:<https://docs.python.org/3.6>
 [Gaussian16]:<https://gaussian.com/gaussian16/>
 [Gromacs 5.0.2]:<http://www.gromacs.org>
 [Gaussian]:<https://gaussian.com/gaussian16/>
