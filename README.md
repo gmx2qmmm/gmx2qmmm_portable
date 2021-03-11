@@ -32,7 +32,7 @@ Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single 
 | ------ | ------ |
 |Single point calcuation (SP)|Calculate single point energy and forces (.xyz) |
 |Geometry optimizations (OPT)|Optimize the system energy via optimizer ([Steepest descent], [Conjugate gradient] or [BFGS])|
-|Relaxed Scan (Scan)|Relaxed linear scan (angle and dihedral angle are in development)|
+|Relaxed Scan (SCAN)|Relaxed linear scan (angle and dihedral angle are in development)|
 
 [Steepest descent]:<https://en.wikipedia.org/wiki/Gradient_descent>
 [Conjugate gradient]:<https://en.wikipedia.org/wiki/Conjugate_gradient_method>

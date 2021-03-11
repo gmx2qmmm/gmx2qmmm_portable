@@ -2113,7 +2113,6 @@ def perform_opt(qmmmInputs):
                 logger(logfile, "Archive previous files\n")
                 archive(jobname, curr_step-1) #archive previous
 
-
             ############## end energy check & update stepsize ##############
             
             ############## start force check ##############
@@ -2211,11 +2210,15 @@ def perform_scan(qmmmInputs):
             logger(logfile, "Scanned stepsize: %.3f, scan %d steps\n"%(stepsize, steps))
             
             direc = "scanR/R%d-%d"%scan_atoms
-            subprocess.call("mkdir scanR/R%d-%d"%scan_atoms, shell=True)
+            subprocess.call("mkdir %s"%direc, shell=True)
             origin_gro = origin_qmmmInputs.gro
             
             # Bond length step optimization loop
             for j in range(int(steps)):
+                subdirec = direc + "/step%d"%(j+1)
+                subprocess.call("mkdir %s"%subdirec, shell=True) 
+
+
                 qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
                 logger(logfile, "Start bond length scan step%d...\n"%(j+1))
 
@@ -2232,10 +2235,8 @@ def perform_scan(qmmmInputs):
                 logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
                 perform_opt(qmmmInputs)
 
-                #archive("scanR%d-%d"%scan_atoms + "_%d"%(j+1), (j+1))
                 filename = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
-                folder = "scanR/R%d-%d"%scan_atoms
-                subprocess.call("mv %s* %s"%(filename, direc), shell=True) 
+                subprocess.call("mv %s* %s"%(filename, subdirec), shell=True) 
 
                 logger(logfile, "End bond length scan step%d...\n"%(j+1))   
     
