@@ -1116,18 +1116,18 @@ def write_output(energies, total_force, curr_step, energy_file, forces_file):
     oforce.close()
 
 # Read output file
-def read_oenergy(step):
-    oenergy = np.loadtxt('oenergy.txt',dtype=float,skiprows=1,usecols=(1,2,3,4))
+def read_oenergy(step, filename = 'oenergy.txt'):
+    oenergy = np.loadtxt(filename, dtype=float,skiprows=1,usecols=(1,2,3,4))
     return oenergy[step]
 
-def read_oforces(step):
-    file_info = open('oforces.txt', 'r')
+def read_oforces(step, filename = 'oforces.txt'):
+    file_info = open(filename, 'r')
     step_index = []
     for i, line in enumerate(file_info.readlines()): 
         if 'Step' in line:
             step_index.append(i)
     steps = len(step_index)
-    with open('oforces.txt','r') as file_object:
+    with open(filename,'r') as file_object:
         line = file_object.readlines()
     for i in range(len(step_index)):
         if i < len(step_index)-1:
@@ -2195,11 +2195,19 @@ def perform_scan(qmmmInputs):
         logger(logfile, 'Read %d scan coordinates.\n'%(len(r_array)+len(a_array)+len(d_array)))
         origin_qmmmInputs = copy.deepcopy(qmmmInputs)
     
+    #Check point
+    check_flag = False
+    scan_step = qmmmInputs.qmmmparams.scan_step
+    if scan_step > 0 :
+        check_flag = True
+        logger(logfile, "Continue scan step%d\n"%qmmmInputs.qmmmparams.scan_step)
+
     #Single scan
     #Bond length scan
     if len(r_array) > 0:
         r_shape = r_array.shape
-        subprocess.call("mkdir scanR", shell=True)
+        if not check_flag :
+            subprocess.call("mkdir scanR", shell=True)
         
         # Bond length scan loop
         for i in range(r_shape[0]):
@@ -2209,17 +2217,24 @@ def perform_scan(qmmmInputs):
             logger(logfile, "Scanning bond length between atom%d-%d\n"%scan_atoms)
             logger(logfile, "Scanned stepsize: %.3f, scan %d steps\n"%(stepsize, steps))
             
-            direc = "scanR/R%d-%d"%scan_atoms
-            subprocess.call("mkdir %s"%direc, shell=True)
             origin_gro = origin_qmmmInputs.gro
+
+            direc = "scanR/R%d-%d"%scan_atoms
+            if not check_flag : 
+                subprocess.call("mkdir %s"%direc, shell=True)
             
             # Bond length step optimization loop
             for j in range(int(steps)):
+                #check point
+                if (scan_step > (j+1)) and (scan_step != 0) :
+                    continue
+
                 subdirec = direc + "/step%d"%(j+1)
-                subprocess.call("mkdir %s"%subdirec, shell=True) 
+                if not check_flag :
+                    subprocess.call("mkdir %s"%subdirec, shell=True)
 
+                qmmmInputs = copy.deepcopy(origin_qmmmInputs)
 
-                qmmmInputs = copy.deepcopy(origin_qmmmInputs)                
                 logger(logfile, "Start bond length scan step%d...\n"%(j+1))
 
                 logger(logfile, "Create new scanned geometry with increament %.3f\n"%(stepsize*(j+1)) )
@@ -2229,9 +2244,15 @@ def perform_scan(qmmmInputs):
                 
                 qmmmInputs.gro = new_gro
                 qmmmInputs.qmmmparams.jobname = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
-                qmmmInputs.qmmmparams.curr_step = 0
                 qmmmInputs.scan_atoms = scan_atoms
                 
+                if not check_flag :
+                    subprocess.call("mkdir %s"%subdirec, shell=True)
+                    qmmmInputs.qmmmparams.curr_step = 0
+
+                else:
+                    check_flag = False
+
                 logger(logfile, ("Run optimization of scanR%d-%d"%scan_atoms + "_%d\n"%(j+1)) )
                 perform_opt(qmmmInputs)
 

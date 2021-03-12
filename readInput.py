@@ -314,7 +314,7 @@ class QMMMParams:
     def __init__(self, inp):
         self.inp = inp
         (self.jobname, self.jobtype, self.f_thresh, self.maxcycle, self.initstep, self.propagater, 
-            self.disp, self.curr_step, self.databasefit, self.optlastonly, self.scanfile) = self.read_qmmmparams(inp)
+            self.disp, self.curr_step, self.databasefit, self.optlastonly, self.scanfile, self.scan_step) = self.read_qmmmparams(inp)
         self.scan = []
         if self.jobtype == "SCAN":
             self.scan = self.load_scan(self.scanfile) 
@@ -324,7 +324,7 @@ class QMMMParams:
         jobtype="singlepoint"
         propa="steep"
         info=[jobname,jobtype.upper(),float(0.00001),int(5),float(0.1),
-                propa.upper(),float(0.0018897261),int(0),"MORSE","YES", "scan.txt"]
+                propa.upper(),float(0.0018897261),int(0),"MORSE","YES", "scan.txt", 0]
         with open(inp) as ifile:
             for line in ifile:
                 match=re.search(r'^jobname\s*=\s*(\S+)', line,flags=re.MULTILINE)
@@ -361,6 +361,9 @@ class QMMMParams:
                 match=re.search(r'^scanfile\s*=\s*(\S+)', line,flags=re.MULTILINE)
                 if match:
                     info[10]=match.group(1)
+                match=re.search(r'^scan_step\s*=\s*(\S+)', line,flags=re.MULTILINE)
+                if match:
+                    info[11]=int(match.group(1))
         return info
 
     def load_scan(self, inp):
