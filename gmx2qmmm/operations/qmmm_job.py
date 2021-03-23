@@ -1115,6 +1115,33 @@ def write_output(energies, total_force, curr_step, energy_file, forces_file):
     oforce.write("\n")
     oforce.close()
 
+def write_scan(energies, total_force, scan_step, energy_file='oenergy.txt', forces_file='oforces.txt'):
+    qmenergy, mmenergy, linkcorrenergy, total_energy = energies
+    if scan_step == 1:
+        file_flag = "w"
+    else:
+        file_flag = "a+"
+
+    oenergy = open(energy_file, file_flag)
+    
+    if scan_step == 1:
+        oenergy.write("Scan_step\tQM\t\tMM\t\tLink\t\tTotal\n")
+        oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (scan_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
+    else:  
+        oenergy.write("%d\t%f\t%f\t%f\t%f\n" % (scan_step, qmenergy, mmenergy, linkcorrenergy, total_energy))
+    oenergy.close()
+
+    #forces_file = "oforces.txt"
+    oforce = open(forces_file, file_flag)
+    oforce.write("Scan_step%d\n"%scan_step)
+    for i in range(len(total_force)):
+        oforce.write(
+            "%d %.8f %.8f %.8f\n"
+            % ((i + 1), total_force[i][0], total_force[i][1], total_force[i][2])
+        )
+    oforce.write("\n")
+    oforce.close()
+
 # Read output file
 def read_oenergy(step, filename = 'oenergy.txt'):
     oenergy = np.loadtxt(filename, dtype=float,skiprows=1,usecols=(1,2,3,4))
@@ -1133,7 +1160,7 @@ def read_oforces(step, filename = 'oforces.txt'):
         if i < len(step_index)-1:
             outlines = step_index[i+1] - step_index[i]
         else:
-            outlines = len(line) - step_index[i] - 1
+            outlines = len(line) - step_index[i] -2
     forces = []
     for i in range(outlines):
         force = line[step_index[step]+i+1].split()[1:]
@@ -2223,6 +2250,7 @@ def perform_scan(qmmmInputs):
             if not check_flag : 
                 subprocess.call("mkdir %s"%direc, shell=True)
             
+            enegy_arr = []
             # Bond length step optimization loop
             for j in range(int(steps)):
                 #check point
@@ -2259,8 +2287,18 @@ def perform_scan(qmmmInputs):
                 filename = "scanR%d-%d"%scan_atoms + "_%d"%(j+1)
                 subprocess.call("mv %s* %s"%(filename, subdirec), shell=True) 
 
+                #read last enegies from each optimization
+                step_enegies = read_oenergy(-1, filename = 'oenergy_%s.txt'%filename)
+                step_forces = read_oforces(-1, filename = 'oforces_%s.txt'%filename)
+                write_scan(step_enegies, step_forces, (j+1))
+
+
+
                 logger(logfile, "End bond length scan step%d...\n"%(j+1))   
     
+            if qmmmInputs.qmmmparams.print_level == "NORMAL":
+                subprocess.call("rm oenergy_*", shell=True)
+                subprocess.call("rm oforces_*", shell=True) 
     """
     #Angle scan
     if len(a_array) > 0:
