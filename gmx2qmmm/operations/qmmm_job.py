@@ -2006,7 +2006,7 @@ def perform_opt(qmmmInputs):
     curr_step = qmmmInputs.qmmmparams.curr_step
     maxcycle = qmmmInputs.qmmmparams.maxcycle
     f_thresh = qmmmInputs.qmmmparams.f_thresh
-    optlastonly = qmmmInputs.qmmmparams.optlastonly
+    print_level = qmmmInputs.qmmmparams.print_level
     stepsize = qmmmInputs.qmmmparams.initstep
     jobname = qmmmInputs.qmmmparams.jobname
     jobtype = qmmmInputs.qmmmparams.jobtype
@@ -2161,14 +2161,14 @@ def perform_opt(qmmmInputs):
 
         ############## end optimization loop ##############
     #Remain first/last result 
-    if qmmmInputs.qmmmparams.optlastonly == "YES":
+    if qmmmInputs.qmmmparams.print_level == "NORMAL":
         logger(logfile, "Remain last result. Remove other results.\n")
         #remove first
         remove_files(jobname, 0, True)
         for steps in range(count-1):
             filename = jobname+('.%d*'%(steps+1))
             subprocess.call("rm %s"%(filename), shell=True)
-    else:
+    elif qmmmInputs.qmmmparams.print_level == "FULL":
         for steps in range(count):
             remove_files(jobname,steps)
 

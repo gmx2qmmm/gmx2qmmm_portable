@@ -8,7 +8,7 @@ from gmx2qmmm.pointcharges import generate_pcf_from_top as make_pcf
 from gmx2qmmm.pointcharges import prepare_pcf_for_shift as prep_pcf
 from gmx2qmmm.pointcharges import generate_charge_shift as final_pcf
 from gmx2qmmm.operations import generate_top as topprep
-
+'''
 def read_qmparams(inp):
     label = ['program', 'method', 'basis', 'charge','multi','cores', 'memory', 'extra']
     info = [
@@ -129,7 +129,7 @@ def read_pathparams(inp):
 
 def read_qmmmparams(inp):
     label = ['jobname', 'jobtype', 'propagater', 'maxcycle', 'stepsize', 'f_thresh', 
-                'disp', 'curr_step', 'databasefit', 'optlastonly']
+                'disp', 'curr_step', 'databasefit', 'print_level']
 
     jobname="testjob"
     jobtype="singlepoint"
@@ -166,14 +166,14 @@ def read_qmmmparams(inp):
             if match:
                 #info[8]=match.group(1)
                 info[8]=str(match.group(1)).upper()
-            match=re.search(r'^optlastonly\s*=\s*(\S+)', line,flags=re.MULTILINE)
+            match=re.search(r'^print_level\s*=\s*(\S+)', line,flags=re.MULTILINE)
             if match:
                 info[9]=str(match.group(1)).upper()
     return create_dict(label, info)
 
 def make_inp_dict(inputFiles, qmdict, mmdict, pathdict, qmmmdict):
     return 0
-
+'''
 class QMParams:
     def __init__(self, inp):
         self.inp = inp
@@ -314,7 +314,7 @@ class QMMMParams:
     def __init__(self, inp):
         self.inp = inp
         (self.jobname, self.jobtype, self.f_thresh, self.maxcycle, self.initstep, self.propagater, 
-            self.disp, self.curr_step, self.databasefit, self.optlastonly, self.scanfile, self.scan_step) = self.read_qmmmparams(inp)
+            self.disp, self.curr_step, self.databasefit, self.print_level, self.scanfile, self.scan_step) = self.read_qmmmparams(inp)
         self.scan = []
         if self.jobtype == "SCAN":
             self.scan = self.load_scan(self.scanfile) 
@@ -324,7 +324,7 @@ class QMMMParams:
         jobtype="singlepoint"
         propa="steep"
         info=[jobname,jobtype.upper(),float(0.00001),int(5),float(0.1),
-                propa.upper(),float(0.0018897261),int(0),"MORSE","YES", "scan.txt", 0]
+                propa.upper(),float(0.0018897261),int(0),"MORSE","NORMAL", "scan.txt", 0]
         with open(inp) as ifile:
             for line in ifile:
                 match=re.search(r'^jobname\s*=\s*(\S+)', line,flags=re.MULTILINE)
@@ -355,7 +355,7 @@ class QMMMParams:
                 if match:
                     #info[8]=match.group(1)
                     info[8]=str(match.group(1)).upper()
-                match=re.search(r'^optlastonly\s*=\s*(\S+)', line,flags=re.MULTILINE)
+                match=re.search(r'^print_level\s*=\s*(\S+)', line,flags=re.MULTILINE)
                 if match:
                     info[9]=str(match.group(1)).upper()
                 match=re.search(r'^scanfile\s*=\s*(\S+)', line,flags=re.MULTILINE)
