@@ -65,7 +65,7 @@ For advance information please read the [Documentation].
 ---
 
 ## Examples
-The directory example contains SP and OPT calculation for glycine serine (GLYSER). 
+The directory example contains SP, OPT, linear SCAN calculation for glycine serine (GLYSER). 
 ![alt text](https://github.com/gmx2qmmm/gmx2qmmm_portable/blob/master/example/glyser.png?raw=true)
 
 The names of the input files are default. Go to the sp/opt directory on the command line and run:
