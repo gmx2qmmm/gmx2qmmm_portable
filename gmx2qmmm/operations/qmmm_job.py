@@ -2171,6 +2171,21 @@ def perform_opt(qmmmInputs):
                 #Update for BFGS              
                 xyzq = old_qmmmInputs.xyzq
                 new_xyzq = qmmmInputs.xyzq
+                
+                # Additional code for Displacement warning
+                displace_threshold = 0.1
+                coords_old = np.array(xyzq)[:, 0:3]
+                coords_new = np.array(new_xyzq)[:, 0:3]
+                diff_step = coords_new - coords_old
+                norm_displacement = np.linalg.norm(diff_step, axis=1) #displacement_eachatom
+                threshold_bias = norm_displacement - displace_threshold #threshold
+                atom_idex_criteria = np.array(np.where(threshold_bias > 0))
+                if  atom_idex_criteria.size > 0:
+                    logger(logfile, "Atoms list in qm region (%s). \n" % (str(qmmmInputs.qmatomlist)))
+                    logger(logfile, "Atoms list with displacement more than threshold (%s) \n" % (str(atom_idex_criteria)))
+                else:
+                     logger(logfile, "All atoms having displacement under threshold. \n")
+                
                 #Store previous 
                 old_qmmmInputs = copy.deepcopy(qmmmInputs)
                 count += 1
