@@ -1,18 +1,21 @@
-gmx2qmmm v.2.0.1
-======
+gmx2qmmm v2 (in preparation)
+============================
+
 **gmx2qmmm** is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
-- [Overview](#overview)
-- [System requirments](#system-requirments)
-- [**gmx2qmmm** job](#job-type)
-- [Input files](#input-files)
-- [Examples](#example)
-- [References](#references)
-- [Support and development](#support-and-development)
-- [Links](#links)
+- [gmx2qmmm v2 (in preparation)](#gmx2qmmm-v2-in-preparation)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [System requirements](#system-requirements)
+  - [**gmx2qmmm** job](#gmx2qmmm-job)
+  - [Input files](#input-files)
+  - [Examples](#examples)
+  - [References](#references)
+  - [Support and development](#support-and-development)
+  - [Links](#links)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ---
@@ -24,7 +27,7 @@ gmx2qmmm v.2.0.1
 Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system), geometry optimizations, and linear relaxed scan. (Other ultilities are ongoing)
 
 ## System requirements
- - [python 3.6+] 
+ - [Python 3.6+]
  - [Gaussian16] (and earlier version)
  - [Gromacs 5.0.2] (and earlier version)
 
