@@ -12,6 +12,7 @@ gmx2qmmm v2 (in preparation)
   - [System requirements](#system-requirements)
   - [**gmx2qmmm** job](#gmx2qmmm-job)
   - [Input files](#input-files)
+  - [Installation](#installation)
   - [Examples](#examples)
   - [References](#references)
   - [Support and development](#support-and-development)
@@ -22,7 +23,7 @@ gmx2qmmm v2 (in preparation)
 
 ## Overview
 
-**gmx2qmmm** is a python package to bridge [Gaussian] and [Gromacs]. The test runs were performed using [Gaussian16] and [Gromacs 5.0.2], but the code should be able to read earlier Gaussian and other Gromacs versions. The only limits are the formats of the human-readable input and output files of each program, as such, conversion scripts can be written to make the interface work with any version, if the current code does not support it.
+**gmx2qmmm** is a Python package to bridge [Gaussian] and [Gromacs]. The test runs were performed using [Gaussian16] and [Gromacs 5.0.2], but the code should be able to read earlier Gaussian and other Gromacs versions. The only limits are the formats of the human-readable input and output files of each program, as such, conversion scripts can be written to make the interface work with any version, if the current code does not support it.
 
 Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system), geometry optimizations, and linear relaxed scan. (Other ultilities are ongoing)
 
@@ -67,8 +68,26 @@ For advance information please read the [Documentation].
 
 ---
 
+## Installation
+
+Clone the repository and install with `pip`. We recommend using a fresh virtual environment.
+
+```bash
+~ $ git clone https://github.com/gmx2qmmm/gmx2qmmm_portable
+~ $ cd gmx2qmmm
+~/gmx2qmmm_portable $ pip install .
+```
+
+For development installation, consider installing in editable mode:
+
+```bash
+~/gmx2qmmm_portable $ pip install -e .
+```
+
+---
+
 ## Examples
-The directory example contains SP, OPT, linear SCAN calculation for glycine serine (GLYSER). 
+The directory example contains SP, OPT, linear SCAN calculation for glycine serine (GLYSER).
 ![alt text](https://github.com/gmx2qmmm/gmx2qmmm_portable/blob/master/example/glyser.png?raw=true)
 
 The names of the input files are default. Go to the sp/opt directory on the command line and run:
@@ -76,14 +95,12 @@ The names of the input files are default. Go to the sp/opt directory on the comm
 ```
 python gmx2qmmm.py
 ```
-
-
 ---
 
 ## References
 
 > A user‐friendly, Python‐based quantum mechanics/Gromacs interface: gmx2qmmm
-> Jan P. Götze, Yuan‐Wei Pi, Simon Petry, Fabian Langkabel,  Jan Felix Witte, Oliver Lemke
+> Jan P. Götze, Yuan‐Wei Pi, Simon Petry, Fabian Langkabel, Jan Felix Witte, Oliver Lemke
 > https://doi.org/10.1002/qua.26486
 
 ## Support and development
@@ -92,7 +109,7 @@ For bug reports/suggestions/complaints please raise an issue on [GitHub].
 Or contact us directly: [gmx2qmmm@gmail.com]
 
 ## Links
-- [Documentation] 
+- [Documentation]
 - [gmx2qmmm reference]
 
 
