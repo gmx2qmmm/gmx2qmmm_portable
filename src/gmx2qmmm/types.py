@@ -1,3 +1,5 @@
 import os
+from typing import Union
 
-StrPath = os.PathLike| str
+
+StrPath = Union[os.PathLike, str]

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #   // INITIAL DESCRIPTION //
 """Run Optimizations"""
 
@@ -10,24 +8,17 @@ __date__ = '2024-08-20'
 #   // IMPORTS //
 
 #   Imports Of Existing Libraries
-import re
 import os
-import math
-import sqlite3
-import sys
-import copy
-import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
 
 #   Imports Of Custom Libraries
-import Jobs.Singlepoint as SP
 
 #   Imports From Custom Libraries
-from Logging.Logger import Logger
-from Generators.GeneratorGeometries import propagate_dispvec
-from Generators._helper import filter_xyzq, _flatten, mask_atoms
+from gmx2qmmm.jobs.singlepoint import Singlepoint
+from gmx2qmmm.generators.geometry import propagate_dispvec
+from gmx2qmmm.generators._helper import mask_atoms
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -77,7 +68,7 @@ class Optimisation():
         self.STEPSIZE = 2
 
         #   Perform Initial Singlepoint Calculation
-        self.singlepoint = SP.Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
 
         #   Setting Up Variables
         self.list_forces_max_all_steps = []
@@ -118,7 +109,7 @@ class Optimisation():
 
         #   Calculate And Apply Displacement
         self.generate_displacement()
- 
+
         #   Update Pointchargefield
         self.PCF.make_pcf()
 
@@ -154,7 +145,7 @@ class Optimisation():
         # gro = qmmmInputs.gro            #SIMON
         # logger(logfile, "Due to the decrease of the energy, the structure "+str(gro)+" will be used from now on.\n")
 
-        
+
         pass
 
     def evaluate_step_steep(self):
@@ -192,7 +183,7 @@ class Optimisation():
                 #         ("Step became lower than 0.000001 a.u., optimization is considered done for now. " +
                 #          "This is the best we can do unless reaching unacceptable numerical noise levels.\n"),
                 # )
-    
+
     def evaluate_step_bfgs(self):
         #   Check If Optimization Is Finished
         if abs(self.float_force_max) < float(self.dict_input_userparameters['f_thresh']):
@@ -200,7 +191,7 @@ class Optimisation():
         elif float(self.dict_input_userparameters['stepsize']) < 1e-6: #0.000001 a.u.
             self.bool_opt_done = self.STEPSIZE
 
- 
+
     def update_input_filenames(self):
         self.singlepoint.groname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
         self.singlepoint.tprname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".tpr")

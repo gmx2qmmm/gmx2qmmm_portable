@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #   // INITIAL DESCRIPTION //
 """Run Gromacs Calculations"""
 
@@ -18,7 +16,7 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from Generators.GeneratorGeometries import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -40,12 +38,12 @@ class MM():
         self.PCF = class_pcf
         self.str_directory_base = str_directory_base
 
-        #   Initialize Gromacs Input 
+        #   Initialize Gromacs Input
         self.string_structure_gmx_header = read_gmx_structure_header(self.dict_input_userparameters['coordinatefile'])
         self.list_structure_gmx_atoms = read_gmx_structure_atoms(self.dict_input_userparameters['coordinatefile'])
         self.list_box_vectors_initial = read_gmx_box_vectors(self.dict_input_userparameters['coordinatefile'])
 
-        #   Calculate The Maximum Eucledian Distance Between Any Two Atoms And Get New Box Vectors 
+        #   Calculate The Maximum Eucledian Distance Between Any Two Atoms And Get New Box Vectors
         array_coordinates_all = self.system.array_xyzq_current[:,:3]
         self.float_distance_max = np.max(np.linalg.norm(array_coordinates_all[np.newaxis, :, :] - array_coordinates_all[:, np.newaxis, :], axis=-1))
         self.list_box_vectors_large = (np.array(self.list_box_vectors_initial) + 10.0 * self.float_distance_max).tolist()
@@ -65,7 +63,7 @@ class MM():
 
 
     def make_gmx_inp(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -81,14 +79,14 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         write_g96(self.groname, self.string_structure_gmx_header, self.list_structure_gmx_atoms, self.system.array_xyzq_current, self.list_box_vectors_large)
 
         self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.write_mdp()
 
-        # XX AJ commented out until testing 
+        # XX AJ commented out until testing
         # subprocess.call(
         #     [
         #         prefix,
@@ -109,9 +107,9 @@ class MM():
         # )
         # subprocess.call(["rm", "mdout.mdp"])
 
-    
+
     def write_mdp(self):
-            
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -127,7 +125,7 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-    
+
         if self.dict_input_userparameters['rcoulomb'] == 0:
             self.dict_input_userparameters['rcoulomb'] = self.float_distance_max
         if self.dict_input_userparameters['rvdw'] == 0:
@@ -154,7 +152,7 @@ class MM():
                 )
 
     def run_gmx(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -170,11 +168,11 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         pass
         # logger(logfile, "Running Gromacs file.\n")
-       
-        # XX AJ commented out until testing 
+
+        # XX AJ commented out until testing
         # subprocess.call(
         # [
         #     self.prefix,
@@ -195,11 +193,11 @@ class MM():
         #     "no",
         # ]
         # )
-        # # os.remove(outname)    
+        # # os.remove(outname)
 
-    
+
     def read_mm_energy(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -215,7 +213,7 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.mmenergy = 0.0
@@ -236,7 +234,7 @@ class MM():
         #     stderr=subprocess.STDOUT,
         # )
         # p.communicate(input=b"11\n\n")
-        
+
         with open(str(self.edrname + ".xvg")) as ifile:
             for line in ifile:
                 match = re.search(
@@ -248,10 +246,10 @@ class MM():
         # logger(logfile, "MM energy is " + str(float(mmenergy)) + " a.u..\n")
 
 
-    
-    
+
+
     def read_mm_forces(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -267,7 +265,7 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.mmforces = []
@@ -313,5 +311,3 @@ class MM():
                         self.mmforces.append(mmforceline)
                         mmforceline = []
                 break  # read only one line
-
-

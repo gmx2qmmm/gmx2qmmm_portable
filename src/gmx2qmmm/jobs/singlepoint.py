@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #   // INITIAL DESCRIPTION //
 """Run Singlepoint Calculations"""
 
@@ -10,12 +8,6 @@ __date__ = '2024-08-12'
 #   // IMPORTS //
 
 #   Imports Of Existing Libraries
-import re
-import os
-import math
-import sqlite3
-import sys
-import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
@@ -23,12 +15,11 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from Logging.Logger import Logger
-from Logging.WriteOutput import Output
-from Jobs import QM_job, MM_job
-from Generators._helper import filter_xyzq, _flatten
-from Generators.GeneratorGeometries import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
-from Generators.GeneratorEnergies import GeneratorEnergies, GeneratorForces
+from gmx2qmmm.logging import Output
+from gmx2qmmm.jobs import mm, qm
+from gmx2qmmm.generators._helper import filter_xyzq, _flatten
+from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators.energies import GeneratorEnergies, GeneratorForces
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -55,7 +46,7 @@ class Singlepoint():
         class_system: class -> Class Object Of The System \\
         class_topology: class -> Class Object Of The Topology \\
         class_pcf: class -> Class Object Of The Pointchargefield \\
-        str_directory_base: str -> Directory Path \\ 
+        str_directory_base: str -> Directory Path \\
         ------------------------------ \\
         RETURN: \\
         --------------- \\
@@ -74,12 +65,12 @@ class Singlepoint():
 
         #   Initialize QM Class (XX AJ differentiate between qm program here?)
         if self.dict_input_userparameters['qmcommand'] == 'g16':
-            self.class_qm_job = QM_job.QM_gaussian(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+            self.class_qm_job = qm.QM_gaussian(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
             pass
 
         #   Initialize MM Class
-        self.class_mm_job = MM_job.MM(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.class_mm_job = mm.MM(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
 
         #   Initialize QMMM Energy And Forces Generator Classes
         self.class_qmmm_energy = GeneratorEnergies(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base, self.class_qm_job, self.class_mm_job)
@@ -94,9 +85,9 @@ class Singlepoint():
         class_output.oenergy_append(0, self.class_qm_job.qmenergy, self.class_mm_job.mmenergy, self.linkcorrenergy, self.total_energy)
         class_output.oforces_append(0, self.total_force)
 
-    
+
     def run_calculation(self) -> None:
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -112,7 +103,7 @@ class Singlepoint():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         # prepare QM input depending on software
         self.class_qm_job.generate_filename()
         self.class_qm_job.generate_gaussian_header()
@@ -144,8 +135,3 @@ class Singlepoint():
         #   Calculate Total Forces
         self.linkcorrforces = self.class_qmmm_forces.get_linkcorrforces()
         self.total_force = np.array(self.class_qm_job.qmforces) + np.array(self.class_mm_job.mmforces) - np.array(self.linkcorrforces)
-        
-
-
-
-

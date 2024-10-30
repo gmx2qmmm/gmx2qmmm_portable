@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #   // INITIAL DESCRIPTION //
 """Run QM Calculations"""
 
@@ -11,11 +9,6 @@ __date__ = '2024-09-19'
 
 #   Imports Of Existing Libraries
 import re
-import os
-import math
-import sqlite3
-import sys
-import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
@@ -23,9 +16,9 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from Logging.Logger import Logger
-from Generators._helper import filter_xyzq, _flatten
-from Generators.GeneratorGeometries import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.logging import Logger
+from gmx2qmmm.generators._helper import filter_xyzq, _flatten
+from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -55,7 +48,7 @@ class QM():
     '''
     # XX Florian and Alina think seperating the functions keeps better flexibility (:
     def generate_qm_input(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -130,7 +123,7 @@ class QM():
             pass
 
     def run_qm_job(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -154,7 +147,7 @@ class QM():
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
-                # XX AJ commented out until testing 
+                # XX AJ commented out until testing
                 # subprocess.call([g16cmd, str(qmfile)])
                 logname = self.str_inputfile_qm[:-3]
                 logname += "log"
@@ -185,7 +178,7 @@ class QM():
             pass
 
     def read_qm_energy(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -201,15 +194,15 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         if self.dict_input_userparameters['qmcommand'] == 'g16':
             # logger(logfile, "Extracting QM energy.\n")
             self.qmenergy = 0.0
             self.qm_corrdata = []
-            if str(self.dict_input_userparameters['program']) == "G16":    
+            if str(self.dict_input_userparameters['program']) == "G16":
                 with open(str(self.str_inputfile_qm + ".log")) as ifile:
                     for line in ifile:
-                        
+
                         match = []
                         match2 = []
                         match2 = re.search(
@@ -271,9 +264,9 @@ class QM():
             # XX AJ: Nicola add
             pass
 
-    
+
     def read_qm_forces(self):
-        
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -289,15 +282,15 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         self.qmforces = []
         qmonlyforcelist = []
         pcf_grad = []
 
         if self.dict_input_userparameters['program'] == "G16":
             insert = ""
-            if (int(self.system.int_step_current) != 0): 
-                insert = str("." + str(self.system.int_step_current))  
+            if (int(self.system.int_step_current) != 0):
+                insert = str("." + str(self.system.int_step_current))
             # logger(logfile,"Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
             qmlogfile = str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
             fortfile = str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
@@ -392,7 +385,7 @@ class QM():
 
 
     def read_pcf_self(self):
-    
+
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -408,7 +401,7 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-        
+
         self.pcf_self = 0.0
         with open(self.str_inputfile_qm + ".log") as ifile:
             for line in ifile:
@@ -421,7 +414,7 @@ class QM():
                     self.pcf_self = float(match.group(1))
                     break
 
-    
+
 class QM_gaussian(QM):
     def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base):
         self.dict_input_userparameters = dict_input_userparameters
@@ -487,10 +480,10 @@ class QM_gaussian(QM):
             self.additional_input += "{:>12.6f} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
                 values[0], values[1], values[2], values[3]
             )
-        
+
         self.additional_input += '\n'
 
         for values in list_info_pcf:
             self.additional_input += "{:>12.6f} {:>12.6f} {:>12.6f}\n".format(
                 values[0], values[1], values[2]
-            ) 
+            )

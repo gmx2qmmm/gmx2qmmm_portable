@@ -1,10 +1,11 @@
 import argparse
 import pathlib
 from datetime import datetime
+from typing import Optional
 
-from gmx2qmmm.generators.system import System
-import Generators.GeneratorTopologies as Top
-import Generators.GeneratorPCF as PCF
+from gmx2qmmm.generators.system import SystemInfo
+from gmx2qmmm.generators import topology
+from gmx2qmmm.generators import pcf
 from gmx2qmmm.jobs.singlepoint import Singlepoint
 from gmx2qmmm.jobs.optimisation import Optimisation
 from gmx2qmmm.types import StrPath
@@ -24,7 +25,7 @@ class App():
         work_dir: Job working and output directory
     """
 
-    def __init__(self, parameters: StrPath, logfile: StrPath | None = None, work_dir: StrPath = ".") -> None:
+    def __init__(self, parameters: StrPath, logfile: Optional[StrPath] = None, work_dir: StrPath = ".") -> None:
 
         # TODO: Work with parameters alternatively provided in a dictionary
 
@@ -93,17 +94,17 @@ class App():
 
     def initalize_system(self) -> None:
         """Setup system using input parameters"""
-        self.system = System.SystemInfo(self.parameters)
+        self.system = SystemInfo(self.parameters)
 
     def generate_topology(self) -> None:
         """Setup topology using input parameters and system"""
-        self.topology = Top.GenerateTopology(self.parameters, self.system, self.work_dir)
+        self.topology = topology.GenerateTopology(self.parameters, self.system, self.work_dir)
 
     def generate_PCF(self) -> None:
         """Setup point charge field using input parameters, system, and topology"""
         # NOTE (AJ): I forgot what I used the Job keyword for, I think I will only need it later, I will get back to that
         # NOTE (JJ): I find the note above very confusing. Can you please clarify or clean that up?
-        self.pointchargefield = PCF.GeneratePCF(self.parameters, self.system, self.topology, self.work_dir)
+        self.pointchargefield = pcf.GeneratePCF(self.parameters, self.system, self.topology, self.work_dir)
 
     def run(self) -> None:
         """Run requested job"""
@@ -120,6 +121,6 @@ class App():
                 )
         except KeyError as exc:
             raise ValueError(
-                f'Job type {self.parameters['jobtype']!r} not understood. '
+                f'Job type {self.parameters["jobtype"]!r} not understood. '
                 f'Must be one of {list(job_func_map.keys())}'
             ) from exc
