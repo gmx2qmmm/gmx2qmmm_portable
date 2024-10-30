@@ -13,7 +13,7 @@
 #FOR A QM/MM PCF, YOU NEED TO FIRST CUT THE QM ATOMS AND MOVE THEIR SUMMED UP CHARGE TO THE M1 ATOM, UNLESS THE CHARGE IS REPRESENTED IN THE QM PART
 
 __author__ = "jangoetze"
-__date__ = "$15-May-2018 17:02:17$" #during a rain storm
+__date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
 import math
 import os
@@ -22,14 +22,46 @@ import sys
 
 import numpy as np
 
-from gmx2qmmm._helper import _flatten
-from gmx2qmmm.pointcharges import sum_pcf_tm as make_p_sum
+from gmx2qmmm.generators._helper import _flatten
+from gmx2qmmm.generators import sum_pcf_tm
 
 def uvec(vec):
+    '''
+    ------------------------------ \\
+    EFFECT: \\
+    normalizing a vector \\
+    --------------- \\
+    INPUT: \\
+    vec: np.array
+    ------------------------------ \\
+    RETURN: \\
+    np.array -> normalized vector \\
+    --------------- \\
+    '''
     return np.array(vec) / np.linalg.norm(np.array(vec))
 
 def create_corr_charges(m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, m2_nolist):
-
+    '''
+    ------------------------------ \\
+    EFFECT: \\
+    Create and normalize a list of displacement charges. \\
+    --------------- \\
+    INPUT: \\
+    m1coordsq: float \\
+    m2coordsqlist: list \\
+        List of coordinates for the second masses. \\
+    disp_vec: list or np.array \\
+        List of displacement vectors. \\
+    disp_charge_vec: list \\
+        List of displacement charges. \\
+    m2_nolist: list \\
+        List of lists specifying the number of m2 atoms for each m1. \\
+    --------------- \\
+    RETURN: \\
+    np.array \\
+        Normalized vector of displacement charges. \\
+    --------------- \\
+    '''
     corr_charge_list = []
     count = 0
     for i in range(0, len(m2_nolist)):
@@ -45,6 +77,23 @@ def create_corr_charges(m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, m2_
     return corr_charge
 
 def write_disp_charges(m1, m2coordsqlist, disp_vec, dispcharge):
+
+    '''
+    ------------------------------ \\
+    EFFECT: \\
+    --------------- \\
+    XX \\
+    ------------------------------ \\
+    INPUT: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    RETURN: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    '''
+
     charge_list = []
     for i in range(0, len(m2coordsqlist)):
         ab_vec = np.array(
@@ -93,13 +142,31 @@ def write_disp_charges(m1, m2coordsqlist, disp_vec, dispcharge):
     return charge_list
 
 def make_new_field(m2coordsqlist,corr_charge_list):
-	new_field=[]
-	for element in m2coordsqlist:
-		for entry in element:
-			new_field.append(entry)
-	for element in corr_charge_list:
-		new_field.append(element)
-	return new_field
+
+    '''
+    ------------------------------ \\
+    EFFECT: \\
+    --------------- \\
+    XX \\
+    ------------------------------ \\
+    INPUT: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    RETURN: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    '''
+
+    '''combine m2 and corr charges to a new list'''
+    new_field=[]
+    for element in m2coordsqlist:
+        for entry in element:
+            new_field.append(entry)
+    for element in corr_charge_list:
+        new_field.append(element)
+    return new_field
 
 def write_new_pcf(inp, out, m1line, m1, m2list, m2atoms, disp_vec, dispcharge, distrib_charge):
     with open(inp) as ifile:
@@ -183,6 +250,26 @@ def write_new_pcf(inp, out, m1line, m1, m2list, m2atoms, disp_vec, dispcharge, d
         ofile.close()
 
 def write_new_field_to_disk_listsonly(inp, ofilename, new_field, getlist, m2_nolist):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    write point charge field file
+    ------------------------------
+    INPUT: \\
+    ---------------
+    inp: list, list, xyzq for all atoms, 'QM' for qm atoms
+    ofilename: string, name for pcf file
+    new_field: 2d array, xyzq of new charges
+    getlist: list, m1 atoms
+    m2_nolist: list, m2 atoms
+    ------------------------------
+    RETURN: \\
+    ---------------
+    None
+    ------------------------------
+    '''
+
     ofile = open(ofilename, "w")
     count = 0
     m2list = np.array(m2_nolist).reshape(-1)
@@ -334,6 +421,7 @@ def get_m2vec(line, inp):
 
 
 def get_m2vec_fieldsonly(m2entry, pcf):
+    '''extract m2 xyzq from pcf'''
     m2coordsq = []
     for i in range(0, len(m2entry)):
         m2coordsq.append(pcf[int(m2entry[i] - 1)])
@@ -354,11 +442,32 @@ def make_droplist(inp, m1line, m2list):
 
 
 def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, basedir):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    create new pcf
+    ------------------------------
+    INPUT: \\
+    ---------------
+    pcf: list, xyzq for all atoms, 'QM' for qm atoms
+    m1list: list of m1 atom indices
+    qmcoords: list, xyzq for qm atoms
+    m2list: list of m2 atom indices
+    jobname: string, jobname
+    basedir: directory
+    ------------------------------
+    RETURN: \\
+    ---------------
+    None
+    ------------------------------
+    '''
 
     getlist = m1list
     orgfield = []
     qmlist = qmcoords
     target_sum = np.array([0.0, 0.0, 0.0])
+    # append m1 atoms xyzq to orgfield
     for i in range(0, len(getlist)):
         orgcoordsq = pcf[int(getlist[i]) - 1]
 
@@ -366,7 +475,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
 
     for element in qmlist:
         target_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(orgfield, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(orgfield, element[0], element[1], element[2])
         )
 
     m1coordsq = []
@@ -378,7 +487,6 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
     for element in m2list:
         m1 = pcf[int(getlist[count]) - 1]
         m1coordsq.append(m1)
-
         m2coordsqthing = get_m2vec_fieldsonly(element, pcf)
         m2coordsq = []
         for i in range(0, len(m2coordsqthing)):
@@ -418,7 +526,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
     curr_sum = np.array([0.0, 0.0, 0.0])
     for element in qmlist:
         curr_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
         )
 
     curr_delta = math.sqrt(
@@ -463,7 +571,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
                 new_sum = np.array([0.0, 0.0, 0.0])
                 for element in qmlist:
                     new_sum += np.array(
-                        make_p_sum.sum_pcf_tm_nofile(
+                        sum_pcf_tm.sum_pcf_tm_nofile(
                             curr_field, element[0], element[1], element[2]
                         )
                     )
@@ -483,7 +591,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
                 new_sum = np.array([0.0, 0.0, 0.0])
                 for element in qmlist:
                     new_sum += np.array(
-                        make_p_sum.sum_pcf_tm_nofile(
+                        sum_pcf_tm.sum_pcf_tm_nofile(
                             curr_field, element[0], element[1], element[2]
                         )
                     )
@@ -524,7 +632,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
         new_sum = np.array([0.0, 0.0, 0.0])
         for element in qmlist:
             new_sum += np.array(
-                make_p_sum.sum_pcf_tm_nofile(
+                sum_pcf_tm.sum_pcf_tm_nofile(
                     curr_field, element[0], element[1], element[2]
                 )
             )
@@ -561,7 +669,7 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
     new_sum = np.array([0.0, 0.0, 0.0])
     for element in qmlist:
         new_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
         )
     new_delta = math.sqrt(
         (new_sum[0] - target_sum[0]) * (new_sum[0] - target_sum[0])
@@ -574,6 +682,21 @@ def generate_charge_shift_fieldsonly(pcf, m1list, qmcoords, m2list, jobname, bas
 
 
 def generate_charge_shift(syscmds):
+    '''
+    ------------------------------ \\
+    EFFECT: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    INPUT: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    RETURN: \\
+    --------------- \\
+    NONE \\
+    ------------------------------ \\
+    '''
     basedir = os.path.dirname(os.path.abspath(__file__))
     inp = syscmds[1]
     m1list = syscmds[2]
@@ -595,10 +718,10 @@ def generate_charge_shift(syscmds):
 
     for element in qmlist:
         target_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(orgfield, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(orgfield, element[0], element[1], element[2])
         )
 
-    m1coordsq = []
+    m1coordsq = []          # list of xyzq coordinates for m1 atoms AJ
     m2_nolist = []
     m2coordsqlist = []
     dispcharge = 0.1944  # for 0.023333333333 shifted charge on three M2 atoms; should work in any case unless distances become HUGE
@@ -638,7 +761,7 @@ def generate_charge_shift(syscmds):
     curr_sum = np.array([0.0, 0.0, 0.0])
     for element in qmlist:
         curr_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
         )
 
     curr_delta = math.sqrt(
@@ -683,7 +806,7 @@ def generate_charge_shift(syscmds):
                 new_sum = np.array([0.0, 0.0, 0.0])
                 for element in qmlist:
                     new_sum += np.array(
-                        make_p_sum.sum_pcf_tm_nofile(
+                        sum_pcf_tm.sum_pcf_tm_nofile(
                             curr_field, element[0], element[1], element[2]
                         )
                     )
@@ -703,7 +826,7 @@ def generate_charge_shift(syscmds):
                 new_sum = np.array([0.0, 0.0, 0.0])
                 for element in qmlist:
                     new_sum += np.array(
-                        make_p_sum.sum_pcf_tm_nofile(
+                        sum_pcf_tm.sum_pcf_tm_nofile(
                             curr_field, element[0], element[1], element[2]
                         )
                     )
@@ -736,7 +859,7 @@ def generate_charge_shift(syscmds):
         new_sum = np.array([0.0, 0.0, 0.0])
         for element in qmlist:
             new_sum += np.array(
-                make_p_sum.sum_pcf_tm_nofile(
+                sum_pcf_tm.sum_pcf_tm_nofile(
                     curr_field, element[0], element[1], element[2]
                 )
             )
@@ -774,7 +897,7 @@ def generate_charge_shift(syscmds):
     new_sum = np.array([0.0, 0.0, 0.0])
     for element in qmlist:
         new_sum += np.array(
-            make_p_sum.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
+            sum_pcf_tm.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
         )
     new_delta = math.sqrt(
         (new_sum[0] - target_sum[0]) * (new_sum[0] - target_sum[0])
@@ -782,7 +905,7 @@ def generate_charge_shift(syscmds):
         + (new_sum[2] - target_sum[2]) * (new_sum[2] - target_sum[2])
     )
     write_new_field_to_disk(inp, ofilename, new_field, getlist, m2_nolist)
-			
+
 if __name__ == '__main__':
 	import sys
 	generate_charge_shift(sys.argv)

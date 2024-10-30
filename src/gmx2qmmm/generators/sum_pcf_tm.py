@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 #encoding: ISO-8859-15
 
 # To change this license header, choose License Headers in Project Properties.
@@ -8,12 +7,13 @@
 #This will take a Turbomole point_charges file and generate sum of charge vectors at a given point in space
 
 __author__ = "jangoetze"
-__date__ = "$15-May-2018 17:02:17$" #during a rain storm
+__date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
 import re
 import sys
 
 import numpy as np
+
 
 def sum_pcf_tm(inp, x, y, z):
     base = [float(x), float(y), float(z)]

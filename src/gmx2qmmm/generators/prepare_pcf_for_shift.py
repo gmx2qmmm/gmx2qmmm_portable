@@ -16,13 +16,30 @@ ATOMNR BONDPARTNERNR1 BONDPARTNERNR2 ...
 """
 
 __author__ = "jangoetze"
-__date__ = "$15-May-2018 17:02:17$"  # during a rain storm
+__date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
 import re
 import numpy as np
 
 
 def get_bondpartners(connlist, target):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    reads all m1 atoms for a specific qm atom
+    ------------------------------
+    INPUT: \\
+    ---------------
+    connlist: list of atom connection
+    target: int, index of specific qm atom
+    ------------------------------
+    RETURN: \\
+    ---------------
+    partnerlist: list of m1 atoms for this specific qm atom
+    ------------------------------
+    '''
+
     partnerlist = []
     for entry in connlist:
         found = False
@@ -43,6 +60,24 @@ def get_bondpartners(connlist, target):
 
 
 def identify_m2(qmlist, m1list, connlist):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    reads out all m2 atoms
+    ------------------------------
+    INPUT: \\
+    ---------------
+    qmlist: list of qm atom indices
+    m1list: list of m1 atom indices
+    connlist: list of atom connection
+    ------------------------------
+    RETURN: \\
+    ---------------
+    m2list: list of m2 atom indices
+    ------------------------------
+    '''
+
     m2list = []
     for element in m1list:
         m2line = []
@@ -55,6 +90,23 @@ def identify_m2(qmlist, m1list, connlist):
 
 
 def identify_m1(qmlist, connlist):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    reads out all m1 atoms
+    ------------------------------
+    INPUT: \\
+    ---------------
+    qmlist: list of qm atom indices
+    connlist: list of atom connection
+    ------------------------------
+    RETURN: \\
+    ---------------
+    m1list: list of m1 atom indices
+    ------------------------------
+    '''
+
     m1list = []
     for element in qmlist:
         bondlist = get_bondpartners(connlist, element)
@@ -77,6 +129,22 @@ def read_conn_list(inp):
 
 
 def read_qmatom_list(inp):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    reads and sorts qm atom indices
+    ------------------------------
+    INPUT: \\
+    ---------------
+    inp: string, name of qm atoms index file
+    ------------------------------
+    RETURN: \\
+    ---------------
+    sortedlist: list of sorted qm atom indices
+    ------------------------------
+    '''
+
     qmatomlist = []
     with open(inp) as ifile:
         for line in ifile:
@@ -89,8 +157,50 @@ def read_qmatom_list(inp):
     sortedlist = sorted(np.array(qmatomlist).astype(int))
     return sortedlist
 
+def read_inner_list(inp):
+    innerlist = []
+    with open(inp) as ifile:
+        for line in ifile:
+            if "[" in line or "]" in line:
+                continue
+            atomlist = re.findall("\d+", line)
+            if atomlist:
+                for element in atomlist:
+                    innerlist.append(element)
+    sortedlist = sorted(np.array(innerlist).astype(int))
+    return sortedlist
+
+def read_outer_list(inp):
+    outerlist = []
+    with open(inp) as ifile:
+        for line in ifile:
+            if "[" in line or "]" in line:
+                continue
+            atomlist = re.findall("\d+", line)
+            if atomlist:
+                for element in atomlist:
+                    outerlist.append(element)
+    sortedlist = sorted(np.array(outerlist).astype(int))
+    return sortedlist
 
 def get_qmcoords(qmatoms, charges):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    reads xyzq of qm atoms
+    ------------------------------
+    INPUT: \\
+    ---------------
+    qmatoms: list of qm atom indices
+    charges: list, xyzq
+    ------------------------------
+    RETURN: \\
+    ---------------
+    qmcoordlist: list of xyzq for qm atoms
+    ------------------------------
+    '''
+
     qmcoordlist = []
     for element in qmatoms:
         qmline = [
@@ -124,6 +234,26 @@ def read_charge_list(inp):
 
 
 def eliminate_and_shift_to_m1(qmatoms, charges, m1list, qmcharge, qmcoordsq):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    removes qm charges and shifts them to m1 atoms
+    ------------------------------
+    INPUT: \\
+    ---------------
+    qmatoms: list of qm atom indices
+    charges: list, xyzq
+    m1list: list of m1 atom indices
+    qmcharge: int, total qm charge
+    qmcoordsq: list of xyzq for qm atoms
+        ------------------------------
+    RETURN: \\
+    ---------------
+    updated_chargelist: shifts m1 charges
+    ------------------------------
+    '''
+
     updated_charges = []
     curr_charge = float(0.0)
     for element in qmcoordsq:
@@ -152,6 +282,28 @@ def eliminate_and_shift_to_m1(qmatoms, charges, m1list, qmcharge, qmcoordsq):
 
 
 def prepare_pcf_for_shift_fieldsonly(charges, qmatomlist, qmcharge, connlist):
+    '''
+    ------------------------------
+    EFFECT: \\
+    ---------------
+    prepares m1 and m2 atom lists and returns correct charges
+    ------------------------------
+    INPUT: \\
+    ---------------
+    charges: list, xyzq
+    qmatomlist: list of qm atom indices
+    qmcharge: int, total qm charge
+    connlist: list of atom connection
+    ------------------------------
+    RETURN: \\
+    ---------------
+    qmcoordlist: list of xyzq coordinates for all qm atoms
+    m1list: list of m1 atom indices
+    m2list: list of m2 atom indices
+    updated_chargelist: list of new xyzq coordinates updated for qm region and charge shifts
+    ------------------------------
+    '''
+
     m1list = identify_m1(qmatomlist, connlist)
     m2list = identify_m2(qmatomlist, m1list, connlist)
     qmcoordlist = get_qmcoords(qmatomlist, charges)

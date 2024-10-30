@@ -2,14 +2,14 @@ import argparse
 import pathlib
 from datetime import datetime
 
-import Generators.System as System
+from gmx2qmmm.generators.system import System
 import Generators.GeneratorTopologies as Top
 import Generators.GeneratorPCF as PCF
-import Jobs.Singlepoint as SP
-import Jobs.Optimization as OPT
+from gmx2qmmm.jobs.singlepoint import Singlepoint
+from gmx2qmmm.jobs.optimisation import Optimisation
 from gmx2qmmm.types import StrPath
-from Logging.Logger import Logger
-from HandlingInput.HandlerInput import FileReader
+from gmx2qmmm.logging import Logger
+from gmx2qmmm.input_handler import FileReader
 
 
 #   TODO: Read And Include GROMACS / VMD Style Index Files; Extractable From Different Programs(?)
@@ -109,8 +109,8 @@ class App():
         """Run requested job"""
 
         job_func_map = {
-            'singlepoint': SP.Singlepoint,
-            'opt': OPT.Optimisation,
+            'singlepoint': Singlepoint,
+            'opt': Optimisation,
         }
         # TODO: Support NMA, scan, and opt_root_following (again)
 
