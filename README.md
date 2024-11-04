@@ -1,30 +1,34 @@
-gmx2qmmm v.2.0.1
-======
+gmx2qmmm v2 (in preparation)
+============================
+
 **gmx2qmmm** is a python interface for Quantum mechanics/Molecular mechanics (QM/MM) calculation.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
-- [Overview](#overview)
-- [System requirments](#system-requirments)
-- [**gmx2qmmm** job](#job-type)
-- [Input files](#input-files)
-- [Examples](#example)
-- [References](#references)
-- [Support and development](#support-and-development)
-- [Links](#links)
+- [gmx2qmmm v2 (in preparation)](#gmx2qmmm-v2-in-preparation)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [System requirements](#system-requirements)
+  - [**gmx2qmmm** job](#gmx2qmmm-job)
+  - [Input files](#input-files)
+  - [Installation](#installation)
+  - [Examples](#examples)
+  - [References](#references)
+  - [Support and development](#support-and-development)
+  - [Links](#links)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ---
 
 ## Overview
 
-**gmx2qmmm** is a python package to bridge [Gaussian] and [Gromacs]. The test runs were performed using [Gaussian16] and [Gromacs 5.0.2], but the code should be able to read earlier Gaussian and other Gromacs versions. The only limits are the formats of the human-readable input and output files of each program, as such, conversion scripts can be written to make the interface work with any version, if the current code does not support it.
+**gmx2qmmm** is a Python package to bridge [Gaussian] and [Gromacs]. The test runs were performed using [Gaussian16] and [Gromacs 5.0.2], but the code should be able to read earlier Gaussian and other Gromacs versions. The only limits are the formats of the human-readable input and output files of each program, as such, conversion scripts can be written to make the interface work with any version, if the current code does not support it.
 
 Conceptually, **gmx2qmmm** creates a QM/MM potential and performs either single point calculations (i.e., the current energy of your system), geometry optimizations, and linear relaxed scan. (Other ultilities are ongoing)
 
 ## System requirements
- - [python 3.6+] 
+ - [Python 3.6+]
  - [Gaussian16] (and earlier version)
  - [Gromacs 5.0.2] (and earlier version)
 
@@ -64,23 +68,39 @@ For advance information please read the [Documentation].
 
 ---
 
+## Installation
+
+Clone the repository and install with `pip`. We recommend using a fresh virtual environment.
+
+```bash
+~ $ git clone https://github.com/gmx2qmmm/gmx2qmmm_portable
+~ $ cd gmx2qmmm
+~/gmx2qmmm_portable $ pip install .
+```
+
+For development installation, consider installing in editable mode:
+
+```bash
+~/gmx2qmmm_portable $ pip install -e .
+```
+
+---
+
 ## Examples
-The directory example contains SP, OPT, linear SCAN calculation for glycine serine (GLYSER). 
-![alt text](https://github.com/gmx2qmmm/gmx2qmmm_portable/blob/master/example/glyser.png?raw=true)
+The directory example contains SP, OPT, linear SCAN calculation for glycine serine (GLYSER).
+![alt text](https://github.com/gmx2qmmm/gmx2qmmm_portable/blob/master/examples/glyser.png?raw=true)
 
 The names of the input files are default. Go to the sp/opt directory on the command line and run:
 
 ```
-python gmx2qmmm.py
+$ gmx2qmmm
 ```
-
-
 ---
 
 ## References
 
 > A user‐friendly, Python‐based quantum mechanics/Gromacs interface: gmx2qmmm
-> Jan P. Götze, Yuan‐Wei Pi, Simon Petry, Fabian Langkabel,  Jan Felix Witte, Oliver Lemke
+> Jan P. Götze, Yuan‐Wei Pi, Simon Petry, Fabian Langkabel, Jan Felix Witte, Oliver Lemke
 > https://doi.org/10.1002/qua.26486
 
 ## Support and development
@@ -89,7 +109,7 @@ For bug reports/suggestions/complaints please raise an issue on [GitHub].
 Or contact us directly: [gmx2qmmm@gmail.com]
 
 ## Links
-- [Documentation] 
+- [Documentation]
 - [gmx2qmmm reference]
 
 
