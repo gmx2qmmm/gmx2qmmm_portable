@@ -43,7 +43,7 @@ class GenerateTopology():
     This class generates a new topology file
     '''
 
-    def __init__(self, input_dict, system, basedir) -> None:
+    def __init__(self, input_dict) -> None:
 
         '''
         ------------------------------ \\
@@ -61,11 +61,11 @@ class GenerateTopology():
         ------------------------------ \\
         '''
 
-        self.system = system
+        #self.system = system
         self.input_dict = input_dict
-        self.basedir = basedir
+        #self.basedir = basedir
         self.mmflaglist = [] # figure out what that variable exactly is later (empty list in example) XX AJ
-        self.qmmm_topology = str(input_dict['jobname'] + ".qmmm.top")
+        self.qmmm_topology = str(input_dict['jobname'] + ".qmmm.top.init")
         self.generate_top_listsonly()
 
     def find_ffnonbonded(self, includedata):
@@ -143,6 +143,106 @@ class GenerateTopology():
 
         return minimal_mass
 
+    def get_list_topologies(self, topology_input) -> list:
+
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------  \\
+        Recursively Looks For Other Topology Files Referred To In The Original File \\
+        And Adds Them To The List Of Topology Files \\
+        ------------------------------ \\
+        INPUT: \\
+        ---------------  \\
+        topology_input: str -> Name Of Topology \\
+        ------------------------------ \\
+        RETURN: \\
+        ---------------  \\
+        toplist: list -> List Of Topology Files \\
+        ------------------------------ \\
+        '''
+
+        toplist = []
+        with open(topology_input) as ifile:
+            for line in ifile:
+                match = re.search(r"^;", line, flags=re.MULTILINE)
+                if match:
+                    continue
+                match = re.search(r"^#include\s+\"(\S+)\"", line, flags=re.MULTILINE)
+                if match:
+                    match2 = re.search("ffbonded", match.group(1))
+                    if match2:
+                        continue
+                    match2 = re.search("ffnonbonded", match.group(1))
+                    if match2:
+                        continue
+                    match2 = re.search("forcefield.itp", match.group(1))
+                    if match2:
+                        continue
+                    match2 = re.search("posre.itp", match.group(1))
+                    if match2:
+                        continue
+                    foundname = match.group(1)
+                    check = os.path.isfile(foundname)
+                    if not check:
+                        foundname = os.path.join(self.input_dict['gmxtop_path'], *foundname.strip('/').split('/'))
+                        check = os.path.isfile(foundname)
+                        if not check:
+                            print("File " + foundname + " was not found. Maybe update the gmxpath variable in the script? Exiting.")
+                            exit(1)
+                    toplist.append(foundname)
+
+                    toplist.extend(self.get_list_topologies(foundname))
+        return toplist
+
+    def read_molecules(self) -> list:
+
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        --------------- \\
+        Reads List Of Molecules From The Topology File \\
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        NONE \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        list_molecule: list -> List Of Molecules And Their Amount In The System \\
+        ------------------------------ \\
+        '''
+
+        list_molecule = []
+        with open(self.input_dict['topologyfile'], 'r') as file_input:
+            bool_match = False
+            for line in file_input:
+                match = re.search(r"^\[ molecules \]", line, flags=re.MULTILINE)
+                if match:
+                    bool_match = True
+                    break
+            if not bool_match:
+                #   XX AJ turn into Logging
+                print('No "molecules" entry in the provided topology found. Exiting.')
+                exit(1)
+            for line in file_input:
+                # Skip All Comment Lines
+                match = re.search(r"^;", line, flags=re.MULTILINE)
+                if match:
+                    continue
+                # Find All Molecule Types And Their Amount
+                else:
+                    # Extract Lines With A String (Molecule Type, Group 1) And A Number (Molecule Amount, Group 2) Seperated By Whitespace
+                    match = re.search(r"^(\S+)\s+(\d+)", line, flags=re.MULTILINE)
+                    if match:
+                        list_molecule.append([match.group(1), match.group(2)])
+                    else:
+                        #   XX AJ turn into Logging
+                        print("Found an incomprehensible line in molecules list. Exiting.")
+                        print("Last line was:")
+                        print(line)
+                        exit(1)
+        return list_molecule
 
     def get_molecule_topology(self, molecule_name):
 
@@ -163,7 +263,7 @@ class GenerateTopology():
         '''
 
         foundtop = ""
-        toplist = [self.input_dict['topologyfile']] + self.system.list_topology
+        toplist = [self.input_dict['topologyfile']] + self.get_list_topologies(self.input_dict['topologyfile'])
         for element in toplist:
             with open(element) as ifile:
                 for line in ifile:
@@ -216,7 +316,7 @@ class GenerateTopology():
 
         molecule_topologies = []
 
-        for element in self.system.list_molecules:
+        for element in self.read_molecules():
             molecule_topology = self.get_molecule_topology(element[0])
             moltopline = [element[0], molecule_topology]
             molecule_topologies.append(moltopline)
@@ -378,6 +478,38 @@ class GenerateTopology():
             for j in range(i+1, len(qmatoms)):
                 pairwise_permutation.append([qmatoms[i], qmatoms[j]])
 
+    def read_atoms_list(self, file_input_atoms) -> list:
+
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Reads Atom Indices
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        file_input_atoms: str -> Index File \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        list_atoms: list -> List Of Atom Indices \\
+        ------------------------------ \\
+        '''
+
+        list_atoms = []
+        with open(file_input_atoms, 'r') as atom_file:
+            for line in atom_file:
+
+                # Skip Index Group Name
+                if "[" in line or "]" in line:
+                    continue
+
+                atom_index_list = re.findall("\d+", line)
+                if atom_index_list:
+                    list_atoms.extend(map(int, atom_index_list))
+        list_atoms = sorted(np.array(list_atoms).astype(int))
+        return list_atoms
+
     def make_large_top(self):
 
         '''
@@ -449,7 +581,7 @@ class GenerateTopology():
                         if match:
                             includedata.append(match.group(1))
                             continue
-            for molecule in self.system.list_molecules:
+            for molecule in self.read_molecules():
                 curr_topfile = ""
                 for entry in self.molfindlist:
                     if molecule[0] == entry[0]:
@@ -1107,7 +1239,7 @@ class GenerateTopology():
             ffnb = self.find_ffnonbonded(includedata)
 
             if self.input_dict['useinnerouter']:
-                outeratomlist = set([int(i) for i in self.system.list_atoms_outer])
+                outeratomlist = set([int(i) for i in self.read_atoms_list(self.input_dict['inneratomslist'])])
                 atomdatanew = []
                 bonddatanew = []
                 pairdatanew = []
@@ -1274,7 +1406,7 @@ class GenerateTopology():
                 #for i in range(len(qmatomlist)):
                 #    qmatomlist[i] = memory_dict[qmatomlist[i]]
 
-                qmatomlist = set([int(i) for i in self.system.list_atoms_qm])
+                qmatomlist = set([int(i) for i in self.read_atoms_list(self.input_dict['qmatomslist'])])
                 for element in atomdata:
                     if int(element[0]) in qmatomlist:
                         ofile.write(
@@ -1321,7 +1453,7 @@ class GenerateTopology():
                     ofile.write("\n")
             
             
-                for element in angledata:
+                '''for element in angledata:
                     if (
                         (int(element[0]) in qmatomlist)
                         and (int(element[1]) in qmatomlist)
@@ -1371,7 +1503,7 @@ class GenerateTopology():
                         excludedata.append(i) #Added by Nicola
                     else: #Added by Nicola
                         continue #Added by Nicola
-                qmatomlist = set([int(i) for i in qmatomlist])
+                qmatomlist = set([int(i) for i in qmatomlist])'''
 
                 ofile.write("\n[ pairs ]\n")
                 for element in pairdata:
@@ -1431,7 +1563,7 @@ class GenerateTopology():
 
             else:
                 for element in atomdata:
-                    if int(element[0]) in np.array(self.system.list_atoms_qm).astype(int):
+                    if int(element[0]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int):
                         ofile.write(
                             "{:>6d} {:>10s} {:>6d} {:>6s} {:>6s} {:>6d} {:>10.4f}".format(
                                 int(element[0]),
@@ -1464,8 +1596,8 @@ class GenerateTopology():
                     ofile.write("\n")
                 ofile.write("\n[ bonds ]\n")
                 for element in bonddata:
-                    if (int(element[0]) in np.array(self.system.list_atoms_qm).astype(int)) or (
-                        int(element[1]) in np.array(self.system.list_atoms_qm).astype(int)
+                    if (int(element[0]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int)) or (
+                        int(element[1]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int)
                     ):
                         excludeline = [element[0], element[1]]
                         excludedata.append(excludeline)
@@ -1484,11 +1616,11 @@ class GenerateTopology():
                 ofile.write("\n[ angles ]\n")
                 for element in angledata:
                     if (
-                        (int(element[0]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[1]) in np.array(self.system.list_atoms_qm).astype(int))
+                        (int(element[0]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[1]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
                     ) or (
-                        (int(element[1]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[2]) in np.array(self.system.list_atoms_qm).astype(int))
+                        (int(element[1]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[2]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
                     ):
                         excludeline = [element[0], element[2]]
                         excludedata.append(excludeline)
@@ -1499,13 +1631,13 @@ class GenerateTopology():
                 ofile.write("\n[ dihedrals ]\n")
                 for element in dihedraldata:
                     if (
-                        (int(element[0]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[1]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[2]) in np.array(self.system.list_atoms_qm).astype(int))
+                        (int(element[0]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[1]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[2]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
                     ) or (
-                        (int(element[1]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[2]) in np.array(self.system.list_atoms_qm).astype(int))
-                        and (int(element[3]) in np.array(self.system.list_atoms_qm).astype(int))
+                        (int(element[1]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[2]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
+                        and (int(element[3]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int))
                     ):
                         excludeline = [element[0], element[3]]
                         excludedata.append(excludeline)
@@ -1515,12 +1647,12 @@ class GenerateTopology():
                     ofile.write("\n")
                 ofile.write("\n[ settles ]\n")
                 for element in settledata:
-                    if int(element[0]) in np.array(self.system.list_atoms_qm).astype(int):
+                    if int(element[0]) in np.array(self.read_atoms_list(self.input_dict['qmatomslist'])).astype(int):
                         continue
                     for entry in element:
                         ofile.write(str(entry) + " ")
                     ofile.write("\n")
-                # increase exclusions for each Q-M1 atom
+                '''# increase exclusions for each Q-M1 atom
                 for element in self.system.list_atoms_m1:
                     for entry in self.system.list_atoms_qm:
                         excludedata.append([int(element), int(entry)])
@@ -1542,7 +1674,7 @@ class GenerateTopology():
                     if i not in excludedata and i.reverse() not in excludedata: 
                         excludedata.append(i)
                     else:
-                        continue
+                        continue'''
 
                 ofile.write("\n[ exclusions ]\n")
                 for element in excludedata:
@@ -1554,10 +1686,10 @@ class GenerateTopology():
         return None
 
 
-    def make_gmx_index_file(self):
+    '''def make_gmx_index_file(self):
         # previous name "make_exclude_index" XX
 
-        '''
+        ''''''
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -1571,7 +1703,7 @@ class GenerateTopology():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        ''''''
 
         outname = str(self.qmmm_topology) + ".ndx"
         with open(outname, "w") as ofile:
@@ -1606,7 +1738,7 @@ class GenerateTopology():
                                 count=0
                 ofile.write("\n")
 
-        return None
+        return None'''
 
 
     def generate_top_listsonly(self):

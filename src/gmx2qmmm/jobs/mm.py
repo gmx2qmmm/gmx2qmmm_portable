@@ -136,20 +136,28 @@ class MM():
                 "title               =  Yo\ncpp                 =  /usr/bin/cpp\nconstraints         =  none\nintegrator          =  md\ndt                  =  0.001 ; ps !\nnsteps              =  1\nnstcomm             =  0\nnstxout             =  1\nnstvout             =  1\nnstfout             =   1\nnstlog              =  1\nnstenergy           =  1\nnstlist             =  1\nns_type             =  grid\nrlist               =  "
             )
             ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
-            ofile.write(
-                "\ncutoff-scheme = group\ncoulombtype    =  cut-off\nrcoulomb            =  "
-            )
-            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
-            ofile.write("\nrvdw                =  ")
-            ofile.write(str(float(self.dict_input_userparameters['rvdw'])))
-            if self.dict_input_userparameters['useinnerouter']:
+            if not (self.dict_input_userparameters['gmxplus'] == 1):
                 ofile.write(
-                "\nTcoupl              =  no\nfreezegrps          =  OUTER\nfreezedim           =  Y Y Y\nenergygrps          =  QM INNER OUTER\nenergygrp-excl = QM QM INNER OUTER OUTER OUTER\nPcoupl              =  no\ngen_vel             =  no\n"
+                    "\ncutoff-scheme = group\ncoulombtype    =  cut-off\nrcoulomb            =  "
                 )
             else:
                 ofile.write(
-                "\nTcoupl              =  no\nenergygrps          =  QM\nenergygrp-excl = QM QM\nPcoupl              =  no\ngen_vel             =  no\n"
+                    "\ncutoff-scheme = verlet\ncoulombtype    =  cut-off\nrcoulomb            =  "
                 )
+            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
+            ofile.write("\nrvdw                =  ")
+            ofile.write(str(float(self.dict_input_userparameters['rvdw'])))
+            #if self.dict_input_userparameters['useinnerouter']:
+            #    ofile.write(
+            #    "\nTcoupl              =  no\nfreezegrps          =  OUTER\nfreezedim           =  Y Y Y\nenergygrps          =  QM INNER OUTER\nenergygrp-excl = QM QM INNER OUTER OUTER OUTER\nPcoupl              =  no\ngen_vel             =  no\n"
+            #    )
+            #else:
+            #    ofile.write(
+            #    "\nTcoupl              =  no\nenergygrps          =  QM\nenergygrp-excl = QM QM\nPcoupl              =  no\ngen_vel             =  no\n"
+            #    )
+            ofile.write(
+            "\nTcoupl              =  no\nPcoupl              =  no\ngen_vel             =  no\n"
+            )
 
     def run_gmx(self):
 

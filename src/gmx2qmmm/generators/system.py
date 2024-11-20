@@ -23,6 +23,10 @@ import numpy as np
 from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators import geometry, pcf_from_top
 from gmx2qmmm.generators._helper import _flatten, get_coordinates_linkatoms_angstrom
+from gmx2qmmm.generators import reindexing
+from gmx2qmmm.generators import topology_independent as top_indep
+#from gmx2qmmm.generators import generate_top_independent as topprepin# Added by Nicola
+
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -58,11 +62,26 @@ class SystemInfo():
         self.dict_input_userparameters = dict_input_userparameters
         self.int_step_current = 0
 
+        if dict_input_userparameters['useinnerouter']:
+            self.list_atoms_inner = self.read_atoms_list(self.dict_input_userparameters['inneratomslist'])
+            self.list_atoms_outer = self.read_atoms_list(self.dict_input_userparameters['outeratomslist'])
+            self.top_init = top_indep.GenerateTopology(self.dict_input_userparameters)
+        #   If we're not using inner/outer we're keeping the lists empty (currently necessary for some functions but that might change later)
+        else:
+            self.list_atoms_inner = []
+            self.list_atoms_outer = []
+
         #   Make A List Of All Topology Files
         self.list_topology = self.get_list_topologies(self.dict_input_userparameters['topologyfile'])
+        if dict_input_userparameters['useinnerouter']:
+            self.list_topology = self.get_list_topologies(self.top_init)
+
 
         # Read The Different Types Of Molecules In The System
-        self.list_molecules = self.read_molecules()
+        if dict_input_userparameters['useinnerouter']:
+            self.list_molecules = self.read_molecules(self.top_init)
+        else:
+            self.list_molecules = self.read_molecules(self.dict_input_userparameters['topologyfile'])
 
         # Read The Charges For All Atoms
         self.list_charges = []
@@ -72,45 +91,70 @@ class SystemInfo():
         #   Read All Atom Lists
         #   XX AJ currently I'm assuming we're always having separate files for atom indices, only remove this comment when we finally decided so or add the possibility for lists
         self.list_atoms_qm = self.read_atoms_list(self.dict_input_userparameters['qmatomslist'])
+        if dict_input_userparameters['useinnerouter']:
+            ref = self.list_atoms_qm + self.list_atoms_inner + self.list_atoms_outer
+            ref = list(set(ref))
+            memory_dict = reindexing.reindexing_memory(ref, self.list_atoms_outer)
+            for i in range(len(self.list_atoms_qm)):
+                self.list_atoms_qm[i] = memory_dict[self.list_atoms_qm[i]]
+
         if self.dict_input_userparameters['jobtype'] != 'SINGLEPOINT':
             self.list_atoms_active = self.read_atoms_list(self.dict_input_userparameters['activeatomslist'])
+            if dict_input_userparameters['useinnerouter']:
+                ref = self.read_atoms_list(self.dict_input_userparameters['qmatomslist']) + self.list_atoms_inner + self.list_atoms_outer
+                ref = list(set(ref))
+                memory_dict = reindexing.reindexing_memory(ref, self.list_atoms_outer)
+                for i in range(len(self.list_atoms_active)):
+                    self.list_atoms_active[i] = memory_dict[self.list_atoms_active[i]]
         else:
             self.list_atoms_active = []
-        if dict_input_userparameters['useinnerouter']:
-            self.list_atoms_inner = self.read_atoms_list(self.dict_input_userparameters['inneratomslist'])
-            self.list_atoms_outer = self.read_atoms_list(self.dict_input_userparameters['outeratomslist'])
-        #   If we're not using inner/outer we're keeping the lists empty (currently necessary for some functions but that might change later)
-        else:
-            self.list_atoms_inner = []
-            self.list_atoms_outer = []
+        
 
         #   Read Connectivity
         self.list_connectivity_topology = self.read_connectity_topology(self.dict_input_userparameters['topologyfile'])
-
+        if dict_input_userparameters['useinnerouter']:
+            self.list_connectivity_topology = self.connlist_remove_outer(self.list_connectivity_topology, self.list_atoms_outer)
+            ref = self.read_atoms_list(self.dict_input_userparameters['qmatomslist']) + self.list_atoms_inner + self.list_atoms_outer
+            ref = list(set(ref))
+            memory_dict = reindexing.reindexing_memory(ref, self.list_atoms_outer)
+            for i in range(len(self.list_connectivity_topology)):
+                for j in range(len(self.list_connectivity_topology[i])):
+                    self.list_connectivity_topology[i][j] = memory_dict[self.list_connectivity_topology[i][j]]
         #   Read Initial Geometry
         #   XX AJ I would prefer only one function here independent of the file type and only make that distinction within the function. I'll get back to that later when I'm writing GeneratorGeometries.py
         if self.dict_input_userparameters['coordinatefile'][-4:] == ".gro":
             #logger(logfile, "Reading geometry (.gro)...\n")
             # XX AJ if we rewrite gro files to g96 files, the following function can be deleted and we can read the g96 file with geometry.readg96 afterwards
             self.list_geometry_initial = geometry.readgeo(self.dict_input_userparameters['coordinatefile'])
+            if dict_input_userparameters['useinnerouter']:
+                self.list_geometry_initial = self.remove_outer_from_geo(self.list_geometry_initial,self.list_atoms_outer) 
             # Writing high-precision coordinate file
             # logger(logfile, "Writing high-precision coordinate file...")
             self.write_file_gromacs_highprec(self.dict_input_userparameters['coordinatefile']) # XX temp removed logfile until logfile decision of Florian AJ
             self.dict_input_userparameters['coordinatefile'] = self.dict_input_userparameters['jobname'] + ".g96"
+            if dict_input_userparameters['useinnerouter']:
+                self.remove_outer_from_gro(self.dict_input_userparameters['jobname'] + ".g96", self.list_atoms_outer)
             # logger(logfile, "Done.\n")
         elif self.dict_input_userparameters['coordinatefile'][-4:] == ".g96":
             #logger(logfile, "Reading geometry (.g96)...\n")
             self.list_geometry_initial = geometry.readg96(self.dict_input_userparameters['coordinatefile'])
+            if dict_input_userparameters['useinnerouter']:
+                self.list_geometry_initial = self.remove_outer_from_geo(self.list_geometry_initial,self.list_atoms_outer)
+                if self.int_step_current == 0:
+                    self.remove_outer_from_gro(self.dict_input_userparameters['jobname'] + ".g96", self.list_atoms_outer)
+  
 
         self.int_number_atoms = int(len(self.list_geometry_initial)/3)
+        if dict_input_userparameters['useinnerouter']:
+            self.int_number_atoms = self.int_number_atoms - len(self.list_atoms_outer)
 
         #   Create xyzq (Coordinates And Charges) For The Whole System
         #   XX AJ also prefer only one function here, I'll make one function of it
         #   XX AJ technically, I would prefer this xyzq function not in this class, but it's used in the get_linkatoms_ang, so I'll keep it here
-        if dict_input_userparameters['useinnerouter']:
-            self.array_xyzq_initial = geometry.make_xyzq_io(self.list_geometry_initial, self.list_charges, self.list_atoms_outer)
-        else:
-            self.array_xyzq_initial = geometry.make_xyzq(self.list_geometry_initial, self.list_charges)
+        #if dict_input_userparameters['useinnerouter']:
+        #    self.array_xyzq_initial = geometry.make_xyzq_io(self.list_geometry_initial, self.list_charges, self.list_atoms_outer)
+        #else:
+        self.array_xyzq_initial = geometry.make_xyzq(self.list_geometry_initial, self.list_charges)
 
         #   Current Geometry Gets Updated During Optimizations
         self.array_xyzq_current = self.array_xyzq_initial
@@ -124,6 +168,172 @@ class SystemInfo():
         self.linkcorrlist, self.list_atoms_q1, self.list_atoms_q2, self.list_atoms_q3, self.list_atoms_m3 = self.get_list_atoms_link()
 
 
+    def remove_outer_from_gro(self, gro, outeratomlist):
+
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Removes the outer atoms from the gro file
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        Coordinatefile \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        Coordinate file without the outer atoms \\
+        ------------------------------ \\
+        '''
+        import os
+        outeratomlist = set([int(i) for i in outeratomlist])
+        temp_gro = gro + ".tmp"
+        grodata = []
+        with open(gro, 'r') as ifile:
+            lines = ifile.readlines()
+            grodata += [[lines[0]]] + [[lines[1]]] + [[lines[2]]] + [[lines[3]]]
+            for line in lines[4:len(lines) - 4]:
+                data = line.strip().split()
+                if int(data[3]) in outeratomlist:
+                    continue
+                else:
+                    grodata += [data + ["\n"]]
+            grodata += [[lines[-4]]] + [[lines[-3]]] + [[lines[-2]]] + [[lines[-1]]]
+
+        atom_map = {}
+        residue_map = {}
+        curr = 1
+        curr2 = int(grodata[4][0])
+
+        for i in range(4, len(grodata) - 4, 1):
+            if int(grodata[i][3]) not in atom_map:
+                atom_map[int(grodata[i][3])] = int(curr)
+                curr += 1
+            if int(grodata[i][0]) not in residue_map:
+                residue_map[int(grodata[i][0])] = int(curr2)
+                curr2 += 1
+
+        for i in range(4, len(grodata) - 4, 1):
+            grodata[i][3] = str(atom_map[int(grodata[i][3])])
+            grodata[i][0] = str(residue_map[int(grodata[i][0])])
+
+        with open(temp_gro, 'w') as ofile:
+   
+            for line in grodata[:4]:
+                ofile.write(line[0])
+
+            for line in grodata[4:len(grodata) -4]:
+                ofile.write(f"{int(line[0]):5d} {line[1]:<5} {line[2]:<5} {int(line[3]):5d} {float(line[4]):15.9f} {float(line[5]):15.9f} {float(line[6]):15.9f}\n")
+
+            for line in grodata[len(grodata)-4:]:
+                ofile.write(line[0])
+
+
+        os.replace(temp_gro, gro)
+
+
+    def remove_outer_from_pointcharges(self, pointcharges, outeratomlist):
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Removes the outer atoms from the point charge field file
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        Point charge field file\\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        Point charge field file without the outer atoms \\
+        ------------------------------ \\
+        '''
+        import os
+        outeratomlist = set([int(i) for i in outeratomlist])
+        temp_pointcharges = pointcharges + ".tmp"
+        with open(pointcharges, 'r') as ifile, open(temp_pointcharges, 'w') as ofile:
+            lines = ifile.readlines()
+            for i in range(len(lines)):
+                if (i + 1) in outeratomlist:
+                    continue
+                else:
+                    ofile.write(lines[i])
+    
+        os.replace(temp_pointcharges, pointcharges)
+
+    def remove_outer_from_chargevec(self, chargevec, outeratomlist): 
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Removes the outer atoms from the charge vector list
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        Charge vector list \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        Charge vector list without the outer atoms \\
+        ------------------------------ \\
+        '''
+        outeratomlist = set([int(i) for i in outeratomlist])
+        new_chargevec = []
+        for i in range(len(chargevec)):
+            if (i + 1) in outeratomlist:
+                continue
+            else:
+                new_chargevec.append(chargevec[i])
+    
+        chargevec = new_chargevec
+
+    def remove_outer_from_geo(self, geo, outeratomlist):
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Removes the outer atoms from the geometry
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        Geometry list \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        Geometry list without the outer atoms \\
+        ------------------------------ \\
+        '''
+        outeratomlist = set([int(i) for i in outeratomlist])
+        new_geo = []
+        for i in range(len(geo) // 3):
+            atom_index = i + 1
+            if atom_index not in outeratomlist:
+                new_geo.extend(geo[i*3:(i+1)*3])
+        return new_geo
+
+    def connlist_remove_outer(connlist, outeratomlist):
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        ---------------
+        Removes the outer atoms from the connectivity list
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        Connectivity list \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        Connectivity list without the outer atoms \\
+        ------------------------------ \\
+        '''
+        outeratomlist = set([int(i) for i in outeratomlist])
+        filtered_connlist = []
+
+        for element in connlist:
+            if not any(int(i) in outeratomlist for i in element):
+                filtered_connlist.append(element)
+        return filtered_connlist
 
     def read_atoms_list(self, file_input_atoms) -> list:
 
@@ -157,7 +367,7 @@ class SystemInfo():
         list_atoms = sorted(np.array(list_atoms).astype(int))
         return list_atoms
 
-    def read_molecules(self) -> list:
+    def read_molecules(self, top_file) -> list:
 
         '''
         ------------------------------ \\
@@ -176,7 +386,8 @@ class SystemInfo():
         '''
 
         list_molecule = []
-        with open(self.dict_input_userparameters['topologyfile'], 'r') as file_input:
+        #with open(self.dict_input_userparameters['topologyfile'], 'r') as file_input:
+        with open(top_file, 'r') as file_input:
             bool_match = False
             for line in file_input:
                 match = re.search(r"^\[ molecules \]", line, flags=re.MULTILINE)
@@ -224,10 +435,16 @@ class SystemInfo():
         '''
 
         list_charges = []
-        current_topology = self.dict_input_userparameters['topologyfile']
+        if dict_input_userparameters['useinnerouter']:
+            current_topology = self.top_init
+        else:
+            current_topology = self.dict_input_userparameters['topologyfile']
         molecule_name = list_molecule_entry[0]
         molecule_count = int(list_molecule_entry[1])
-        found = self.check_occurence_topology_molecule(molecule_name, self.dict_input_userparameters['topologyfile'])
+        if dict_input_userparameters['useinnerouter']:
+            found = self.check_occurence_topology_molecule(molecule_name, self.top_init)
+        else:
+            found = self.check_occurence_topology_molecule(molecule_name, self.dict_input_userparameters['topologyfile'])
 
         if not found:
             for element in self.list_topology:
