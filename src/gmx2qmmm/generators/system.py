@@ -1,6 +1,5 @@
 #   // INITIAL DESCRIPTION //
-# NOTE (AJ): I don't know what to put here because the module only has this one class. What is the difference between the module description and the class description here?
-"""Short Module Description; Reference To Readme"""
+"""Setting up permamenent and initial system information"""
 
 #   // MEATDATA //
 __author__ = 'Alina Jansen'
@@ -26,7 +25,6 @@ from gmx2qmmm.generators._helper import _flatten, get_coordinates_linkatoms_angs
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add the option to read atom input from a list (if that's what we want, wait for Florians opinion)
 #   - Add logger
 #   NOTE:
 
@@ -977,7 +975,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = os.path.join('json_files', 'mass_map.json')
+        str_file_mass_map = os.path.join('..', '..', 'src', 'json_files', 'mass_map.json')
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 

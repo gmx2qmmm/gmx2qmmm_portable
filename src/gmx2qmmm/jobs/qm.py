@@ -9,6 +9,9 @@ __date__ = '2024-09-19'
 
 #   Imports Of Existing Libraries
 import re
+import os
+import sys
+import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
@@ -147,19 +150,18 @@ class QM():
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
-                # XX AJ commented out until testing
-                # subprocess.call([g16cmd, str(qmfile)])
+                subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm)])
                 logname = self.str_inputfile_qm[:-3]
                 logname += "log"
-                # os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
-                # os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
+                os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
+                os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
                 # logger(logfile, "G16 Done.\n")
             else:
                 # logger(
                 #     logfile,
                 #     "NOTE: Using existing G16 files, skipping calculation for this step.\n",
                 # )
-                print('XX')
+                pass
             if not os.path.isfile(self.dict_input_userparameters['jobname'] + insert + ".fort.7"):
                 if not os.path.isfile("fort.7"):
                     # logger(
@@ -167,7 +169,7 @@ class QM():
                     #     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                     # )
                     # exit(1)
-                    print('XX error')
+                    pass
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
                 # logger(
                 #     logfile,

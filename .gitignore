@@ -167,7 +167,7 @@ cython_debug/
 # gmx2qmmm example files (AJ)
 params.txt
 example/
-LogFileGraveyard/
+*/logfile.txt*
 
 # pdf files
 *.pdf
