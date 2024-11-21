@@ -1,0 +1,55 @@
+------------------------------------------------------------
+2024-11-21 18:50:47
+
+Initialisation of gmx2qmmm completed; Backed up existing logfile to C:\Users\Alina\Documents\Uni\AG_goetze\gmx2qmmm_v2\gmx2qmmm_portable\examples\sp\logfile.txt_2024-11-21_18-50-47.
+------------------------------------------------------------
+
+------------------------------------------------------------
+2024-11-21 18:50:47
+
+Asserting basic correctness of inputs
+------------------------------------------------------------
+
+------------------------------------------------------------
+2024-11-21 18:50:47
+
+Basic correctness check COMPLETE
+------------------------------------------------------------
+
+------------------------------------------------------------
+2024-11-21 18:50:47
+
+Parameters:
+	includeprio:             0
+	jobtype:                 opt
+	jobname:                 test
+	gmxtop_path:             C:\Users\Alina\Documents\Uni\AG_goetze\top
+	gmxcmd:                  gmx
+	gmxpath:                 /scratch/spetry/Gromacs_bin/bin/
+	qmcommand:               g16
+	charge:                  1
+	qmatomslist:             C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\qmatoms.ndx
+	activeatomslist:         C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\act.ndx
+	coordinatefile:          C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\conf.g96
+	topologyfile:            C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\topol.top
+	useinnerouter:           0
+	inneratomslist:          []
+	outeratomslist:          []
+	cores:                   1
+	program:                 G16
+	method:                  BP86
+	basis:                   STO-3G
+	multiplicity:            1
+	memory:                  1000
+	extra:                   NONE
+	rvdw:                    2.0
+	rcoulomb:                0.0
+	databasefit:             morse
+	print_level:             normal
+	forcefield:              amberGS
+	f_thresh:                0
+	maxcycle:                1000
+	propagator:              STEEP
+	stepsize:                1
+------------------------------------------------------------
+
