@@ -31,30 +31,21 @@ class App():
 
         self.work_dir = pathlib.Path(work_dir).resolve()
 
-        self.logfile = None
-        if logfile is not None:
+        log_entry ='Initialisation of gmx2qmmm completed'
+        if logfile is None:
+            self.logfile = None
+        else:
             self.logfile = pathlib.Path(logfile).resolve()
 
-        log_entry ='Initialisation of gmx2qmmm completed'
-        if (self.logfile is not None) and self.logfile.is_file():
-            backup = self.backup_path(self.logfile)
-            log_entry += f'; Backed up existing logfile to {backup}.'
+            if self.logfile.is_file():
+                backup = self.backup_path(self.logfile)
+                log_entry += f'; Backed up existing logfile to {backup}.'
 
-        Logger.log_append(
-            path_file_logging=self.logfile,
-            str_info_to_log=log_entry
-        )
-
-        self.parameters = FileReader.read_file(
-            path_file_logging=self.logfile,
-            str_filename_input=parameters
-        )
+        Logger.log(self.logfile, log_entry)
+        self.parameters = FileReader.read_file(parameters, self.logfile)
 
         log_entry = 'Parameters:\n' + '\n'.join([f'\t{k+ ":":<25}{v}' for k, v in self.parameters.items()])
-        Logger.log_append(
-            path_file_logging=self.logfile,
-            str_info_to_log=log_entry
-        )
+        Logger.log(self.logfile, log_entry)
 
         self.initalize_system()
         self.generate_topology()
