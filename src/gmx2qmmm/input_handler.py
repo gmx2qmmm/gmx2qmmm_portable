@@ -126,11 +126,9 @@ class FileReader():
                     #   If Value Was Set, It Has To Be The File Path + Name (Absolute Path) Of The File To Be Included
                     file_parameters_include = str_pair_parameter.strip().split('=')[1]
 
-                    with open(os.path.abspath(file_parameters_include)) as file_parameters_superior:
+                    with open(os.path.abspath(file_parameters_include)) as fp:
 
-                        list_content_file_include: list = file_parameters_superior.readlines()
-
-                        file_parameters_superior.close()
+                        list_content_file_include: list = fp.readlines()
 
                     #   Iterate Over The List Of Superior Parameters
                     for str_pair_parameter_superior in list_content_file_include:

@@ -16,9 +16,7 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
-from gmx2qmmm.generators._helper import filter_xyzq, _flatten
-from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators._helper import filter_xyzq
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -413,6 +411,159 @@ class QM():
                 if match:
                     self.pcf_self = float(match.group(1))
                     break
+
+
+def make_orca_inp(qmmmInputs):
+    jobname = qmmmInputs.qmmmparams.jobname
+    gro = qmmmInputs.gro
+    #qmmmtop = qmmmInputs.top                       SP activate next line
+    qmmmtop = qmmmInputs.qmmmtop
+    qmatomlist = qmmmInputs.qmatomlist
+    pcffile = qmmmInputs.pcffile
+    curr_step = qmmmInputs.qmmmparams.curr_step
+    linkatoms = qmmmInputs.linkatoms
+    logfile = qmmmInputs.logfile
+    nmaflag = qmmmInputs.nmaflag
+
+    method = qmmmInputs.qmparams.method
+    basis = qmmmInputs.qmparams.basis
+    charge = qmmmInputs.qmparams.charge
+    multi = qmmmInputs.qmparams.multi
+    cores = qmmmInputs.qmparams.cores
+    memory = qmmmInputs.qmparams.memory
+    extra = qmmmInputs.qmparams.extra
+
+    insert = ""
+    oldinsert = ""
+    if int(curr_step) > 0:
+        insert = str("." + str(int(curr_step) ))
+        if int(curr_step) > 1:
+            oldinsert = str("." + str(int(curr_step) - 1))
+    orcafile = str(jobname + insert + ".inp")
+    gbwfile = str(jobname + insert + ".gbw")
+    oldgbwfile = str(jobname + oldinsert + ".gbw")
+
+    if nmaflag == 1:
+        oldgbwfile = str(jobname + ".gbw")
+    #chkfile = str(jobname + insert + ".chk")
+    #oldchkfile = str(jobname + oldinsert + ".chk")
+
+    #if nmaflag == 1:
+    #    oldchkfile = str(jobname + ".chk")
+
+    with open(orcafile, "w") as ofile:
+        fullcoords = get_full_coords_angstrom(gro)
+        atoms = get_atoms(qmmmtop, logfile)
+        original_stdout = sys.stdout # Save a reference to the original standard output
+        with open('top_info.txt', 'w') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            print('QMMMTOPINFO')
+            for i in atoms:
+                print(str(i))
+            sys.stdout = original_stdout # Reset the standard output to its original value
+        with open('gro_info.txt', 'w') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            print('GROINFO')
+            for i in fullcoords:
+                print(str(i))
+            sys.stdout = original_stdout # Reset the standard output to its original value
+
+        ofile.write("!" + str(method))
+        if str(basis) != "NONE":
+            ofile.write(" " + str(basis))
+        ofile.write(" AutoAux ENGRAD PrintMOs Printbasis NoUseSym SCFCONV8 CHELPG" + "\n")
+        if str(extra) != "NONE":
+            ofile.write(str(extra) + "\n")
+        if int(curr_step) == 0:
+            ofile.write("!HUECKEL" + "\n")
+        if int(curr_step) != 0 or nmaflag == 1:
+            ofile.write("!MORead" + "\n")
+            ofile.write("%moinp " + "\"" + oldgbwfile + "\"" +"\n")
+
+        ofile.write("%maxcore" + " " + str(memory) + "\n")
+        ofile.write("%pal" + "\n" + "nprocs" + " " + str(cores) + "\n" + "end" + "\n")
+
+
+        #ofile.write("%moinp=" + gbwfile + "\n")
+        #if int(curr_step) != 0 or nmaflag == 1:
+        #    ofile.write("%OLDCHK=" + oldchkfile + "\n")
+        #ofile.write("#P " + str(method))
+        #if str(basis) != "NONE":
+        #    ofile.write("/" + str(basis))
+        #if str(extra) != "NONE":
+        #    ofile.write(" " + str(extra))
+        #if int(curr_step) != 0 or nmaflag == 1:
+        #    ofile.write(" guess=read")
+        #ofile.write(
+        #    " nosymm gfinput gfprint force charge guess=huckel punch=derivatives iop(3/33=1,6/7=3) prop(field,read) pop=esp\n"
+        #) #SP added 6/7=3 to print all MOs
+        ofile.write("%pointcharges \"pointcharges.pc\" " + "\n\n")
+        ofile.write(
+            "\n#QM part of step "+str(curr_step)+"\n\n"
+            + "*"
+            + " "
+            + "xyz"
+            + " "
+            + str(int(charge))
+            + " "
+            + str(int(multi))
+            + "\n"
+        )
+
+        count = 0
+        for element in fullcoords:
+            if int(count + 1) in np.array(qmatomlist).astype(int):
+                #print(str(count)+" "+str(element)+" "+str(len(atoms)))
+                ofile.write(
+                    "{:<2s} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                        str(atoms[count]),
+                        float(element[0]),
+                        float(element[1]),
+                        float(element[2]),
+                    )
+                )
+            count += 1
+        for element in linkatoms:
+            # links are already in angstrom
+            ofile.write(
+                "{:<2s} {:>12.6f} {:>12.6f} {:>12.6f}\n".format(
+                    str("H"), float(element[0]), float(element[1]), float(element[2])
+                )
+            )
+        #ofile.write("\n")
+        ofile.write("*" + "\n")
+
+
+        with open("pointcharges.pc", 'w') as pfile:
+
+            with open(pcffile) as ifile:
+                c = 0
+                for line in ifile:
+                    match = re.search(
+                        r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+                    )
+                    if match:
+                        c += 1
+
+            with open(pcffile) as ifile:
+                pfile.write(str(int(c)) + "\n")
+                for line in ifile:
+                    match = re.search(
+                        r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
+                    )
+                    if match:
+                        pfile.write(
+                            "{:>12.6f} {:>15.9f} {:>15.9f} {:>15.9f}\n".format(
+                                float(match.group(4)),
+                                float(match.group(1)),
+                                float(match.group(2)),
+                                float(match.group(3)),
+                            )
+                        )
+        #ofile.write("\n")
+
+
+    return orcafile
 
 
 class QM_gaussian(QM):

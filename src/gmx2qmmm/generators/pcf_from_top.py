@@ -333,33 +333,36 @@ def read_numatoms(inp):
     ------------------------------
     '''
 
-    file_info = open(inp, 'r')
     filetype = inp[-3:]
     if filetype == 'g96':
         pos_searched = False
-        for i, line in enumerate(file_info.readlines()):
-            if 'POSITION' in line:
-                pos_start = i
-                pos_searched = True
-            elif ('END' in line) and pos_searched:
-                pos_end = i
-                pos_searched = False
+        with open(inp ) as fp:
+            for i, line in enumerate(fp):
+                if 'POSITION' in line:
+                    pos_start = i
+                    pos_searched = True
+                elif ('END' in line) and pos_searched:
+                    pos_end = i
+                    pos_searched = False
         return pos_end - (pos_start + 1)
-    elif filetype == 'gro':
-        file = open(inp, "r") #conf.gro changed SP
-        for i in range(2):
-            num = file.readline().split()
-        file.close()
+
+    if filetype == 'gro':
+        with open(inp) as fp:
+            for i in range(2):
+                num = fp.readline().split()
+
         return int(num[0])
 
-def makeout(coords, charges, name):
-    ofile = open(name, "w")
-    for i in range(0, len(charges)):
+    raise ValueError(f'Unknown file type {filetype}. Can only process ".gro" and ".g96"')
 
-        for j in range(0, 3):
-            ofile.write("{:>16.8f} ".format(coords[i * 3 + j]))
-        ofile.write("{:>16.8f}\n".format(charges[i]))
-    ofile.close()
+
+def makeout(coords, charges, name):
+    with open(name, "w") as fp:
+        for i in range(0, len(charges)):
+
+            for j in range(0, 3):
+                fp.write("{:>16.8f} ".format(coords[i * 3 + j]))
+            fp.write("{:>16.8f}\n".format(charges[i]))
 
 
 def generate_pcf_from_top(gro, top, out, gmxtop_path):
