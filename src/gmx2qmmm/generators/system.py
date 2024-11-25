@@ -975,7 +975,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = os.path.join('..', '..', 'src', 'json_files', 'mass_map.json')
+        str_file_mass_map = os.path.join('src', 'json_files', 'mass_map.json')
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 

@@ -95,7 +95,7 @@ class QM():
             str_inputfile_qm.write(atoms_section)
             str_inputfile_qm.write(self.additional_input)
 
-        if self.dict_input_userparameters['qmcommand'] == 'g16':
+        if self.dict_input_userparameters['qmcommand'] == 'rung16':
 
 
 
@@ -150,7 +150,7 @@ class QM():
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
-                subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm)])
+                self.execute_g16(self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm))
                 logname = self.str_inputfile_qm[:-3]
                 logname += "log"
                 os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
@@ -178,6 +178,10 @@ class QM():
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
             # XX AJ: Nicola adding
             pass
+
+    def execute_g16(self, g16cmd, qmfile):
+        #   Call g16 in a seperate function to be able to mock it
+        subprocess.call([g16cmd, str(qmfile)])
 
     def read_qm_energy(self):
 
@@ -452,7 +456,8 @@ class QM_gaussian(QM):
 
         self.header += "#P " + str(self.dict_input_userparameters['method'])
         self.header += "/" + str(self.dict_input_userparameters['basis'])
-        self.header += " " + str(self.dict_input_userparameters['extra'])
+        if not self.dict_input_userparameters['extra'].lower() == 'none':
+            self.header += " " + str(self.dict_input_userparameters['extra'])
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
             self.header += " guess=read"
