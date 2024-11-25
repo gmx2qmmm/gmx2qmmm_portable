@@ -33,7 +33,7 @@ class Singlepoint():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -58,23 +58,24 @@ class Singlepoint():
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
 
         #   XX AJ check how to deal with nma flag later
         self.nmaflag = 0
 
         #   Initialize QM Class (XX AJ differentiate between qm program here?)
         if self.dict_input_userparameters['qmcommand'] == 'g16':
-            self.class_qm_job = qm.QM_gaussian(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+            self.class_qm_job = qm.QM_gaussian(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
             pass
 
         #   Initialize MM Class
-        self.class_mm_job = mm.MM(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.class_mm_job = mm.MM(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
 
         #   Initialize QMMM Energy And Forces Generator Classes
-        self.class_qmmm_energy = GeneratorEnergies(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base, self.class_qm_job, self.class_mm_job)
-        self.class_qmmm_forces = GeneratorForces(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_energy = GeneratorEnergies(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_forces = GeneratorForces(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
 
 
         #   Run (Initial) Singlepoint Calculation

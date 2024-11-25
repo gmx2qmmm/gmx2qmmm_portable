@@ -35,7 +35,7 @@ class SystemInfo():
     This Class Reads And Stores Information About The System
     '''
 
-    def __init__(self, dict_input_userparameters) -> None:
+    def __init__(self, dict_input_userparameters, base_dir) -> None:
 
         '''
         ------------------------------ \\
@@ -53,6 +53,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
 
+        self.base_dir = str(base_dir)
         self.dict_input_userparameters = dict_input_userparameters
         self.int_step_current = 0
 
@@ -975,7 +976,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = os.path.join('src', 'json_files', 'mass_map.json')
+        str_file_mass_map = os.path.join(self.base_dir, 'src', 'json_files', 'mass_map.json')
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 

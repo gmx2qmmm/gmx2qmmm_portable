@@ -2,22 +2,22 @@
 includeprio=0
 
 # PARAMETERS
-jobtype=opt
+jobtype=singlepoint
 jobname=test
 
-gmxtop_path=C:\Users\Alina\Documents\Uni\AG_goetze\top
+gmxtop_path=/trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/share/gromacs/top/
 gmxcmd=gmx
-gmxpath=/scratch/spetry/Gromacs_bin/bin/ 
+gmxpath=/trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/
 qmcommand=g16
 charge=1
 
 # atomlists
-qmatomslist=C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\qmatoms.ndx
-activeatomslist=C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\act.ndx
+qmatomslist=qmatoms.ndx
+activeatomslist=act.ndx
 
 # coordinatefile
-coordinatefile=C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\conf.g96
-topologyfile=C:\Users\Alina\Documents\Uni\AG_goetze\qmmm_revision\LibFiles\topol.top
+coordinatefile=conf.g96
+topologyfile=topol.top
 
 # INNER / OUTER PARAMETERS
 useinnerouter=0
@@ -34,7 +34,7 @@ memory=1000
 extra=NONE
 
 rvdw=2.0
-rcoulomb=0.0
+rcoulomb=2.0
 databasefit=morse
 print_level=normal
 forcefield=amberGS
