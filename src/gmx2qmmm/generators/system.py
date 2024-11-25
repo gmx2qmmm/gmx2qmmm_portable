@@ -20,7 +20,6 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators import geometry, pcf_from_top
 from gmx2qmmm.generators._helper import _flatten, get_coordinates_linkatoms_angstrom
 
