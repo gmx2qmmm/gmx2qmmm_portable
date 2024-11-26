@@ -31,7 +31,7 @@ class App():
 
         self.work_dir = pathlib.Path(work_dir).resolve()
 
-        log_entry ='Initialisation of gmx2qmmm completed'
+        log_entry = 'Initialisation of gmx2qmmm completed'
         if logfile is None:
             self.logfile = None
         else:
