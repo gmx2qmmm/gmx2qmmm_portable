@@ -16,9 +16,7 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
-from gmx2qmmm.generators._helper import filter_xyzq, _flatten
-from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators._helper import filter_xyzq
 
 #   // TODOS & NOTES //
 #   TODO:

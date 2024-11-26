@@ -553,43 +553,42 @@ class GeneratePCF():
         ------------------------------
         '''
 
-        ofile = open(self.pcf_filename, "w")
-        count = 0
-        list_atoms_m2 = np.array(self.system.list_atoms_m2).reshape(-1)
-        m2count = 0
-        for element in self.updated_chargelist:
-            count += 1
-            if int(count) in np.array(list(_flatten(list_atoms_m2))).astype(int):
-                if len(element) != 4:
-                    print("Line " + str(count) + " does not contain data. Exiting.")
-                    exit(1)
+        with open(self.pcf_filename, "w") as ofile:
+            count = 0
+            list_atoms_m2 = np.array(self.system.list_atoms_m2).reshape(-1)
+            m2count = 0
+            for element in self.updated_chargelist:
+                count += 1
+                if int(count) in np.array(list(_flatten(list_atoms_m2))).astype(int):
+                    if len(element) != 4:
+                        print("Line " + str(count) + " does not contain data. Exiting.")
+                        exit(1)
+                    ofile.write(
+                        "{:<.10f} {:<.10f} {:<.10f} {:<.10f}\n".format(
+                            float(element[0]),
+                            float(element[1]),
+                            float(element[2]),
+                            float(new_field[m2count][3]) + float(element[3]),
+                        )
+                    )
+                    m2count += 1
+                    continue
+                if int(count) in np.array(self.system.list_atoms_m1).astype(int):
+                    ofile.write("QM\n")
+                    continue
+                else:
+                    for i in range(0, len(element)):
+                        ofile.write(str(element[i]))
+                        if i != len(element) - 1:
+                            ofile.write(" ")
+                    ofile.write("\n")
+            for i in range(len(list(_flatten(list_atoms_m2))), len(new_field)):
                 ofile.write(
                     "{:<.10f} {:<.10f} {:<.10f} {:<.10f}\n".format(
-                        float(element[0]),
-                        float(element[1]),
-                        float(element[2]),
-                        float(new_field[m2count][3]) + float(element[3]),
+                        float(new_field[i][0]),
+                        float(new_field[i][1]),
+                        float(new_field[i][2]),
+                        float(new_field[i][3]),
                     )
                 )
-                m2count += 1
-                continue
-            if int(count) in np.array(self.system.list_atoms_m1).astype(int):
-                ofile.write("QM\n")
-                continue
-            else:
-                for i in range(0, len(element)):
-                    ofile.write(str(element[i]))
-                    if i != len(element) - 1:
-                        ofile.write(" ")
-                ofile.write("\n")
-        for i in range(len(list(_flatten(list_atoms_m2))), len(new_field)):
-            ofile.write(
-                "{:<.10f} {:<.10f} {:<.10f} {:<.10f}\n".format(
-                    float(new_field[i][0]),
-                    float(new_field[i][1]),
-                    float(new_field[i][2]),
-                    float(new_field[i][3]),
-                )
-            )
-        ofile.write("$end\n")
-        ofile.close()
+            ofile.write("$end\n")
