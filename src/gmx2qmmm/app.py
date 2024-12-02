@@ -57,7 +57,7 @@ class App():
             str_info_to_log=log_entry
         )
 
-        self.initalize_system()
+        self.initialize_system()
         self.generate_topology()
 
         # Add list of elements to system instance
@@ -93,7 +93,7 @@ class App():
         timestamp = f"{now.date()}_{now.hour}-{now.minute}-{now.second}"
         return path.rename(path.with_name(f"{path.name}_{timestamp}"))
 
-    def initalize_system(self) -> None:
+    def initialize_system(self) -> None:
         """Setup system using input parameters"""
         self.system = SystemInfo(self.parameters, self.base_dir)
 
