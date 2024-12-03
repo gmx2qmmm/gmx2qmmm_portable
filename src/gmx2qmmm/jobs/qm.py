@@ -9,6 +9,9 @@ __date__ = '2024-09-19'
 
 #   Imports Of Existing Libraries
 import re
+import os
+import sys
+import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
@@ -92,7 +95,7 @@ class QM():
             str_inputfile_qm.write(atoms_section)
             str_inputfile_qm.write(self.additional_input)
 
-        if self.dict_input_userparameters['qmcommand'] == 'g16':
+        if self.dict_input_userparameters['qmcommand'] == 'rung16':
 
 
 
@@ -147,19 +150,18 @@ class QM():
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
-                # XX AJ commented out until testing
-                # subprocess.call([g16cmd, str(qmfile)])
+                self.execute_g16(self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm))
                 logname = self.str_inputfile_qm[:-3]
                 logname += "log"
-                # os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
-                # os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
+                os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
+                os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
                 # logger(logfile, "G16 Done.\n")
             else:
                 # logger(
                 #     logfile,
                 #     "NOTE: Using existing G16 files, skipping calculation for this step.\n",
                 # )
-                print('XX')
+                pass
             if not os.path.isfile(self.dict_input_userparameters['jobname'] + insert + ".fort.7"):
                 if not os.path.isfile("fort.7"):
                     # logger(
@@ -167,7 +169,7 @@ class QM():
                     #     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                     # )
                     # exit(1)
-                    print('XX error')
+                    pass
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
                 # logger(
                 #     logfile,
@@ -176,6 +178,10 @@ class QM():
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
             # XX AJ: Nicola adding
             pass
+
+    def execute_g16(self, g16cmd, qmfile):
+        #   Call g16 in a seperate function to be able to mock it
+        subprocess.call([g16cmd, str(qmfile)])
 
     def read_qm_energy(self):
 
@@ -450,7 +456,8 @@ class QM_gaussian(QM):
 
         self.header += "#P " + str(self.dict_input_userparameters['method'])
         self.header += "/" + str(self.dict_input_userparameters['basis'])
-        self.header += " " + str(self.dict_input_userparameters['extra'])
+        if not self.dict_input_userparameters['extra'].lower() == 'none':
+            self.header += " " + str(self.dict_input_userparameters['extra'])
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
             self.header += " guess=read"

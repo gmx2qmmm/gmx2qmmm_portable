@@ -1,0 +1,261 @@
+{
+    "PRIO": {
+        "includeprio": {
+            "old_parameter": "",
+            "default_value": 0,
+            "type": [
+                "int"
+            ],
+            "description": "Prioritization of parameter file or included files. 0: Prioritization of parameter file; 1: Prioritization of included files."
+        }
+    },
+    "JOB": {
+        "jobtype": {
+            "old_parameter": "jobtype",
+            "default_value": "singlepoint",
+            "type": [
+                "str"
+            ],
+            "description": "Jobtype."
+        },
+        "jobname": {
+            "old_parameter": "jobname",
+            "default_value": "test",
+            "type": [
+                "str"
+            ],
+            "description": "Name of the job."
+        }
+    },
+    "PATH": {
+        "gromacstopologypath": {
+            "old_parameter": "gmxtop_path",
+            "default_value": "gromacs-2019.1/share/gromacs/top/",
+            "type": [
+                "str"
+            ],
+            "description": "The path to GROMACS force field."
+        },
+        "gromacscommand": {
+            "old_parameter": "gmxcmd",
+            "default_value": "gmx19",
+            "type": [
+                "str"
+            ],
+            "description": "The executed command of GROMACS."
+        },
+        "gromacsexepath": {
+            "old_parameter": "gmxpath",
+            "default_value": "gromacs-2019.1/bin/",
+            "type": [
+                "str"
+            ],
+            "description": "The path of GROMACS."
+        },
+        "qmcommand": {
+            "old_parameter": "g16cmd",
+            "default_value": [
+                "g16"
+            ],
+            "type": [
+                "list"
+            ],
+            "description": ""
+        },
+        "gromacscoordinatespath": {
+            "old_parameter": "",
+            "default_value": "base directory",
+            "type": [
+                "str"
+            ],
+            "description": "Path to the structure file"
+        },
+        "gaussianexepath": {
+            "old_parameter": "",
+            "default_value": "",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        }
+    },
+    "QM": {
+        "pccores": {
+            "old_parameter": "cores",
+            "default_value": 1,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        },
+        "pcmemory": {
+            "old_parameter": "memory",
+            "default_value": 1000,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        },
+        "qmprogram": {
+            "old_parameter": "program",
+            "default_value": "G16",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        },
+        "qmbasisset": {
+            "old_parameter": "basis",
+            "default_value": "STO-3G",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        },
+        "qmmethod": {
+            "old_parameter": "method",
+            "default_value": "BP86",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        },
+        "qmextratext": {
+            "old_parameter": "extra",
+            "default_value": "",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        },
+        "systemcharge": {
+            "old_parameter": "charge",
+            "default_value": 0,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        },
+        "systemmultiplicity": {
+            "old_parameter": "multiplicity",
+            "default_value": 1,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        }
+    },
+    "MM": {
+        "radiusvdw": {
+            "old_parameter": "rvdw",
+            "default_value": 2.0,
+            "type": [
+                "float"
+            ],
+            "description": ""
+        },
+        "radiuscoulomb": {
+            "old_parameter": "radiuscoulomb",
+            "default_value": "radiusvdw",
+            "type": [
+                "float",
+                "str"
+            ],
+            "description": ""
+        }
+    },
+    "QMMM": {
+        "qmatomslist": {
+            "old_parameter": "",
+            "default_value": "qmatoms.ndx",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        },
+        "activeatomslist": {
+            "old_parameter": "",
+            "default_value": "act.ndx",
+            "type": [
+                "str"
+            ],
+            "description": ""
+        }
+    },
+    "OPTIMIZATION": {
+        "optimizationalgorithm": {
+            "old_parameter": "propagator",
+            "default_value": "steep",
+            "type": [
+                "list"
+            ],
+            "description": ""
+        },
+        "maxcycle": {
+            "old_parameter": "maxcycle",
+            "default_value": 5,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        },
+        "stepsize": {
+            "old_parameter": "stepsize",
+            "default_value": 0.1,
+            "type": [
+                "float"
+            ],
+            "description": ""
+        },
+        "thresholdforce": {
+            "old_parameter": "f_thresh",
+            "default_value": 1e-05,
+            "type": [
+                "float"
+            ],
+            "description": ""
+        },
+        "currentstep": {
+            "old_parameter": "current_step",
+            "default_value": 0,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        }
+    },
+    "SCAN": {
+        "scanstep": {
+            "old_parameter": "scanstep",
+            "default_value": 0,
+            "type": [
+                "int"
+            ],
+            "description": ""
+        },
+        "scantype": {
+            "old_parameter": "scantype",
+            "default_value": "R",
+            "type": [
+                "list"
+            ],
+            "description": ""
+        },
+        "scanatomslist": {
+            "old_parameter": "",
+            "default_value": "",
+            "type": [
+                "list"
+            ],
+            "description": ""
+        },
+        "scanstepsize": {
+            "old_parameter": "scan_stepsize",
+            "default_value": 0.1,
+            "type": [
+                "float"
+            ],
+            "description": ""
+        }
+    }
+}
