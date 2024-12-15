@@ -1,0 +1,5 @@
+gmxtop_path=/home/nicoa96/students_start/GROLIB/top/
+gmxcmd=gmx
+gmxpath=/trinity/shared/easybuild/software/GROMACS/2021.5-foss-2021b/bin/
+g16cmd=g16
+

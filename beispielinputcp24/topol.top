@@ -1,0 +1,71 @@
+;	File 'topol.top' was generated
+;	By user: jansea92 (355137)
+;	On host: qcw28
+;	At date: Mon Oct 10 14:35:05 2022
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	                     :-) GROMACS - gmx pdb2gmx, 2022 (-:
+;	
+;	Executable:   /home/janjoswig/local/gromacs-2022/bin/gmx22
+;	Data prefix:  /home/janjoswig/local/gromacs-2022
+;	Working dir:  /home/jansea92/cp24
+;	Command line:
+;	  gmx22 pdb2gmx -f cp24_protein_BCR.pdb -o cp24_protein_BCR.gro
+;	Force field data was read from:
+;	/home/jansea92/start_help/GROLIB/top
+;
+;	Note:
+;	This might be a non-standard force field location. When you use this topology, the
+;	force field must either be present in the current directory, or the location
+;	specified in the GMXLIB path variable or with the 'include' mdp file option.
+;
+
+; Include forcefield parameters
+#include "amber99sb-star-ildnp.ff/forcefield.itp"
+#include "lipid-force_CP29_naming.ff/ffnonbonded.itp"
+#include "lipid-force_CP29_naming.ff/ffbonded.itp"
+#include "ITPS/atomtypes.itp"
+
+; Include chain topologies
+#include "ITPS/topol_Protein_chain_4.itp"
+#include "ITPS/BCR.itp"
+#include "ITPS/CHL_GMX.itp"
+#include "ITPS/CLA_GMX.itp"
+#include "ITPS/LHG_GMX.itp"
+#include "ITPS/LUT_GMX.itp"
+#include "ITPS/XAT_GMX.itp"
+
+; Include OPC chain topology
+#include "ITPS/OPC.itp"
+
+; Include water topology
+#include "amber99sb-star-ildnp.ff/tip3p.itp"
+
+#ifdef POSRES_WATER
+; Position restraint for each water oxygen
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
+
+; Include topology for ions
+#include "amber99sb-star-ildnp.ff/ions.itp"
+
+[ system ]
+; Name
+Protein_BCR in water
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_4     1
+BCR		    1
+CHL	            5
+CLA		    6
+LHG		    1
+LUT		    1
+XAT		    1
+OPC		    445
+SOL         21059
+NA               8

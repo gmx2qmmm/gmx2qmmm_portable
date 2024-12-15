@@ -1,0 +1,5 @@
+method=Cam-B3LYP
+basis=6-31G*
+cores=16
+memory=20000
+extra=SCF(maxcyc=512)

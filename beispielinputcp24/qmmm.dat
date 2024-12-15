@@ -1,0 +1,7 @@
+jobname=opt
+jobtype=opt
+propagator=steep
+maxcycle=1000
+initstep=0.1
+f_thresh=0.00001
+
