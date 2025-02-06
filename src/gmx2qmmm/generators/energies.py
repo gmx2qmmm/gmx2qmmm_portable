@@ -28,12 +28,13 @@ from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 class GeneratorQMMM():
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 
@@ -112,7 +113,9 @@ class GeneratorQMMM():
         '''
 
         # XX AJ check what this connection object is
-        conn = sqlite3.connect(self.str_directory_base + "/correction_database/database.sqlite")
+        # XX AJ: I had to convert the path object to string to get the sqlite object, is there a better way to do that?
+        self.base_dir = str(self.base_dir)
+        conn = sqlite3.connect(self.base_dir + "/correction_database/database.sqlite")
 
         # check if method exist in database
         method_set = conn.cursor()
@@ -200,12 +203,13 @@ class GeneratorQMMM():
 
 class GeneratorEnergies(GeneratorQMMM):
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 
@@ -392,12 +396,13 @@ class GeneratorEnergies(GeneratorQMMM):
 
 class GeneratorForces(GeneratorQMMM):
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 

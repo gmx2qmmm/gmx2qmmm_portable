@@ -28,7 +28,8 @@ class App():
     def __init__(self, parameters: StrPath, logfile: Optional[StrPath] = None, work_dir: StrPath = ".") -> None:
 
         # TODO: Work with parameters alternatively provided in a dictionary
-
+        self.base_dir = pathlib.Path(__file__).parent.parent.parent
+        print(self.base_dir)
         self.work_dir = pathlib.Path(work_dir).resolve()
 
         self.logfile = None
@@ -56,7 +57,7 @@ class App():
             str_info_to_log=log_entry
         )
 
-        self.initalize_system()
+        self.initialize_system()
         self.generate_topology()
 
         # Add list of elements to system instance
@@ -92,9 +93,9 @@ class App():
         timestamp = f"{now.date()}_{now.hour}-{now.minute}-{now.second}"
         return path.rename(path.with_name(f"{path.name}_{timestamp}"))
 
-    def initalize_system(self) -> None:
+    def initialize_system(self) -> None:
         """Setup system using input parameters"""
-        self.system = SystemInfo(self.parameters)
+        self.system = SystemInfo(self.parameters, self.base_dir)
 
     def generate_topology(self) -> None:
         """Setup topology using input parameters and system"""
@@ -102,8 +103,6 @@ class App():
 
     def generate_PCF(self) -> None:
         """Setup point charge field using input parameters, system, and topology"""
-        # NOTE (AJ): I forgot what I used the Job keyword for, I think I will only need it later, I will get back to that
-        # NOTE (JJ): I find the note above very confusing. Can you please clarify or clean that up?
         self.pointchargefield = pcf.GeneratePCF(self.parameters, self.system, self.topology, self.work_dir)
 
     def run(self) -> None:
@@ -117,7 +116,7 @@ class App():
 
         try:
             job_func_map[self.parameters['jobtype']](
-                self.parameters, self.system, self.topology, self.pointchargefield, self.work_dir
+                self.parameters, self.system, self.topology, self.pointchargefield, self.work_dir, self.base_dir
                 )
         except KeyError as exc:
             raise ValueError(

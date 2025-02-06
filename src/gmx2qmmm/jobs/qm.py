@@ -95,7 +95,7 @@ class QM():
             str_inputfile_qm.write(atoms_section)
             str_inputfile_qm.write(self.additional_input)
 
-        if self.dict_input_userparameters['qmcommand'] == 'g16':
+        if self.dict_input_userparameters['qmcommand'] == 'rung16':
 
 
 
@@ -456,7 +456,8 @@ class QM_gaussian(QM):
 
         self.header += "#P " + str(self.dict_input_userparameters['method'])
         self.header += "/" + str(self.dict_input_userparameters['basis'])
-        self.header += " " + str(self.dict_input_userparameters['extra'])
+        if not self.dict_input_userparameters['extra'].lower() == 'none':
+            self.header += " " + str(self.dict_input_userparameters['extra'])
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
             self.header += " guess=read"

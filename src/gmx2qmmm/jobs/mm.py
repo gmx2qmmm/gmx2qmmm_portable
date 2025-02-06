@@ -195,7 +195,7 @@ class MM():
             "no",
         ]
         )
-        os.remove(self.outname)
+        # os.remove(self.outname)
 
 
     def read_mm_energy(self):
