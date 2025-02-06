@@ -2,7 +2,7 @@
 includeprio=0
 
 # PARAMETERS
-jobtype=opt
+jobtype=singlepoint
 jobname=test
 
 gmxtop_path=C:\Users\Alina\Documents\Uni\AG_goetze\top
