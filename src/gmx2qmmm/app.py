@@ -16,7 +16,8 @@ from gmx2qmmm.input_handler import FileReader
 #   TODO: Read And Include GROMACS / VMD Style Index Files; Extractable From Different Programs(?)
 #   TODO: Include Prio For Library / Parameter Files
 
-class App():
+
+class App:
     """Main job orchestrator
 
     Args:
@@ -25,8 +26,12 @@ class App():
         work_dir: Job working and output directory
     """
 
-    def __init__(self, parameters: StrPath, logfile: Optional[StrPath] = None, work_dir: StrPath = ".") -> None:
-
+    def __init__(
+        self,
+        parameters: StrPath,
+        logfile: Optional[StrPath] = None,
+        work_dir: StrPath = ".",
+    ) -> None:
         # TODO: Work with parameters alternatively provided in a dictionary
         self.base_dir = pathlib.Path(__file__).parent.parent.parent
         print(self.base_dir)
@@ -36,39 +41,36 @@ class App():
         if logfile is not None:
             self.logfile = pathlib.Path(logfile).resolve()
 
-        log_entry ='Initialisation of gmx2qmmm completed'
+        log_entry = "Initialisation of gmx2qmmm completed"
         if (self.logfile is not None) and self.logfile.is_file():
             backup = self.backup_path(self.logfile)
-            log_entry += f'; Backed up existing logfile to {backup}.'
+            log_entry += f"; Backed up existing logfile to {backup}."
 
-        Logger.log_append(
-            path_file_logging=self.logfile,
-            str_info_to_log=log_entry
-        )
+        Logger.log_append(path_file_logging=self.logfile, str_info_to_log=log_entry)
 
         self.parameters = FileReader.read_file(
-            path_file_logging=self.logfile,
-            str_filename_input=parameters
+            path_file_logging=self.logfile, str_filename_input=parameters
         )
 
-        log_entry = 'Parameters:\n' + '\n'.join([f'\t{k+ ":":<25}{v}' for k, v in self.parameters.items()])
-        Logger.log_append(
-            path_file_logging=self.logfile,
-            str_info_to_log=log_entry
+        log_entry = "Parameters:\n" + "\n".join(
+            [f"\t{k + ':':<25}{v}" for k, v in self.parameters.items()]
         )
+        Logger.log_append(path_file_logging=self.logfile, str_info_to_log=log_entry)
 
         self.initialize_system()
         self.generate_topology()
 
         # Add list of elements to system instance
-        self.system.list_atom_elements = self.system.get_atoms(self.topology.qmmm_topology)
+        self.system.list_atom_elements = self.system.get_atoms(
+            self.topology.qmmm_topology
+        )
         # NOTE: This operation (setting an instance attribute with the return value of a method on the very same instance) looks weird.
         #       Maybe that's a hint that the relationship between the System and Topology class is not ideal (JJ)
 
         self.generate_PCF()
 
     @classmethod
-    def from_cli_args(cls, args: argparse.Namespace) -> 'App':
+    def from_cli_args(cls, args: argparse.Namespace) -> "App":
         """Initialise with CLI arguments parsed by argparse
 
         Args:
@@ -99,29 +101,38 @@ class App():
 
     def generate_topology(self) -> None:
         """Setup topology using input parameters and system"""
-        self.topology = topology.GenerateTopology(self.parameters, self.system, self.work_dir)
+        self.topology = topology.GenerateTopology(
+            self.parameters, self.system, self.work_dir
+        )
 
     def generate_PCF(self) -> None:
         """Setup point charge field using input parameters, system, and topology"""
-        self.pointchargefield = pcf.GeneratePCF(self.parameters, self.system, self.topology, self.work_dir)
+        self.pointchargefield = pcf.GeneratePCF(
+            self.parameters, self.system, self.topology, self.work_dir
+        )
 
     def run(self) -> None:
         """Run requested job"""
 
         job_func_map = {
-            'singlepoint': Singlepoint,
-            'opt': Optimisation,
+            "singlepoint": Singlepoint,
+            "opt": Optimisation,
         }
         # TODO: Support NMA, scan, and opt_root_following (again)
 
         try:
-            job_func = job_func_map[self.parameters['jobtype']]
+            job_func = job_func_map[self.parameters["jobtype"]]
         except KeyError as exc:
             raise ValueError(
-                f'Job type {self.parameters["jobtype"]!r} not understood. '
-                f'Must be one of {list(job_func_map.keys())}'
+                f"Job type {self.parameters['jobtype']!r} not understood. "
+                f"Must be one of {list(job_func_map.keys())}"
             ) from exc
 
         job_func(
-                self.parameters, self.system, self.topology, self.pointchargefield, self.work_dir, self.base_dir
-                )
+            self.parameters,
+            self.system,
+            self.topology,
+            self.pointchargefield,
+            self.work_dir,
+            self.base_dir,
+        )
