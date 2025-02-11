@@ -115,11 +115,13 @@ class App():
         # TODO: Support NMA, scan, and opt_root_following (again)
 
         try:
-            job_func_map[self.parameters['jobtype']](
-                self.parameters, self.system, self.topology, self.pointchargefield, self.work_dir, self.base_dir
-                )
+            job_func = job_func_map[self.parameters['jobtype']]
         except KeyError as exc:
             raise ValueError(
                 f'Job type {self.parameters["jobtype"]!r} not understood. '
                 f'Must be one of {list(job_func_map.keys())}'
             ) from exc
+
+        job_func(
+                self.parameters, self.system, self.topology, self.pointchargefield, self.work_dir, self.base_dir
+                )
