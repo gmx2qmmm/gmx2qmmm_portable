@@ -16,7 +16,6 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, normalized_vector, _flatten
 
 

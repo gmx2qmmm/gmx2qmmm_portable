@@ -13,11 +13,10 @@ import sqlite3
 import numpy as np
 
 #   Imports From Existing Libraries
-
+from loguru import logger
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 
@@ -136,8 +135,7 @@ class GeneratorQMMM():
             self.dict_input_userparameters['forcefield'] = "amberGS"
             self.dict_input_userparameters['method'] = "CAM-B3LYP"
             self.dict_input_userparameters['basis'] = "6-31++G**"
-            # logger(
-            #     logfile,
+            # logger.info(
             #     "Unexisted method in correction database, changing to default correction method...\n",
             # )
 
@@ -177,7 +175,7 @@ class GeneratorQMMM():
                     )
                 elif self.dict_input_userparameters['databasefit'] == "no":
                     returnvalue = 0
-                    # logger(logfile, "No energy correction.\n")
+                    # logger.info("No energy correction.\n")
             elif energy_or_force == "forces":
                 if self.dict_input_userparameters['databasefit'] == "poly":
                     returnvalue = (
@@ -197,7 +195,7 @@ class GeneratorQMMM():
                     )
                 elif self.dict_input_userparameters['databasefit'] == "no":
                     returnvalue = 0
-                    # logger(logfile, "No force correction.\n")
+                    # logger.info("No force correction.\n")
         return returnvalue
 
 

@@ -23,7 +23,6 @@ from gmx2qmmm.generators.energies import GeneratorEnergies, GeneratorForces
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //

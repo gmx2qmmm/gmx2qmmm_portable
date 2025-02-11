@@ -19,13 +19,11 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -149,30 +147,27 @@ class QM():
                 insert = str("." + str(int(self.system.int_step_current)))
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
-                # logger(logfile, "Running G16 file.\n")
+                # logger.info("Running G16 file.\n")
                 self.execute_g16(self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm))
                 logname = self.str_inputfile_qm[:-3]
                 logname += "log"
                 os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
-                # logger(logfile, "G16 Done.\n")
+                # logger.info("G16 Done.\n")
             else:
-                # logger(
-                #     logfile,
+                # logger.info(
                 #     "NOTE: Using existing G16 files, skipping calculation for this step.\n",
                 # )
                 pass
             if not os.path.isfile(self.dict_input_userparameters['jobname'] + insert + ".fort.7"):
                 if not os.path.isfile("fort.7"):
-                    # logger(
-                    #     logfile,
+                    # logger.info(
                     #     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                     # )
                     # exit(1)
                     pass
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
-                # logger(
-                #     logfile,
+                # logger.info(
                 #     "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
                 # )
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
@@ -202,7 +197,7 @@ class QM():
         '''
 
         if self.dict_input_userparameters['qmcommand'] == 'g16':
-            # logger(logfile, "Extracting QM energy.\n")
+            # logger.info("Extracting QM energy.\n")
             self.qmenergy = 0.0
             self.qm_corrdata = []
             if str(self.dict_input_userparameters['program']) == "G16":
@@ -239,10 +234,9 @@ class QM():
                                 flags=re.MULTILINE,
                             )
                         if match:
-                            # logger(logfile, "Obtaining charge self-interaction...\n")
+                            # logger.info("Obtaining charge self-interaction...\n")
                             self.read_pcf_self()
-                            # logger(
-                            #     logfile, "Done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
+                            # logger.info("Done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
                             # )
                             # G16 energy needs to be corrected for self potential of PCF
                             self.qmenergy = float(match.group(1)) - float(self.pcf_self)
@@ -265,7 +259,7 @@ class QM():
                                 else:
                                     break
                             break
-            # logger(logfile, "QM energy is " + str(float(qmenergy)) + " a.u..\n")
+            # logger.info("QM energy is " + str(float(qmenergy)) + " a.u..\n")
         if self.dict_input_userparameters['qmcommand'] == 'orca':
             # XX AJ: Nicola add
             pass
@@ -297,7 +291,7 @@ class QM():
             insert = ""
             if (int(self.system.int_step_current) != 0):
                 insert = str("." + str(self.system.int_step_current))
-            # logger(logfile,"Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
+            # logger.info("Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
             qmlogfile = str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
             fortfile = str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
 

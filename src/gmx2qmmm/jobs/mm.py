@@ -17,6 +17,7 @@ import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
+from loguru import logger
 
 #   Imports Of Custom Libraries
 
@@ -25,7 +26,6 @@ from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_str
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -173,7 +173,7 @@ class MM():
         ------------------------------ \\
         '''
 
-        # logger(logfile, "Running Gromacs file.\n")
+        # logger.info("Running GROMACS")
 
         self.execute_gmx(
         [
@@ -219,7 +219,7 @@ class MM():
         self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.mmenergy = 0.0
-        # logger(logfile, "Extracting MM energy.\n")
+        # logger.info("Extracting MM energy")
         p = self.execute_gmx(
             [
                 self.prefix,
@@ -242,7 +242,7 @@ class MM():
                 if match:
                     self.mmenergy = float(match.group(1)) * 0.00038087988
                     break
-        # logger(logfile, "MM energy is " + str(float(mmenergy)) + " a.u..\n")
+        # logger.info(f"MM energy is {mmenergy:.4f} a.u..")
 
 
 
@@ -271,7 +271,7 @@ class MM():
         insert = ""
         if int(self.system.int_step_current) != 0:
             insert = str("." + str(self.system.int_step_current))
-        # logger(logfile,"Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
+        # logger.info("Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
         trrname = str(self.dict_input_userparameters['jobname'] + insert + ".trr")
         tprname = str(self.dict_input_userparameters['jobname'] + insert + ".tpr")
         xvgname = str(self.dict_input_userparameters['jobname'] + insert + ".xvg")
