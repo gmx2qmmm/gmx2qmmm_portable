@@ -3,13 +3,14 @@ import pathlib
 from datetime import datetime
 from typing import Optional
 
+from loguru import logger
+
 from gmx2qmmm.generators.system import SystemInfo
 from gmx2qmmm.generators import topology
 from gmx2qmmm.generators import pcf
 from gmx2qmmm.jobs.singlepoint import Singlepoint
 from gmx2qmmm.jobs.optimisation import Optimisation
 from gmx2qmmm.types import StrPath
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.input_handler import FileReader
 
 
@@ -22,7 +23,7 @@ class App:
 
     Args:
         parameters: Path to a file with input parameter definition
-        logfile: Path to a logfile. If `None`, does not log any information.
+        logfile: Path to a logfile. If `None`, use `"logfile.log"` in the `working_directory`.
         work_dir: Job working and output directory
     """
 
@@ -30,23 +31,19 @@ class App:
         self,
         parameters: StrPath,
         logfile: Optional[StrPath] = None,
+        loglevel: str = "DEBUG",
         work_dir: StrPath = ".",
     ) -> None:
         # TODO: Work with parameters alternatively provided in a dictionary
-        self.base_dir = pathlib.Path(__file__).parent.parent.parent
-        print(self.base_dir)
+        self.base_dir = pathlib.Path(__file__).parents[2]
         self.work_dir = pathlib.Path(work_dir).resolve()
 
-        self.logfile = None
-        if logfile is not None:
-            self.logfile = pathlib.Path(logfile).resolve()
+        self.loglevel = loglevel
+        if logfile is None:
+            logfile = self.work_dir / "logfile.log"
+        self.logfile = logfile
 
-        log_entry = "Initialisation of gmx2qmmm completed"
-        if (self.logfile is not None) and self.logfile.is_file():
-            backup = self.backup_path(self.logfile)
-            log_entry += f"; Backed up existing logfile to {backup}."
-
-        Logger.log_append(path_file_logging=self.logfile, str_info_to_log=log_entry)
+        logger.info("Initialising gmx2qmmm")
 
         self.parameters = FileReader.read_file(
             path_file_logging=self.logfile, str_filename_input=parameters
@@ -55,7 +52,7 @@ class App:
         log_entry = "Parameters:\n" + "\n".join(
             [f"\t{k + ':':<25}{v}" for k, v in self.parameters.items()]
         )
-        Logger.log_append(path_file_logging=self.logfile, str_info_to_log=log_entry)
+        logger.info(log_entry)
 
         self.initialize_system()
         self.generate_topology()
@@ -69,6 +66,24 @@ class App:
 
         self.generate_PCF()
 
+    @property
+    def logfile(self) -> pathlib.Path:
+        return self._logfile
+
+    @logfile.setter
+    def logfile(self, value: StrPath) -> None:
+        self._logfile = pathlib.Path(value).resolve()
+        if self._logfile.is_file():
+            backup = self.backup_path(self.logfile)
+        else:
+            backup = None
+
+        logger.remove()
+        logger.add(self._logfile, level=self.loglevel)
+
+        if backup is not None:
+            logger.info(f"Backed up existing logfile to {backup}")
+
     @classmethod
     def from_cli_args(cls, args: argparse.Namespace) -> "App":
         """Initialise with CLI arguments parsed by argparse
@@ -77,7 +92,7 @@ class App:
             args: An argparse namespace object obtained from a suitable
                 parser
         """
-        return cls(parameters=args.parameters, logfile=args.logfile)
+        return cls(parameters=args.parameters, logfile=args.logfile, work_dir=args.working_directory)
 
     @staticmethod
     def backup_path(path: pathlib.Path) -> pathlib.Path:
@@ -98,18 +113,21 @@ class App:
     def initialize_system(self) -> None:
         """Setup system using input parameters"""
         self.system = SystemInfo(self.parameters, self.base_dir)
+        logger.success("Initialised system")
 
     def generate_topology(self) -> None:
         """Setup topology using input parameters and system"""
         self.topology = topology.GenerateTopology(
             self.parameters, self.system, self.work_dir
         )
+        logger.success("Generated topology")
 
     def generate_PCF(self) -> None:
         """Setup point charge field using input parameters, system, and topology"""
         self.pointchargefield = pcf.GeneratePCF(
             self.parameters, self.system, self.topology, self.work_dir
         )
+        logger.success("Generated PCF")
 
     def run(self) -> None:
         """Run requested job"""
