@@ -91,7 +91,7 @@ class MM():
 
         self.write_mdp()
 
-        self.execute_gmx(
+        subprocess.call(
             [
                 self.prefix,
                 "grompp",
@@ -175,7 +175,7 @@ class MM():
 
         # logger.info("Running GROMACS")
 
-        self.execute_gmx(
+        subprocess.call(
         [
             self.prefix,
             "mdrun",
@@ -219,8 +219,8 @@ class MM():
         self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.mmenergy = 0.0
-        # logger.info("Extracting MM energy")
-        p = self.execute_gmx(
+        # logger(logfile, "Extracting MM energy.\n")
+        p = subprocess.Popen(
             [
                 self.prefix,
                 "energy",
@@ -231,9 +231,12 @@ class MM():
                 "-backup",
                 "no",
             ],
-            input_data=b"11\n\n"
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
-        
+        p.communicate(input=b"11\n\n")
+
         with open(str(self.edrname + ".xvg")) as ifile:
             for line in ifile:
                 match = re.search(
@@ -275,7 +278,7 @@ class MM():
         trrname = str(self.dict_input_userparameters['jobname'] + insert + ".trr")
         tprname = str(self.dict_input_userparameters['jobname'] + insert + ".tpr")
         xvgname = str(self.dict_input_userparameters['jobname'] + insert + ".xvg")
-        p = self.execute_gmx(
+        p = subprocess.Popen(
             [
                 prefix,
                 "traj",
@@ -291,9 +294,12 @@ class MM():
                 "-backup",
                 "no",
             ],
-            input_data=b"0\n"
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
-        
+        p.communicate(input=b"0\n")
+
         with open(xvgname) as ifile:
             for line in ifile:
                 forcelist = re.findall("\S+", line)
@@ -307,20 +313,3 @@ class MM():
                         self.mmforces.append(mmforceline)
                         mmforceline = []
                 break  # read only one line
-
-    def execute_gmx(self, command_list, input_data=None):
-        # call gmx in a seperate function to be able to mock it
-        process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-
-        if input_data is not None:
-            if isinstance(input_data, str):
-                process.stdin.write(input_data)
-            else:
-                process.stdin.write(input_data.decode())
-            process.stdin.close()
-
-    def execute_gmx_communicate(self, command_list, input_data=None):
-        # XX combine functions! call gmx in a seperate function to be able to mock it
-        process = subprocess.Popen(command_list, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-
-        process.communicate(input=input_data)
