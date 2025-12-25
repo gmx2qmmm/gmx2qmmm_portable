@@ -22,7 +22,6 @@ from gmx2qmmm.generators._helper import mask_atoms
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -143,7 +142,7 @@ class Optimisation():
             # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
             pass
         # gro = qmmmInputs.gro            #SIMON
-        # logger(logfile, "Due to the decrease of the energy, the structure "+str(gro)+" will be used from now on.\n")
+        # logger.info("Due to the decrease of the energy, the structure "+str(gro)+" will be used from now on.\n")
 
 
         pass
@@ -173,15 +172,14 @@ class Optimisation():
             self.list_forces_max_all_steps.append(float_force_max)
 
             if abs(float_force_max) < float(self.dict_input_userparameters['f_thresh']):
-                # logger(logfile,"Max force (%f) below threshold (%f) Finishing.\n"%(maxforce,f_thresh))
+                # logger.info("Max force (%f) below threshold (%f) Finishing.\n"%(maxforce,f_thresh))
                 self.bool_opt_done = self.FTHRESH
 
             elif float(self.dict_input_userparameters['stepsize']) < 1e-6: #0.000001 a.u.
                 self.bool_opt_done = self.STEPSIZE
-                # logger(
-                #     logfile,
-                #         ("Step became lower than 0.000001 a.u., optimization is considered done for now. " +
-                #          "This is the best we can do unless reaching unacceptable numerical noise levels.\n"),
+                # logger.info(
+                #     "Step became lower than 0.000001 a.u., optimization is considered done for now. "
+                #     "This is the best we can do unless reaching unacceptable numerical noise levels."
                 # )
 
     def evaluate_step_bfgs(self):

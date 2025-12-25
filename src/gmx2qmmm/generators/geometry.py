@@ -12,11 +12,11 @@ import re
 import numpy as np
 
 #   Imports From Existing Libraries
+from loguru import logger
 
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 
@@ -144,8 +144,7 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
     maxatom = max_abs_value_index // 3
     maxcoord = max_abs_value_index % 3
 
-    # logger(
-    #     logfile,
+    # logger.info(
     #     str(
     #         "Maximum force is "
     #         + str(float(maxforce))
@@ -159,12 +158,12 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
 
     #   Always Use Steepest Descent For The First Propagation
     if propagator == "STEEP" or curr_step < 2:
-        # logger(logfile, "Propagate with steepest descent...\n") or log propagate with steepest descent for first cycle if propagator not steep
+        # logger.info("Propagate with steepest descent...\n") or log propagate with steepest descent for first cycle if propagator not steep
         normalized_forces = np.array(total_force)*float(stepsize)/abs(float(float_force_max))
         dispvec = normalized_forces
 
     elif propagator == "CONJGRAD" :
-        # logger(logfile, "Propagate with conjugate gradient...\n")
+        # logger.info("Propagate with conjugate gradient...\n")
         # Fletcher-Reeves
         _flattened = list(_flatten(total_force))
         corr_fac = np.array(_flattened).dot(np.array(_flattened))
@@ -177,8 +176,7 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
         displacement = corr_length*float(stepsize)
         dispvec = displacement.tolist()
 
-        # logger(
-        #     logfile,
+        # logger.info(
         #     str(
         #         "Effective step at maximum force coord is "
         #         + str(float(dispvec[maxatom][maxcoord]))
@@ -188,7 +186,7 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
 
     elif propagator == "BFGS":
         pass    # XX AJ will do BFGS in the end
-        # logger(logfile, "Propagate with BFGS method...\n")
+        # logger.info("Propagate with BFGS method...\n")
         # coords = np.array(new_xyzq)[:, 0:3]
         # old_coords = np.array(xyzq)[:, 0:3]
         # # old_hessian = np.loadtxt("bfgs_hessian.txt")
@@ -259,13 +257,12 @@ def read_gmx_box_vectors(file):
                         flags=re.MULTILINE,
                     )
                     if not match:
-                        # logger(
-                        #     logfile,
+                        # logger.info(
                         #     "\n\nError: In "
                         #     + str(gro)
                         #     + " box vectors were expected but not found. Exiting. Line was:\n",
                         # )
-                        # logger(logfile, line)
+                        # logger.info(line)
                         exit(1)
                     else:
                         list_vectors_box = [

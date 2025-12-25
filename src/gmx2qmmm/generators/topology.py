@@ -26,6 +26,7 @@ import os.path
 import numpy as np
 
 #   Imports From Existing Libraries
+from loguru import logger
 
 #   Imports Of Custom Libraries
 
@@ -103,8 +104,7 @@ class GenerateTopology():
                     break
         if ffnonbonded == "":
             pass
-            # logger(
-            #     logfile,
+            # logger.info(
             #     str(
             #         "Did not find an ffnonbonded file. Check your masses in the qmmm.top file!\n"
             #     ),
@@ -303,7 +303,7 @@ class GenerateTopology():
         ------------------------------ \\
         '''
 
-        # logger(logfile, str("Cleaning exclusion list...\n"))
+        # logger.info("Cleaning exclusion list...")
         new_excludedata = []
         for i in range(1, number_of_atoms + 1):
             new_excludeline = [int(i)]
@@ -322,7 +322,7 @@ class GenerateTopology():
         for element in new_excludedata:
             if len(element) > 1:
                 final_excludedata.append(element)
-        # logger(logfile, str("Cleaning done.\n"))
+        # logger.info(str("Cleaning done.\n"))
 
         return final_excludedata
 
@@ -345,12 +345,12 @@ class GenerateTopology():
         ------------------------------ \\
         '''
 
-        # logger(logfile, str("Formatting exclusion list...\n"))
+        # logger.info("Formatting exclusion list..."))
         new_excludedata = []
         for element in excludedata:
             for i in range(1, len(element)):
                 new_excludedata.append([int(element[0]), int(element[i])])
-        # logger(logfile, str("Formatting done.\n"))
+        # logger.info("Formatting done.")
         return new_excludedata
 
 

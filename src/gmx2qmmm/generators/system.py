@@ -15,17 +15,16 @@ import json
 import numpy as np
 
 #   Imports From Existing Libraries
+from loguru import logger
 
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators import geometry, pcf_from_top
 from gmx2qmmm.generators._helper import _flatten, get_coordinates_linkatoms_angstrom
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -89,16 +88,16 @@ class SystemInfo():
         #   Read Initial Geometry
         #   XX AJ I would prefer only one function here independent of the file type and only make that distinction within the function. I'll get back to that later when I'm writing GeneratorGeometries.py
         if self.dict_input_userparameters['coordinatefile'][-4:] == ".gro":
-            #logger(logfile, "Reading geometry (.gro)...\n")
+            #logger.info("Reading geometry (.gro)...\n")
             # XX AJ if we rewrite gro files to g96 files, the following function can be deleted and we can read the g96 file with geometry.readg96 afterwards
             self.list_geometry_initial = geometry.readgeo(self.dict_input_userparameters['coordinatefile'])
             # Writing high-precision coordinate file
-            # logger(logfile, "Writing high-precision coordinate file...")
+            # logger.info("Writing high-precision coordinate file...")
             self.write_file_gromacs_highprec(self.dict_input_userparameters['coordinatefile']) # XX temp removed logfile until logfile decision of Florian AJ
             self.dict_input_userparameters['coordinatefile'] = self.dict_input_userparameters['jobname'] + ".g96"
-            # logger(logfile, "Done.\n")
+            # logger.info("Done.\n")
         elif self.dict_input_userparameters['coordinatefile'][-4:] == ".g96":
-            #logger(logfile, "Reading geometry (.g96)...\n")
+            #logger.info("Reading geometry (.g96)...\n")
             self.list_geometry_initial = geometry.readg96(self.dict_input_userparameters['coordinatefile'])
 
         self.int_number_atoms = int(len(self.list_geometry_initial)/3)
@@ -385,8 +384,7 @@ class SystemInfo():
                     str_current_topology = element
                     break
         if not bool_occurence_molecule:
-            # XX AJ replace with logger
-            print("No charges found for " + str(molecule_name) + ". Exiting.")
+            logger.error(f"No charges found for {molecule_name}.")
             exit(1)
 
         return str_current_topology
@@ -583,7 +581,7 @@ class SystemInfo():
                         for line in ifile:
                                 match=re.search(r'^([\s\d]{5})(.{5})(.{5})([\s\d]{5})\s*([-]*\d+\.\d*)\s*([-]*\d+\.\d*)\s*([-]*\d+\.\d*)', line,flags=re.MULTILINE)
                                 if not match:
-                                        # logger(logfile,str("Successfully wrote " +  str(int(counter)) + " atoms to internal precision format file.\n"))
+                                        # logger.info(str("Successfully wrote " +  str(int(counter)) + " atoms to internal precision format file.\n"))
                                         finalline=line
                                         break
                                 else:
@@ -592,8 +590,8 @@ class SystemInfo():
                         ofile.write("END\nBOX\n")
                         match=re.search(r'^\s*(\d+\.*\d*)\s*(\d+\.*\d*)\s*(\d+\.*\d*)', finalline,flags=re.MULTILINE)
                         if not match:
-                                # logger(logfile,str("Unexpected line instead of box vectors. Exiting. Last line:\n"))
-                                # logger(logfile,line)
+                                # logger.info(str("Unexpected line instead of box vectors. Exiting. Last line:\n"))
+                                # logger.info(line)
                                 exit(1)
                         else:
                                 ofile.write(str(" {:>15.9f} {:>15.9f} {:>15.9f}\n".format(float(match.group(1)),float(match.group(2)),float(match.group(3)))))
@@ -976,7 +974,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = os.path.join(self.base_dir, 'src', 'json_files', 'mass_map.json')
+        str_file_mass_map = os.path.join('..', '..', 'src', 'json_files', 'mass_map.json')
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 
@@ -985,12 +983,12 @@ class SystemInfo():
             for line in qmmm_topology_file:
                 match = re.search(r"\[\s+moleculetype\s*\]", line, flags=re.MULTILINE)
                 if match:
-                    # logger(logfile, "moleculetype section was identified\n")
+                    # logger.info("moleculetype section was identified\n")
                     break
             for line in qmmm_topology_file:
                 match = re.search(r"\[\s+atoms\s*\]", line, flags=re.MULTILINE)
                 if match:
-                    # logger(logfile, "atoms section was identified\n")
+                    # logger.info("atoms section was identified\n")
                     break
             for line in qmmm_topology_file:
                 match = re.search(r"^\s*\[", line, flags=re.MULTILINE)
@@ -1023,8 +1021,7 @@ class SystemInfo():
                         )
                         # XX change to logger
                         # if massdiff > 0.01:
-                        #     logger(
-                        #         logfile,
+                        #     logger.info(
                         #         str(
                         #             "Found a mass of "
                         #             + str(atommass)
@@ -1041,14 +1038,13 @@ class SystemInfo():
                         #     )
                         atoms.append(foundname)
                     else:
-                        # logger(
-                        #     logfile,
+                        # logger.info(
                         #     str(
                         #         "Atom type "
                         #         + str(atomtype)
                         #         + " could not be translated to a regular atom name. Exiting. Last line:\n"
                         #     ),
                         # )
-                        # logger(logfile, line)
+                        # logger.info(line)
                         exit(1)
         return atoms

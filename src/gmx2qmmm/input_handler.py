@@ -1,31 +1,18 @@
-#!/usr/bin/env python
+"""Provides input file parsers"""
 
-#   // INITIAL DESCRIPTION //
-"""Short Module Description; Reference To Readme"""
-
-#   // MEATDATA //
 __author__ = 'Florian Anders'
 __date__ = '2024-01-09'
 
-#   // IMPORTS //
-
-#   Imports Of Existing Libraries
 import os
 import sys
-
-#   Imports From Existing Libraries
 from collections import defaultdict
 
-#   Imports Of Custom Libraries
+from loguru import logger
 
-#   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
-
-#   // TODOS & NOTES //
-#   TODO: This Is An Example To Do
+#   TODO: Can we exchange this against a proper configuration file parser, preferably YAML?
 #   NOTE: This Is An Example Note
 
-#   // CLASS & METHOD DEFINITIONS //
+
 class FileReader():
 
     '''
@@ -178,66 +165,38 @@ class FileReader():
             #   3) All Numerical Values Are, In Fact, Numerical (int Should Be int, float Should Be float, etc.)
             #   TODO: Implement Assessment!
 
-            Logger.log_append\
-                (
-                    path_file_logging=path_file_logging,
-                    str_info_to_log='Asserting basic correctness of inputs'
-                )
+            logger.info('Asserting basic correctness of inputs')
 
             try:
 
                 Asserter.assert_defaultdict_input(defaultdict_parameters_input)
-
-                Logger.log_append\
-                (
-                    path_file_logging=path_file_logging,
-                    str_info_to_log='Basic correctness check COMPLETE'
-                )
+                logger.success('Basic correctness check COMPLETE')
 
                 return defaultdict_parameters_input
 
             except AssertionError:
 
-                Logger.log_append\
-                (
-                    path_file_logging=path_file_logging,
-                    str_info_to_log=\
-                        'Basic correctness check FAILED;' + '\n'\
-                        + 'Please make sure that all necessary parameters are provided in your parameter file!'
+                logger.error(
+                    'Basic correctness check FAILED. '
+                    'Please make sure that all necessary parameters are provided in your parameter file!'
                 )
-
-                print('An error occured! Check the logfile (\'{0}\') for more information.'.format(path_file_logging))
 
                 sys.exit(1)
 
         except FileNotFoundError:
 
-            Logger.log_append\
-                (
-                    path_file_logging=path_file_logging,
-                    str_info_to_log=\
-                        'An error occured when trying to read the parameter file - \n' + \
-                        'Make sure that the file exists and try running gmx2qmmm again.'
-                )
-
-            #   Console Output
-            print\
-                (
-                    '\n\nAn error occured when trying to read the parameter file - \n' + \
-                    'Make sure that the file exists and try again, running the command\n\n' + \
-                    '\"python gmx2qmmm.py -p <ParameterFile>\"\n\n'
+            logger.error(
+                'An error occured when trying to read the parameter file. '
+                'Make sure that the file exists and try running gmx2qmmm again.'
                 )
 
             sys.exit(1)
 
         except ValueError:
 
-            Logger.log_append\
-                (
-                    path_file_logging=path_file_logging,
-                    str_info_to_log=\
-                        'An error occured when trying to read the parameter file - \n' + \
-                        'We encountered a value mismatch. Please check the correctness of your input types!'
+            logger.error(
+                "An error occured when trying to read the parameter file "
+                'We encountered a value mismatch. Please check the correctness of your input types!'
                 )
 
 class Asserter:
