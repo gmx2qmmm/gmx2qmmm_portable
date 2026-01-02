@@ -81,7 +81,6 @@ class FileReader():
 
                     continue
 
-                # XX Florian not adding empty parameters to the list
                 elif str_pair_parameter.strip().split('=')[1] == '':
 
                     continue
@@ -116,7 +115,6 @@ class FileReader():
                         #   Iterate Over The List Of Superior Parameters
                         for str_pair_parameter_superior in list_content_file_include:
 
-                            #   XX AJ again checking for empty line etc., otherwise we're getting an index error later
                             #   Ignore Newline Characters ('\n');
                             #   Ignore Empty Lines;
                             #   Ignore Lines Beginning With A Hashtag Symbol (#) From The List Of Parameters;
@@ -131,7 +129,6 @@ class FileReader():
 
                             else:
                                 #   Check, If For Each parameter A Value Has Been Set
-                                #   XX AJ added strip to remove '\n', otherwise '\n' as value in dict
                                 if str_pair_parameter_superior.strip().split('=')[1] != '':
 
                                     #   Use Parameter Only If Not Defined Before Or With Priority Parameter

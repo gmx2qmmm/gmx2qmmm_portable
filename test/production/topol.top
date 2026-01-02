@@ -1,0 +1,235 @@
+;
+;	File 'topol.top' was generated
+;	By user: yuap94 (315412)
+;	On host: qcw52
+;	At date: Tue Aug  6 15:52:14 2019
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	                    :-) GROMACS - gmx pdb2gmx, 2019.1 (-:
+;	
+;	Executable:   /home/janjoswig/local/gromacs-2019.1/bin/gmx19
+;	Data prefix:  /home/janjoswig/local/gromacs-2019.1
+;	Working dir:  /home/yuap94/Documents/Master/13-xyz/glyser_di
+;	Command line:
+;	  gmx19 pdb2gmx -f glyser_di.pdb
+;	Force field was read from the standard GROMACS share directory.
+;
+
+; Include forcefield parameters
+#include "amberGS.ff/forcefield.itp"
+
+[ moleculetype ]
+; Name            nrexcl
+Protein             3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
+; residue  75 GLY rtp NGLY q +1.0
+     1         N3     75    GLY      N      1     0.2943      14.01
+     2          H     75    GLY     H1      2     0.1642      1.008
+     3          H     75    GLY     H2      3     0.1642      1.008
+     4          H     75    GLY     H3      4     0.1642      1.008
+     5         CT     75    GLY     CA      5      -0.01      12.01
+     6         HP     75    GLY    HA1      6     0.0895      1.008
+     7         HP     75    GLY    HA2      7     0.0895      1.008
+     8          C     75    GLY      C      8     0.6163      12.01
+     9          O     75    GLY      O      9    -0.5722         16   ; qtot 1
+; residue  76 SER rtp CSER q -1.0
+    10          N     76    SER      N     10    -0.3821      14.01
+    11          H     76    SER      H     11     0.2681      1.008
+    12         CT     76    SER     CA     12    -0.2722      12.01
+    13         H1     76    SER     HA     13     0.1304      1.008
+    14         CT     76    SER     CB     14     0.1123      12.01
+    15         H1     76    SER    HB1     15     0.0813      1.008
+    16         H1     76    SER    HB2     16     0.0813      1.008
+    17         OH     76    SER     OG     17    -0.6514         16
+    18         HO     76    SER     HG     18     0.4474      1.008
+    19          C     76    SER      C     19     0.8113      12.01
+    20         O2     76    SER    OC1     20    -0.8132         16
+    21         O2     76    SER    OC2     21    -0.8132         16   ; qtot 0
+
+[ bonds ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     2     1 
+    1     3     1 
+    1     4     1 
+    1     5     1 
+    5     6     1 
+    5     7     1 
+    5     8     1 
+    8     9     1 
+    8    10     1 
+   10    11     1 
+   10    12     1 
+   12    13     1 
+   12    14     1 
+   12    19     1 
+   14    15     1 
+   14    16     1 
+   14    17     1 
+   17    18     1 
+   19    20     1 
+   19    21     1 
+
+[ pairs ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     9     1 
+    1    10     1 
+    2     6     1 
+    2     7     1 
+    2     8     1 
+    3     6     1 
+    3     7     1 
+    3     8     1 
+    4     6     1 
+    4     7     1 
+    4     8     1 
+    5    11     1 
+    5    12     1 
+    6     9     1 
+    6    10     1 
+    7     9     1 
+    7    10     1 
+    8    13     1 
+    8    14     1 
+    8    19     1 
+    9    11     1 
+    9    12     1 
+   10    15     1 
+   10    16     1 
+   10    17     1 
+   10    20     1 
+   10    21     1 
+   11    13     1 
+   11    14     1 
+   11    19     1 
+   12    18     1 
+   13    15     1 
+   13    16     1 
+   13    17     1 
+   13    20     1 
+   13    21     1 
+   14    20     1 
+   14    21     1 
+   15    18     1 
+   15    19     1 
+   16    18     1 
+   16    19     1 
+   17    19     1 
+
+[ angles ]
+;  ai    aj    ak funct            c0            c1            c2            c3
+    2     1     3     1 
+    2     1     4     1 
+    2     1     5     1 
+    3     1     4     1 
+    3     1     5     1 
+    4     1     5     1 
+    1     5     6     1 
+    1     5     7     1 
+    1     5     8     1 
+    6     5     7     1 
+    6     5     8     1 
+    7     5     8     1 
+    5     8     9     1 
+    5     8    10     1 
+    9     8    10     1 
+    8    10    11     1 
+    8    10    12     1 
+   11    10    12     1 
+   10    12    13     1 
+   10    12    14     1 
+   10    12    19     1 
+   13    12    14     1 
+   13    12    19     1 
+   14    12    19     1 
+   12    14    15     1 
+   12    14    16     1 
+   12    14    17     1 
+   15    14    16     1 
+   15    14    17     1 
+   16    14    17     1 
+   14    17    18     1 
+   12    19    20     1 
+   12    19    21     1 
+   20    19    21     1 
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
+    2     1     5     6     9 
+    2     1     5     7     9 
+    2     1     5     8     9 
+    3     1     5     6     9 
+    3     1     5     7     9 
+    3     1     5     8     9 
+    4     1     5     6     9 
+    4     1     5     7     9 
+    4     1     5     8     9 
+    1     5     8     9     9 
+    1     5     8    10     9 
+    6     5     8     9     9 
+    6     5     8    10     9 
+    7     5     8     9     9 
+    7     5     8    10     9 
+    5     8    10    11     9 
+    5     8    10    12     9 
+    9     8    10    11     9 
+    9     8    10    12     9 
+    8    10    12    13     9 
+    8    10    12    14     9 
+    8    10    12    19     9 
+   11    10    12    13     9 
+   11    10    12    14     9 
+   11    10    12    19     9 
+   10    12    14    15     9 
+   10    12    14    16     9 
+   10    12    14    17     9 
+   13    12    14    15     9 
+   13    12    14    16     9 
+   13    12    14    17     9 
+   19    12    14    15     9 
+   19    12    14    16     9 
+   19    12    14    17     9 
+   10    12    19    20     9 
+   10    12    19    21     9 
+   13    12    19    20     9 
+   13    12    19    21     9 
+   14    12    19    20     9 
+   14    12    19    21     9 
+   12    14    17    18     9 
+   15    14    17    18     9 
+   16    14    17    18     9 
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3
+    5    10     8     9     4 
+    8    12    10    11     4 
+   12    20    19    21     4 
+
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
+
+; Include water topology
+#include "amberGS.ff/tip3p.itp"
+
+#ifdef POSRES_WATER
+; Position restraint for each water oxygen
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
+
+; Include topology for ions
+#include "amberGS.ff/ions.itp"
+
+[ system ]
+; Name
+Protein
+
+[ molecules ]
+; Compound        #mols
+Protein             1

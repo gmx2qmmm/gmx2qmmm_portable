@@ -43,7 +43,7 @@ class GenerateTopology():
     This class generates a new topology file
     '''
 
-    def __init__(self, input_dict, system, basedir) -> None:
+    def __init__(self, input_dict, system, work_dir) -> None:
 
         '''
         ------------------------------ \\
@@ -63,9 +63,10 @@ class GenerateTopology():
 
         self.system = system
         self.input_dict = input_dict
-        self.basedir = basedir
+        self.work_dir = work_dir
+        self.input_topology = self.work_dir / self.input_dict['topologyfile']
         self.mmflaglist = [] # figure out what that variable exactly is later (empty list in example) XX AJ
-        self.qmmm_topology = str(input_dict['jobname'] + ".qmmm.top")
+        self.qmmm_topology = self.work_dir / (input_dict['jobname'] + ".qmmm.top")
         self.generate_top_listsonly()
 
     def find_ffnonbonded(self, includedata):
@@ -162,7 +163,7 @@ class GenerateTopology():
         '''
 
         foundtop = ""
-        toplist = [self.input_dict['topologyfile']] + self.system.list_topology
+        toplist = [self.input_topology] + self.system.list_topology
         for element in toplist:
             with open(element) as ifile:
                 for line in ifile:
@@ -391,8 +392,8 @@ class GenerateTopology():
             dihedraldata = []
             settledata = []
             excludedata = []
-            if self.input_dict['topologyfile'] not in red_molfindlist:
-                with open(self.input_dict['topologyfile']) as ifile:
+            if self.input_topology not in red_molfindlist:
+                with open(self.input_topology) as ifile:
                     blocked = False
                     for line in ifile:
                         match = re.search(r"^;", line, flags=re.MULTILINE)
@@ -1183,7 +1184,6 @@ class GenerateTopology():
                     for k in range(0, len(self.system.list_atoms_m3[i][j])):
                         excludedata.append([int(self.system.list_atoms_m3[i][j][k]), int(self.system.list_atoms_q1[i])])
 
-            # XX AJ maybe combine these two functions? I don't quite understand how they work though
             excludedata = self.clean_exclusions(excludedata, offset)
             excludedata = self.cleanagain_exclusions(excludedata)
 
@@ -1198,7 +1198,7 @@ class GenerateTopology():
 
 
     def make_gmx_index_file(self):
-        # previous name "make_exclude_index" XX
+        # previous name "make_exclude_index"
 
         '''
         ------------------------------ \\
@@ -1216,9 +1216,8 @@ class GenerateTopology():
         ------------------------------ \\
         '''
 
-        outname = str(self.qmmm_topology) + ".ndx"
+        outname = self.work_dir / (str(self.qmmm_topology) + ".ndx")
         with open(outname, "w") as ofile:
-            count = 0
             ofile.write("[ QM ]\n")
             count = 0
             for element in self.system.list_atoms_qm:

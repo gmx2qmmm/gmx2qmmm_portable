@@ -33,21 +33,19 @@ class QM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
-        # XX AJ check later which ones of these I actually need here
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+        self.dict_input_userparameters = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
-        # XX AJ nma flag needed for some function
+        # TODO: NMA
         self.nmaflag = 0
 
     '''
     ------------------------------------
     '''
-    # XX Florian and Alina think seperating the functions keeps better flexibility (:
     def generate_qm_input(self):
 
         '''
@@ -65,7 +63,6 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-        # XX AJ needed for every qm software
         #   Filter xyzq For Coordinates (No Charges)
         fullcoords = filter_xyzq(self.system.array_xyzq_current, list(range(1,self.system.int_number_atoms)), charges=False)
 
@@ -88,21 +85,15 @@ class QM():
         atoms_section += "\n"
 
         # Write the input file
-        with open(self.str_inputfile_qm, 'w') as str_inputfile_qm:
+        qm_input = self.work_dir / self.str_inputfile_qm
+        with open(qm_input, 'w') as str_inputfile_qm:
             str_inputfile_qm.write(self.header)
             str_inputfile_qm.write(atoms_section)
             str_inputfile_qm.write(self.additional_input)
 
         if self.dict_input_userparameters['qmcommand'] == 'rung16':
-
-
-
-            # XXX Florian!
-
-            # XX AJ I don't understand this stdout stuff, Florian could you check if that's correct?
             original_stdout = sys.stdout
 
-            # XX AJ what is the benefit of using stdout instead of f.write?
             with open('top_info.txt', 'w') as f:
                 sys.stdout = f # Change the standard output to the file we created.
                 print('QMMMTOPINFO')
@@ -116,11 +107,8 @@ class QM():
                     print(str(i))
                 sys.stdout = original_stdout # Reset the standard output to its original value
 
-            # Ende Florian
-
 
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
-            # XX AJ: Nicola can here add the other input files or change the previous part to work with all of the QM programs
             pass
 
     def run_qm_job(self):
@@ -171,7 +159,6 @@ class QM():
                 #     "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
                 # )
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
-            # XX AJ: Nicola adding
             pass
 
     def read_qm_energy(self):
@@ -412,14 +399,14 @@ class QM():
 
 
 class QM_gaussian(QM):
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base):
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir):
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
-        # XX AJ NMA
+        # TODO: NMA
         self.nmaflag = 0
 
 

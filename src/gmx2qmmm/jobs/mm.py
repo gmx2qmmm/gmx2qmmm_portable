@@ -35,18 +35,17 @@ class MM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
-        # XX AJ check later which ones of these I actually need here
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
         #   Initialize Gromacs Input
-        self.string_structure_gmx_header = read_gmx_structure_header(self.dict_input_userparameters['coordinatefile'])
-        self.list_structure_gmx_atoms = read_gmx_structure_atoms(self.dict_input_userparameters['coordinatefile'])
-        self.list_box_vectors_initial = read_gmx_box_vectors(self.dict_input_userparameters['coordinatefile'])
+        self.string_structure_gmx_header = read_gmx_structure_header(self.work_dir / self.input_dict['coordinatefile'])
+        self.list_structure_gmx_atoms = read_gmx_structure_atoms(self.work_dir / self.input_dict['coordinatefile'])
+        self.list_box_vectors_initial = read_gmx_box_vectors(self.work_dir / self.input_dict['coordinatefile'])
 
         #   Calculate The Maximum Eucledian Distance Between Any Two Atoms And Get New Box Vectors
         array_coordinates_all = self.system.array_xyzq_current[:,:3]
@@ -56,15 +55,15 @@ class MM():
 
 
         #   Initialize Gromacs Filenames
-        self.mdpname = str(self.dict_input_userparameters['jobname'] + ".mdp")
-        self.groname = str(self.dict_input_userparameters['jobname'] + ".boxlarge.g96")
-        self.ndxname = str(self.class_topology_qmmm.qmmm_topology + ".ndx")
-        self.tprname = str(self.dict_input_userparameters['jobname'] + ".tpr")
-        self.trrname = str(self.dict_input_userparameters['jobname'] + ".trr")
-        self.xtcname = str(self.dict_input_userparameters['jobname'] + ".xtc")
-        self.outname = str(self.dict_input_userparameters['jobname'] + ".out.gro")
-        self.gmxlogname = str(self.dict_input_userparameters['jobname'] + ".gmx.log")
-        self.edrname = str(self.dict_input_userparameters['jobname'] + ".edr")
+        self.mdpname = self.work_dir / (self.input_dict['jobname'] + ".mdp")
+        self.groname = self.work_dir / (self.input_dict['jobname'] + ".boxlarge.g96")
+        self.ndxname = self.work_dir / (str(self.class_topology_qmmm.qmmm_topology) + ".ndx")
+        self.tprname = self.work_dir / (self.input_dict['jobname'] + ".tpr")
+        self.trrname = self.work_dir / (self.input_dict['jobname'] + ".trr")
+        self.xtcname = self.work_dir / (self.input_dict['jobname'] + ".xtc")
+        self.outname = self.work_dir / (self.input_dict['jobname'] + ".out.gro")
+        self.gmxlogname = self.work_dir / (self.input_dict['jobname'] + ".gmx.log")
+        self.edrname = self.work_dir / (self.input_dict['jobname'] + ".edr")
 
 
     def make_gmx_inp(self):
@@ -87,7 +86,7 @@ class MM():
 
         write_g96(self.groname, self.string_structure_gmx_header, self.list_structure_gmx_atoms, self.system.array_xyzq_current, self.list_box_vectors_large)
 
-        self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
+        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 
         self.write_mdp()
 
@@ -130,23 +129,23 @@ class MM():
         ------------------------------ \\
         '''
 
-        if self.dict_input_userparameters['rcoulomb'] == 0:
-            self.dict_input_userparameters['rcoulomb'] = self.float_distance_max
-        if self.dict_input_userparameters['rvdw'] == 0:
-            self.dict_input_userparameters['rvdw'] = self.dict_input_userparameters['rcoulomb']
+        if self.input_dict['rcoulomb'] == 0:
+            self.input_dict['rcoulomb'] = self.float_distance_max
+        if self.input_dict['rvdw'] == 0:
+            self.input_dict['rvdw'] = self.input_dict['rcoulomb']
 
         with open(self.mdpname, "w") as ofile:
             ofile.write(
                 "title               =  Yo\ncpp                 =  /usr/bin/cpp\nconstraints         =  none\nintegrator          =  md\ndt                  =  0.001 ; ps !\nnsteps              =  1\nnstcomm             =  0\nnstxout             =  1\nnstvout             =  1\nnstfout             =   1\nnstlog              =  1\nnstenergy           =  1\nnstlist             =  1\nns_type             =  grid\nrlist               =  "
             )
-            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
+            ofile.write(str(float(self.input_dict['rcoulomb'])))
             ofile.write(
                 "\ncutoff-scheme = group\ncoulombtype    =  cut-off\nrcoulomb            =  "
             )
-            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
+            ofile.write(str(float(self.input_dict['rcoulomb'])))
             ofile.write("\nrvdw                =  ")
-            ofile.write(str(float(self.dict_input_userparameters['rvdw'])))
-            if self.dict_input_userparameters['useinnerouter']:
+            ofile.write(str(float(self.input_dict['rvdw'])))
+            if self.input_dict['useinnerouter']:
                 ofile.write(
                 "\nTcoupl              =  no\nfreezegrps          =  OUTER\nfreezedim           =  Y Y Y\nenergygrps          =  QM INNER OUTER\nenergygrp-excl = QM QM INNER OUTER OUTER OUTER\nPcoupl              =  no\ngen_vel             =  no\n"
                 )
@@ -216,7 +215,7 @@ class MM():
         ------------------------------ \\
         '''
 
-        self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
+        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 
         self.mmenergy = 0.0
         # logger(logfile, "Extracting MM energy.\n")
@@ -268,16 +267,16 @@ class MM():
         ------------------------------ \\
         '''
 
-        prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
+        prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 
         self.mmforces = []
         insert = ""
         if int(self.system.int_step_current) != 0:
             insert = str("." + str(self.system.int_step_current))
         # logger.info("Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
-        trrname = str(self.dict_input_userparameters['jobname'] + insert + ".trr")
-        tprname = str(self.dict_input_userparameters['jobname'] + insert + ".tpr")
-        xvgname = str(self.dict_input_userparameters['jobname'] + insert + ".xvg")
+        trrname = str(self.input_dict['jobname'] + insert + ".trr")
+        tprname = str(self.input_dict['jobname'] + insert + ".tpr")
+        xvgname = str(self.input_dict['jobname'] + insert + ".xvg")
         p = subprocess.Popen(
             [
                 prefix,

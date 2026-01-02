@@ -45,3 +45,6 @@ def main():
 
     app = App.from_cli_args(args)
     app.run()
+
+if __name__ == "__main__":
+    main()

@@ -16,6 +16,7 @@ import numpy as np
 
 #   Imports From Existing Libraries
 from loguru import logger
+from pathlib import Path
 
 #   Imports Of Custom Libraries
 
@@ -34,7 +35,7 @@ class SystemInfo():
     This Class Reads And Stores Information About The System
     '''
 
-    def __init__(self, dict_input_userparameters, base_dir) -> None:
+    def __init__(self, input_dict, base_dir, work_dir) -> None:
 
         '''
         ------------------------------ \\
@@ -52,12 +53,14 @@ class SystemInfo():
         ------------------------------ \\
         '''
 
-        self.base_dir = str(base_dir)
-        self.dict_input_userparameters = dict_input_userparameters
+        self.base_dir = base_dir
+        self.work_dir = work_dir
+        self.dict_input_userparameters = input_dict
         self.int_step_current = 0
 
         #   Make A List Of All Topology Files
-        self.list_topology = self.get_list_topologies(self.dict_input_userparameters['topologyfile'])
+        self.top_file = self.work_dir / self.dict_input_userparameters['topologyfile']
+        self.list_topology = self.get_list_topologies(self.top_file)
 
         # Read The Different Types Of Molecules In The System
         self.list_molecules = self.read_molecules()
@@ -68,44 +71,42 @@ class SystemInfo():
             self.list_charges.extend(self.readcharges(molecule))
 
         #   Read All Atom Lists
-        #   XX AJ currently I'm assuming we're always having separate files for atom indices, only remove this comment when we finally decided so or add the possibility for lists
-        self.list_atoms_qm = self.read_atoms_list(self.dict_input_userparameters['qmatomslist'])
+        self.list_atoms_qm = self.read_atoms_list(self.work_dir / self.dict_input_userparameters['qmatomslist'])
         if self.dict_input_userparameters['jobtype'] != 'SINGLEPOINT':
-            self.list_atoms_active = self.read_atoms_list(self.dict_input_userparameters['activeatomslist'])
+            self.list_atoms_active = self.read_atoms_list(self.work_dir / self.dict_input_userparameters['activeatomslist'])
         else:
             self.list_atoms_active = []
-        if dict_input_userparameters['useinnerouter']:
-            self.list_atoms_inner = self.read_atoms_list(self.dict_input_userparameters['inneratomslist'])
-            self.list_atoms_outer = self.read_atoms_list(self.dict_input_userparameters['outeratomslist'])
+        if input_dict['useinnerouter']:
+            self.list_atoms_inner = self.read_atoms_list(self.work_dir / self.dict_input_userparameters['inneratomslist'])
+            self.list_atoms_outer = self.read_atoms_list(self.work_dir / self.dict_input_userparameters['outeratomslist'])
         #   If we're not using inner/outer we're keeping the lists empty (currently necessary for some functions but that might change later)
         else:
             self.list_atoms_inner = []
             self.list_atoms_outer = []
 
         #   Read Connectivity
-        self.list_connectivity_topology = self.read_connectity_topology(self.dict_input_userparameters['topologyfile'])
+        self.list_connectivity_topology = self.read_connectity_topology(self.top_file)
 
         #   Read Initial Geometry
-        #   XX AJ I would prefer only one function here independent of the file type and only make that distinction within the function. I'll get back to that later when I'm writing GeneratorGeometries.py
+        #   TODO: make one function for both options
         if self.dict_input_userparameters['coordinatefile'][-4:] == ".gro":
-            #logger.info("Reading geometry (.gro)...\n")
-            # XX AJ if we rewrite gro files to g96 files, the following function can be deleted and we can read the g96 file with geometry.readg96 afterwards
+            logger.info("Reading geometry (.gro)...\n")
+            # TODO: rewrite gro files to g96 files, the following function can be deleted and we can read the g96 file with geometry.readg96 afterwards
             self.list_geometry_initial = geometry.readgeo(self.dict_input_userparameters['coordinatefile'])
             # Writing high-precision coordinate file
-            # logger.info("Writing high-precision coordinate file...")
-            self.write_file_gromacs_highprec(self.dict_input_userparameters['coordinatefile']) # XX temp removed logfile until logfile decision of Florian AJ
+            logger.info("Writing high-precision coordinate file...")
+            self.write_file_gromacs_highprec(self.dict_input_userparameters['coordinatefile']) 
             self.dict_input_userparameters['coordinatefile'] = self.dict_input_userparameters['jobname'] + ".g96"
-            # logger.info("Done.\n")
+            logger.info("Done.\n")
         elif self.dict_input_userparameters['coordinatefile'][-4:] == ".g96":
-            #logger.info("Reading geometry (.g96)...\n")
-            self.list_geometry_initial = geometry.readg96(self.dict_input_userparameters['coordinatefile'])
+            logger.info("Reading geometry (.g96)...\n")
+            self.list_geometry_initial = geometry.readg96(self.work_dir / self.dict_input_userparameters['coordinatefile'])
 
         self.int_number_atoms = int(len(self.list_geometry_initial)/3)
 
         #   Create xyzq (Coordinates And Charges) For The Whole System
-        #   XX AJ also prefer only one function here, I'll make one function of it
-        #   XX AJ technically, I would prefer this xyzq function not in this class, but it's used in the get_linkatoms_ang, so I'll keep it here
-        if dict_input_userparameters['useinnerouter']:
+        #   TODO: make one function for both options
+        if input_dict['useinnerouter']:
             self.array_xyzq_initial = geometry.make_xyzq_io(self.list_geometry_initial, self.list_charges, self.list_atoms_outer)
         else:
             self.array_xyzq_initial = geometry.make_xyzq(self.list_geometry_initial, self.list_charges)
@@ -174,7 +175,7 @@ class SystemInfo():
         '''
 
         list_molecule = []
-        with open(self.dict_input_userparameters['topologyfile'], 'r') as file_input:
+        with open(self.top_file, 'r') as file_input:
             bool_match = False
             for line in file_input:
                 match = re.search(r"^\[ molecules \]", line, flags=re.MULTILINE)
@@ -182,7 +183,7 @@ class SystemInfo():
                     bool_match = True
                     break
             if not bool_match:
-                #   XX AJ turn into Logging
+                #   TODO: turn into Logging
                 print('No "molecules" entry in ' + str(self.top) + " found. Exiting.")
                 exit(1)
             for line in file_input:
@@ -197,7 +198,7 @@ class SystemInfo():
                     if match:
                         list_molecule.append([match.group(1), match.group(2)])
                     else:
-                        #   XX AJ turn into Logging
+                        #  TODO: turn into Logging
                         print("Found an incomprehensible line in molecules list. Exiting.")
                         print("Last line was:")
                         print(line)
@@ -222,10 +223,10 @@ class SystemInfo():
         '''
 
         list_charges = []
-        current_topology = self.dict_input_userparameters['topologyfile']
+        current_topology = self.top_file
         molecule_name = list_molecule_entry[0]
         molecule_count = int(list_molecule_entry[1])
-        found = self.check_occurence_topology_molecule(molecule_name, self.dict_input_userparameters['topologyfile'])
+        found = self.check_occurence_topology_molecule(molecule_name, self.top_file)
 
         if not found:
             for element in self.list_topology:
@@ -974,7 +975,7 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = os.path.join('..', '..', 'src', 'json_files', 'mass_map.json')
+        str_file_mass_map = self.base_dir / 'src' / 'json_files' / 'mass_map.json'
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 
@@ -1019,7 +1020,7 @@ class SystemInfo():
                             (float(atommass) - float(foundmass))
                             * (float(atommass) - float(foundmass))
                         )
-                        # XX change to logger
+                        # TODO: change to logger
                         # if massdiff > 0.01:
                         #     logger.info(
                         #         str(

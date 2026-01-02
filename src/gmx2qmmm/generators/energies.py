@@ -201,8 +201,8 @@ class GeneratorQMMM():
 
 class GeneratorEnergies(GeneratorQMMM):
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf

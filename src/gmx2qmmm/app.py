@@ -112,7 +112,7 @@ class App:
 
     def initialize_system(self) -> None:
         """Setup system using input parameters"""
-        self.system = SystemInfo(self.parameters, self.base_dir)
+        self.system = SystemInfo(self.parameters, self.base_dir, self.work_dir)
         logger.success("Initialised system")
 
     def generate_topology(self) -> None:
