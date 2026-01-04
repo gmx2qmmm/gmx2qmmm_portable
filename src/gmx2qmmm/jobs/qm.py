@@ -184,7 +184,7 @@ class QM():
             self.qmenergy = 0.0
             self.qm_corrdata = []
             if str(self.dict_input_userparameters['program']) == "G16":
-                with open(str(self.str_inputfile_qm + ".log")) as ifile:
+                with open(str(self.str_inputfile_qm) + ".log") as ifile:
                     for line in ifile:
 
                         match = []
@@ -275,8 +275,8 @@ class QM():
             if (int(self.system.int_step_current) != 0):
                 insert = str("." + str(self.system.int_step_current))
             # logger.info("Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
-            qmlogfile = str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
-            fortfile = str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
+            qmlogfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
+            fortfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
 
             with open(fortfile) as ifile:
                 for line in ifile:
@@ -386,7 +386,7 @@ class QM():
         '''
 
         self.pcf_self = 0.0
-        with open(self.str_inputfile_qm + ".log") as ifile:
+        with open(str(self.str_inputfile_qm) + ".log") as ifile:
             for line in ifile:
                 match = re.search(
                     r"^\s+Self\s+energy\s+of\s+the\s+charges\s+=\s+([-]*\d+\.\d+)\s+a\.u\.",
@@ -418,18 +418,18 @@ class QM_gaussian(QM):
             insert = str("." + str(int(self.system.int_step_current) ))
             if int(self.system.int_step_current) > 1:
                 oldinsert = str("." + str(int(self.system.int_step_current) - 1))
-        self.str_inputfile_qm = str(self.dict_input_userparameters['jobname'] + insert + ".gjf")
-        self.chkfile = str(self.dict_input_userparameters['jobname'] + insert + ".chk")
-        self.oldchkfile = str(self.dict_input_userparameters['jobname'] + oldinsert + ".chk")
+        self.str_inputfile_qm = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".gjf")
+        self.chkfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".chk")
+        self.oldchkfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + oldinsert + ".chk")
 
     def generate_gaussian_header(self):
         self.header = ""
         self.header += "%NPROCSHARED=" + str(self.dict_input_userparameters['cores']) + "\n"
         self.header += "%MEM=" + str(self.dict_input_userparameters['memory']) + "MB\n"
-        self.header += "%CHK=" + self.chkfile + "\n"
+        self.header += "%CHK=" + self.chkfile.name + "\n"
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
-            self.header += "%OLDCHK=" + self.oldchkfile + "\n"
+            self.header += "%OLDCHK=" + self.oldchkfile.name + "\n"
 
         self.header += "#P " + str(self.dict_input_userparameters['method'])
         self.header += "/" + str(self.dict_input_userparameters['basis'])

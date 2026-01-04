@@ -81,7 +81,7 @@ class Singlepoint():
         self.run_calculation()
 
         #   Generating Output Files
-        class_output = Output()
+        class_output = Output(self.work_dir)
         class_output.oenergy_append(0, self.class_qm_job.qmenergy, self.class_mm_job.mmenergy, self.linkcorrenergy, self.total_energy)
         class_output.oforces_append(0, self.total_force)
 

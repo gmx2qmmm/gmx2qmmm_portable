@@ -123,7 +123,7 @@ class Output():
     '''
 
     #   // INIT //
-    def __init__(self) -> None:
+    def __init__(self, work_dir) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -140,8 +140,8 @@ class Output():
         ------------------------------ \\
         '''
 
-        self.energy_file = 'oenergy.txt'
-        self.forces_file = 'oforces.txt'
+        self.energy_file = work_dir / 'oenergy.txt'
+        self.forces_file = work_dir / 'oforces.txt'
 
         with open(self.energy_file, 'w') as oenergy:
              oenergy.write("Step\tQM\t\tMM\t\tLink\t\tTotal\n")

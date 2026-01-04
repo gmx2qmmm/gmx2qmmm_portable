@@ -215,9 +215,39 @@ class MM():
         ------------------------------ \\
         '''
 
-        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
-
         self.mmenergy = 0.0
+        # logger(logfile, "Extracting MM energy.\n")
+        self.call_mm_energy()
+
+        with open(str(self.edrname) + ".xvg") as ifile:
+            for line in ifile:
+                match = re.search(
+                    r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
+                )
+                if match:
+                    self.mmenergy = float(match.group(1)) * 0.00038087988
+                    break
+        # logger.info(f"MM energy is {mmenergy:.4f} a.u..")
+
+    def call_mm_energy(self):
+
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        --------------- \\
+        XX \\
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        NONE \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        NONE \\
+        ------------------------------ \\
+        '''
+
+        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
         # logger(logfile, "Extracting MM energy.\n")
         p = subprocess.Popen(
             [
@@ -235,18 +265,6 @@ class MM():
             stderr=subprocess.STDOUT,
         )
         p.communicate(input=b"11\n\n")
-
-        with open(str(self.edrname + ".xvg")) as ifile:
-            for line in ifile:
-                match = re.search(
-                    r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
-                )
-                if match:
-                    self.mmenergy = float(match.group(1)) * 0.00038087988
-                    break
-        # logger.info(f"MM energy is {mmenergy:.4f} a.u..")
-
-
 
 
     def read_mm_forces(self):
@@ -267,39 +285,18 @@ class MM():
         ------------------------------ \\
         '''
 
-        prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 
         self.mmforces = []
         insert = ""
         if int(self.system.int_step_current) != 0:
             insert = str("." + str(self.system.int_step_current))
         # logger.info("Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
-        trrname = str(self.input_dict['jobname'] + insert + ".trr")
-        tprname = str(self.input_dict['jobname'] + insert + ".tpr")
-        xvgname = str(self.input_dict['jobname'] + insert + ".xvg")
-        p = subprocess.Popen(
-            [
-                prefix,
-                "traj",
-                "-fp",
-                "-f",
-                trrname,
-                "-s",
-                tprname,
-                "-of",
-                xvgname,
-                "-xvg",
-                "none",
-                "-backup",
-                "no",
-            ],
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        p.communicate(input=b"0\n")
+        self.trrname = self.work_dir / str(self.input_dict['jobname'] + insert + ".trr")
+        self.tprname = self.work_dir / str(self.input_dict['jobname'] + insert + ".tpr")
+        self.xvgname = self.work_dir / str(self.input_dict['jobname'] + insert + ".xvg")
 
-        with open(xvgname) as ifile:
+
+        with open(self.xvgname) as ifile:
             for line in ifile:
                 forcelist = re.findall("\S+", line)
                 count = 0
@@ -312,3 +309,27 @@ class MM():
                         self.mmforces.append(mmforceline)
                         mmforceline = []
                 break  # read only one line
+    def call_mm_forces(self):
+        prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
+
+        p = subprocess.Popen(
+            [
+                prefix,
+                "traj",
+                "-fp",
+                "-f",
+                self.trrname,
+                "-s",
+                self.tprname,
+                "-of",
+                self.xvgname,
+                "-xvg",
+                "none",
+                "-backup",
+                "no",
+            ],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        p.communicate(input=b"0\n")
