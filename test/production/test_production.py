@@ -9,10 +9,11 @@ from gmx2qmmm.jobs import qm, mm
 def test_singlepoint():
 
     current_path = Path(__file__).resolve().parent
-    params_file = current_path / "params.txt"
+    work_dir = current_path / 'generated_files'
+    params_file = work_dir / 'params.txt'
 
     # Create App instance
-    app = App(parameters=str(params_file), work_dir=str(current_path ))
+    app = App(parameters=str(params_file), work_dir=str(work_dir ))
 
     # Mock the main components
     # mock_singlepoint = mocker.patch.object("gmx2qmmm.app.Singlepoint")
@@ -28,12 +29,12 @@ def test_singlepoint():
         app.run()
     
     # compare energies and forces
-    oe_file = current_path / 'oenergy.txt'
+    oe_file = work_dir / 'oenergy.txt'
     energies = [float(i) for i in open(oe_file).readlines()[-1].split()]
     ref_energies = [float(i) for i in open('test/production/ref_output/oenergy.txt').readlines()[-1].split()]
     assert np.all(np.isclose(energies, ref_energies))
     
-    of_file = current_path / 'oforces.txt'
+    of_file = work_dir / 'oforces.txt'
     forces = [float(u) for i in [o.split() for o in open(of_file).readlines()[1:-1]] for u in i]
     ref_forces = [float(i) for line in open('test/production/ref_output/oforces.txt').readlines()[1:] for i in line.split()]
     assert np.all(np.isclose(forces, ref_forces))
