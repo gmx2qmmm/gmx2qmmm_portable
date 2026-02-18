@@ -9,7 +9,7 @@ from gmx2qmmm.jobs import qm, mm
 def test_singlepoint():
 
     current_path = Path(__file__).resolve().parent
-    work_dir = current_path / 'generated_files'
+    work_dir = current_path / 'test_files'
     params_file = work_dir / 'params.txt'
 
     # Create App instance

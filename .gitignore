@@ -166,7 +166,7 @@ cython_debug/
 
 # gmx2qmmm example files (AJ)
 params.txt
-!test/production/params.txt
+!test/production/test_files/params.txt
 example/
 */logfile.log*
 
