@@ -2,9 +2,7 @@ name: Python application
 
 on:
   push:
-    branches: [ "unittesting" ]
   pull_request:
-    branches: [ "unittesting" ]
 
 permissions:
   contents: read
