@@ -17,7 +17,6 @@ import numpy as np
 #   Imports From Existing Libraries
 from loguru import logger
 from pathlib import Path
-from importlib import resources
 
 #   Imports Of Custom Libraries
 
@@ -976,11 +975,8 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        #str_file_mass_map = self.base_dir / 'src' / 'json_files' / 'mass_map.json'
-        #with open(str_file_mass_map, 'r') as file:
-        #    mass_map = json.load(file)
-
-        with resources.open_text('gmx2qmmm.src.json_files', 'mass_map.json') as file:
+        str_file_mass_map = self.base_dir / 'src' / 'json_files' / 'mass_map.json'
+        with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 
         name_map = {value: key for key, value in mass_map.items()}
