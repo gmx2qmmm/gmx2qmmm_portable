@@ -975,7 +975,10 @@ class SystemInfo():
         ------------------------------ \\
         '''
         atoms = []
-        str_file_mass_map = self.base_dir / 'src' / 'json_files' / 'mass_map.json'
+        #str_file_mass_map = self.base_dir / 'src' / 'json_files' / 'mass_map.json'
+        current_file = Path(__file__).resolve()
+        str_file_mass_map = current_file.parents[2] / 'json_files' / 'mass_map.json'
+
         with open(str_file_mass_map, 'r') as file:
             mass_map = json.load(file)
 
