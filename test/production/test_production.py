@@ -13,7 +13,7 @@ def test_singlepoint():
     params_file = work_dir / 'params.txt'
 
     # Create App instance
-    app = App(parameters=str(params_file), work_dir=str(work_dir ))
+    app = App(parameters=str(params_file), work_dir=str(work_dir))
 
     # Mock the main components
     # mock_singlepoint = mocker.patch.object("gmx2qmmm.app.Singlepoint")

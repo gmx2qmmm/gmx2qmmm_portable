@@ -168,6 +168,7 @@ cython_debug/
 params.txt
 !test/production/test_files/params.txt
 example/
+!test/production/test_files/*
 */logfile.log*
 
 # pdf files
