@@ -11,6 +11,8 @@ __date__ = '2024-09-25'
 import re
 import sqlite3
 import numpy as np
+from importlib import resources
+import tempfile
 
 #   Imports From Existing Libraries
 from loguru import logger
@@ -113,8 +115,11 @@ class GeneratorQMMM():
 
         # XX AJ check what this connection object is
         # XX AJ: I had to convert the path object to string to get the sqlite object, is there a better way to do that?
-        self.base_dir = str(self.base_dir)
-        conn = sqlite3.connect(self.base_dir + "/correction_database/database.sqlite")
+        with resources.files("gmx2qmmm.correction_database").joinpath("database.sqlite").open("rb") as f:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(f.read())
+                tmp_path = tmp.name
+        conn = sqlite3.connect(tmp_path)
 
         # check if method exist in database
         method_set = conn.cursor()
