@@ -33,6 +33,13 @@ def test_singlepoint(mocker):
     forces = [float(u) for i in [o.split() for o in open(of_file).readlines()[1:-1]] for u in i]
     ref_forces = [float(i) for line in open('test/production/ref_output/oforces.txt').readlines()[1:] for i in line.split()]
     assert np.all(np.isclose(forces, ref_forces))
+
+    oe_file.unlink()
+    of_file.unlink()
+    files_to_delete = ['test.pointcharges', 'logfile.log', 'test.qmmm.top', 'test.boxlarge.g96', 'test.gjf', 'test.mdp', 'test.qmmm.top.ndx']
+    for i in files_to_delete:
+        file = work_dir / i
+        file.unlink(missing_ok=True)
     
 if __name__ == '__main__':
     pytest.main([__file__]) 
