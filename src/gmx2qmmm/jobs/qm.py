@@ -128,7 +128,7 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-
+        
         if self.dict_input_userparameters['qmcommand'] == 'g16':
             insert = ""
             if int(self.system.int_step_current) > 0:
@@ -137,8 +137,7 @@ class QM():
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
                 subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm)])
-                logname = self.str_inputfile_qm[:-3]
-                logname += "log"
+                logname = self.str_inputfile_qm.with_suffix(".log")
                 os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
                 # logger.info("G16 Done.\n")
