@@ -1,0 +1,26 @@
+# This file was created Thu Nov 20 09:35:03 2025
+# Created by:
+#                      :-) GROMACS - gmx energy, 2019.4 (-:
+# 
+# Executable:   /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/gmx
+# Data prefix:  /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a
+# Working dir:  /home/jansea92/new_gmx2qmmm/gmx2qmmm_portable/examples/sp
+# Command line:
+#   gmx energy -f test.edr -o test.edr.xvg -backup no
+# gmx energy is part of G R O M A C S:
+#
+# GROningen Mixture of Alchemy and Childrens' Stories
+#
+@    title "GROMACS Energies"
+@    xaxis  label "Time (ps)"
+@    yaxis  label "(kJ/mol)"
+@TYPE xy
+@ view 0.15, 0.15, 0.75, 0.85
+@ legend on
+@ legend box on
+@ legend loctype view
+@ legend 0.78, 0.8
+@ legend length 2
+@ s0 legend "Total Energy"
+    0.000000  309.883789
+    0.001000  306.106110
