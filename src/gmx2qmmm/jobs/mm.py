@@ -296,6 +296,7 @@ class MM():
         self.tprname = self.work_dir / str(self.input_dict['jobname'] + insert + ".tpr")
         self.xvgname = self.work_dir / str(self.input_dict['jobname'] + insert + ".xvg")
 
+        self.call_mm_forces()
 
         with open(self.xvgname) as ifile:
             for line in ifile:
@@ -310,6 +311,8 @@ class MM():
                         self.mmforces.append(mmforceline)
                         mmforceline = []
                 break  # read only one line
+
+
     def call_mm_forces(self):
         prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 

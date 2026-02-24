@@ -1078,8 +1078,8 @@ class GenerateTopology():
                                                 continue
                     offset += mollength[count]
                 count += 1
-            for i in range(0, len(includedata)):
-                ofile.write('#include "' + str(includedata[i]) + '"\n')
+            for inc in dict.fromkeys(includedata):
+                ofile.write(f'#include "{inc}"\n')
             ofile.write("\n[ moleculetype ]\nQMMM_model     3\n\n[ atoms ]\n")
             ffnb = self.find_ffnonbonded(includedata)
             for element in atomdata:
