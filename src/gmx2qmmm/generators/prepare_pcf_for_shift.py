@@ -20,7 +20,7 @@ __date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
 import re
 import numpy as np
-
+import sys
 
 def get_bondpartners(connlist, target):
     '''

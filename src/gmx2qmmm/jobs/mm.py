@@ -9,9 +9,15 @@ __date__ = '2024-09-19'
 
 #   Imports Of Existing Libraries
 import re
+import os
+import math
+import sqlite3
+import sys
+import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
+from loguru import logger
 
 #   Imports Of Custom Libraries
 
@@ -20,7 +26,6 @@ from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_str
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -30,18 +35,17 @@ class MM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
-        # XX AJ check later which ones of these I actually need here
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
         #   Initialize Gromacs Input
-        self.string_structure_gmx_header = read_gmx_structure_header(self.dict_input_userparameters['coordinatefile'])
-        self.list_structure_gmx_atoms = read_gmx_structure_atoms(self.dict_input_userparameters['coordinatefile'])
-        self.list_box_vectors_initial = read_gmx_box_vectors(self.dict_input_userparameters['coordinatefile'])
+        self.string_structure_gmx_header = read_gmx_structure_header(self.work_dir / self.input_dict['coordinatefile'])
+        self.list_structure_gmx_atoms = read_gmx_structure_atoms(self.work_dir / self.input_dict['coordinatefile'])
+        self.list_box_vectors_initial = read_gmx_box_vectors(self.work_dir / self.input_dict['coordinatefile'])
 
         #   Calculate The Maximum Eucledian Distance Between Any Two Atoms And Get New Box Vectors
         array_coordinates_all = self.system.array_xyzq_current[:,:3]
@@ -51,15 +55,15 @@ class MM():
 
 
         #   Initialize Gromacs Filenames
-        self.mdpname = str(self.dict_input_userparameters['jobname'] + ".mdp")
-        self.groname = str(self.dict_input_userparameters['jobname'] + ".boxlarge.g96")
-        self.ndxname = str(self.class_topology_qmmm.qmmm_topology + ".ndx")
-        self.tprname = str(self.dict_input_userparameters['jobname'] + ".tpr")
-        self.trrname = str(self.dict_input_userparameters['jobname'] + ".trr")
-        self.xtcname = str(self.dict_input_userparameters['jobname'] + ".xtc")
-        self.outname = str(self.dict_input_userparameters['jobname'] + ".out.gro")
-        self.gmxlogname = str(self.dict_input_userparameters['jobname'] + ".gmx.log")
-        self.edrname = str(self.dict_input_userparameters['jobname'] + ".edr")
+        self.mdpname = self.work_dir / (self.input_dict['jobname'] + ".mdp")
+        self.groname = self.work_dir / (self.input_dict['jobname'] + ".boxlarge.g96")
+        self.ndxname = self.work_dir / (str(self.class_topology_qmmm.qmmm_topology) + ".ndx")
+        self.tprname = self.work_dir / (self.input_dict['jobname'] + ".tpr")
+        self.trrname = self.work_dir / (self.input_dict['jobname'] + ".trr")
+        self.xtcname = self.work_dir / (self.input_dict['jobname'] + ".xtc")
+        self.outname = self.work_dir / (self.input_dict['jobname'] + ".out.gro")
+        self.gmxlogname = self.work_dir / (self.input_dict['jobname'] + ".gmx.log")
+        self.edrname = self.work_dir / (self.input_dict['jobname'] + ".edr")
 
 
     def make_gmx_inp(self):
@@ -82,30 +86,29 @@ class MM():
 
         write_g96(self.groname, self.string_structure_gmx_header, self.list_structure_gmx_atoms, self.system.array_xyzq_current, self.list_box_vectors_large)
 
-        self.prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
+        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
 
         self.write_mdp()
 
-        # XX AJ commented out until testing
-        # subprocess.call(
-        #     [
-        #         prefix,
-        #         "grompp",
-        #         "-p",
-        #         str(self.class_topology_qmmm.qmmm_topology),
-        #         "-c",
-        #         str(self.groname),
-        #         "-n",
-        #         str(self.ndxname),
-        #         "-f",
-        #         str(self.mdpname),
-        #         "-o",
-        #         str(self.tprname),
-        #         "-backup",
-        #         "no",
-        #     ]
-        # )
-        # subprocess.call(["rm", "mdout.mdp"])
+        subprocess.call(
+            [
+                self.prefix,
+                "grompp",
+                "-p",
+                str(self.class_topology_qmmm.qmmm_topology),
+                "-c",
+                str(self.groname),
+                "-n",
+                str(self.ndxname),
+                "-f",
+                str(self.mdpname),
+                "-o",
+                str(self.tprname),
+                "-backup",
+                "no",
+            ]
+        )
+        subprocess.call(["rm", "mdout.mdp"])
 
 
     def write_mdp(self):
@@ -126,23 +129,23 @@ class MM():
         ------------------------------ \\
         '''
 
-        if self.dict_input_userparameters['rcoulomb'] == 0:
-            self.dict_input_userparameters['rcoulomb'] = self.float_distance_max
-        if self.dict_input_userparameters['rvdw'] == 0:
-            self.dict_input_userparameters['rvdw'] = self.dict_input_userparameters['rcoulomb']
+        if self.input_dict['rcoulomb'] == 0:
+            self.input_dict['rcoulomb'] = self.float_distance_max
+        if self.input_dict['rvdw'] == 0:
+            self.input_dict['rvdw'] = self.input_dict['rcoulomb']
 
         with open(self.mdpname, "w") as ofile:
             ofile.write(
                 "title               =  Yo\ncpp                 =  /usr/bin/cpp\nconstraints         =  none\nintegrator          =  md\ndt                  =  0.001 ; ps !\nnsteps              =  1\nnstcomm             =  0\nnstxout             =  1\nnstvout             =  1\nnstfout             =   1\nnstlog              =  1\nnstenergy           =  1\nnstlist             =  1\nns_type             =  grid\nrlist               =  "
             )
-            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
+            ofile.write(str(float(self.input_dict['rcoulomb'])))
             ofile.write(
                 "\ncutoff-scheme = group\ncoulombtype    =  cut-off\nrcoulomb            =  "
             )
-            ofile.write(str(float(self.dict_input_userparameters['rcoulomb'])))
+            ofile.write(str(float(self.input_dict['rcoulomb'])))
             ofile.write("\nrvdw                =  ")
-            ofile.write(str(float(self.dict_input_userparameters['rvdw'])))
-            if self.dict_input_userparameters['useinnerouter']:
+            ofile.write(str(float(self.input_dict['rvdw'])))
+            if self.input_dict['useinnerouter']:
                 ofile.write(
                 "\nTcoupl              =  no\nfreezegrps          =  OUTER\nfreezedim           =  Y Y Y\nenergygrps          =  QM INNER OUTER\nenergygrp-excl = QM QM INNER OUTER OUTER OUTER\nPcoupl              =  no\ngen_vel             =  no\n"
                 )
@@ -169,31 +172,29 @@ class MM():
         ------------------------------ \\
         '''
 
-        pass
-        # logger(logfile, "Running Gromacs file.\n")
+        # logger.info("Running GROMACS")
 
-        # XX AJ commented out until testing
-        # subprocess.call(
-        # [
-        #     self.prefix,
-        #     "mdrun",
-        #     "-s",
-        #     self.tprname,
-        #     "-o",
-        #     self.trrname,
-        #     "-c",
-        #     self.outname,
-        #     "-x",
-        #     self.xtcname,
-        #     "-g",
-        #     self.gmxlogname,
-        #     "-e",
-        #     self.edrname,
-        #     "-backup",
-        #     "no",
-        # ]
-        # )
-        # # os.remove(outname)
+        subprocess.call(
+        [
+            self.prefix,
+            "mdrun",
+            "-s",
+            self.tprname,
+            "-o",
+            self.trrname,
+            "-c",
+            self.outname,
+            "-x",
+            self.xtcname,
+            "-g",
+            self.gmxlogname,
+            "-e",
+            self.edrname,
+            "-backup",
+            "no",
+        ]
+        )
+        # os.remove(self.outname)
 
 
     def read_mm_energy(self):
@@ -214,28 +215,11 @@ class MM():
         ------------------------------ \\
         '''
 
-        prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
-
         self.mmenergy = 0.0
         # logger(logfile, "Extracting MM energy.\n")
-        # p = subprocess.Popen(
-        #     [
-        #         prefix,
-        #         "energy",
-        #         "-f",
-        #         edrname,
-        #         "-o",
-        #         str(edrname + ".xvg"),
-        #         "-backup",
-        #         "no",
-        #     ],
-        #     stdout=subprocess.PIPE,
-        #     stdin=subprocess.PIPE,
-        #     stderr=subprocess.STDOUT,
-        # )
-        # p.communicate(input=b"11\n\n")
-
-        with open(str(self.edrname + ".xvg")) as ifile:
+        self.call_mm_energy()
+        
+        with open(str(self.edrname) + ".xvg") as ifile:
             for line in ifile:
                 match = re.search(
                     r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
@@ -243,9 +227,45 @@ class MM():
                 if match:
                     self.mmenergy = float(match.group(1)) * 0.00038087988
                     break
-        # logger(logfile, "MM energy is " + str(float(mmenergy)) + " a.u..\n")
+        # logger.info(f"MM energy is {mmenergy:.4f} a.u..")
 
+    def call_mm_energy(self):
 
+        '''
+        ------------------------------ \\
+        EFFECT: \\
+        --------------- \\
+        XX \\
+        ------------------------------ \\
+        INPUT: \\
+        --------------- \\
+        NONE \\
+        ------------------------------ \\
+        RETURN: \\
+        --------------- \\
+        NONE \\
+        ------------------------------ \\
+        '''
+
+        self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
+        # logger(logfile, "Extracting MM energy.\n")
+        xvg_file = str(self.edrname) + ".xvg"
+        p = subprocess.Popen(
+            [
+                self.prefix,
+                "energy",
+                "-f",
+                self.edrname,
+                "-o",
+                str(xvg_file),
+                "-backup",
+                "no",
+            ],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        p.communicate(input=b"11\n\n")
 
 
     def read_mm_forces(self):
@@ -266,39 +286,19 @@ class MM():
         ------------------------------ \\
         '''
 
-        prefix =  self.dict_input_userparameters['gmxpath'] + self.dict_input_userparameters['gmxcmd']
 
         self.mmforces = []
         insert = ""
         if int(self.system.int_step_current) != 0:
             insert = str("." + str(self.system.int_step_current))
-        # logger(logfile,"Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
-        trrname = str(self.dict_input_userparameters['jobname'] + insert + ".trr")
-        tprname = str(self.dict_input_userparameters['jobname'] + insert + ".tpr")
-        xvgname = str(self.dict_input_userparameters['jobname'] + insert + ".xvg")
-        # p = subprocess.Popen(
-        #     [
-        #         prefix,
-        #         "traj",
-        #         "-fp",
-        #         "-f",
-        #         trrname,
-        #         "-s",
-        #         tprname,
-        #         "-of",
-        #         xvgname,
-        #         "-xvg",
-        #         "none",
-        #         "-backup",
-        #         "no",
-        #     ],
-        #     stdout=subprocess.PIPE,
-        #     stdin=subprocess.PIPE,
-        #     stderr=subprocess.STDOUT,
-        # )
-        # p.communicate(input=b"0\n")
+        # logger.info("Reading MM forces using file: "+str(self.dict_input_userparameters['jobname'] + insert + ".trr/.tpr/.tpr")+"\n")
+        self.trrname = self.work_dir / str(self.input_dict['jobname'] + insert + ".trr")
+        self.tprname = self.work_dir / str(self.input_dict['jobname'] + insert + ".tpr")
+        self.xvgname = self.work_dir / str(self.input_dict['jobname'] + insert + ".xvg")
 
-        with open(xvgname) as ifile:
+        self.call_mm_forces()
+
+        with open(self.xvgname) as ifile:
             for line in ifile:
                 forcelist = re.findall("\S+", line)
                 count = 0
@@ -311,3 +311,29 @@ class MM():
                         self.mmforces.append(mmforceline)
                         mmforceline = []
                 break  # read only one line
+
+
+    def call_mm_forces(self):
+        prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
+
+        p = subprocess.Popen(
+            [
+                prefix,
+                "traj",
+                "-fp",
+                "-f",
+                self.trrname,
+                "-s",
+                self.tprname,
+                "-of",
+                self.xvgname,
+                "-xvg",
+                "none",
+                "-backup",
+                "no",
+            ],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        p.communicate(input=b"0\n")

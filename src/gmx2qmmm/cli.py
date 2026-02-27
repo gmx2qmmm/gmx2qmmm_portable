@@ -23,11 +23,9 @@ def main():
     parser.add_argument(
         "-l",
         "--logfile",
-        help="Logfile (.log)",
+        help="Full path to a logfile. If not given, creates a logfile.log file in the working directory.",
         type=str,
-        default="logfile.txt"
     )
-
     parser.add_argument(
         "-p",
         "--parameters",
@@ -35,8 +33,18 @@ def main():
         type=str,
         default="params.txt"
     )
+    parser.add_argument(
+        "-wd",
+        "--working-directory",
+        help="Working directory (used to save final and intermediate output)",
+        type=str,
+        default="."
+    )
 
     args = parser.parse_args()
 
     app = App.from_cli_args(args)
     app.run()
+
+if __name__ == "__main__":
+    main()

@@ -11,13 +11,14 @@ __date__ = '2024-09-25'
 import re
 import sqlite3
 import numpy as np
+from importlib import resources
+import tempfile
 
 #   Imports From Existing Libraries
-
+from loguru import logger
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 
@@ -28,12 +29,13 @@ from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 class GeneratorQMMM():
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 
@@ -112,7 +114,12 @@ class GeneratorQMMM():
         '''
 
         # XX AJ check what this connection object is
-        conn = sqlite3.connect(self.str_directory_base + "/correction_database/database.sqlite")
+        # XX AJ: I had to convert the path object to string to get the sqlite object, is there a better way to do that?
+        with resources.files("gmx2qmmm.correction_database").joinpath("database.sqlite").open("rb") as f:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(f.read())
+                tmp_path = tmp.name
+        conn = sqlite3.connect(tmp_path)
 
         # check if method exist in database
         method_set = conn.cursor()
@@ -120,21 +127,20 @@ class GeneratorQMMM():
             "SELECT * FROM "
             + cut
             + ' WHERE forcefield="'
-            + self.dict_input_userparameters['forcefield']
+            + self.input_dict['forcefield']
             + '" AND method="'
-            + self.dict_input_userparameters['method']
+            + self.input_dict['method']
             + '" AND basisset ="'
-            + self.dict_input_userparameters['basis']
+            + self.input_dict['basis']
             + '"'
         )
         method_set_value = method_set.fetchall()
         if len(method_set_value) == 0:
             cut = "aminoacid_CACB"
-            self.dict_input_userparameters['forcefield'] = "amberGS"
-            self.dict_input_userparameters['method'] = "CAM-B3LYP"
-            self.dict_input_userparameters['basis'] = "6-31++G**"
-            # logger(
-            #     logfile,
+            self.input_dict['forcefield'] = "amberGS"
+            self.input_dict['method'] = "CAM-B3LYP"
+            self.input_dict['basis'] = "6-31++G**"
+            # logger.info(
             #     "Unexisted method in correction database, changing to default correction method...\n",
             # )
 
@@ -143,11 +149,11 @@ class GeneratorQMMM():
             "SELECT * FROM "
             + cut
             + ' WHERE forcefield="'
-            + self.dict_input_userparameters['forcefield']
+            + self.input_dict['forcefield']
             + '" AND method="'
-            + self.dict_input_userparameters['method']
+            + self.input_dict['method']
             + '" AND basisset ="'
-            + self.dict_input_userparameters['basis']
+            + self.input_dict['basis']
             + '"'
         )
         db_values = c.fetchall()[0]
@@ -156,14 +162,14 @@ class GeneratorQMMM():
         returnvalue = 0
         if len(db_values) > 0:
             if energy_or_force == "energy":
-                if self.dict_input_userparameters['databasefit'] == "poly":
+                if self.input_dict['databasefit'] == "poly":
                     returnvalue = (
                         db_values[5] * distance * distance * distance
                         + db_values[6] * distance * distance
                         + db_values[7] * distance
                         + db_values[8]
                     )
-                elif self.dict_input_userparameters['databasefit'] == "morse":
+                elif self.input_dict['databasefit'] == "morse":
                     returnvalue = (
                         db_values[9]
                         * (
@@ -172,18 +178,18 @@ class GeneratorQMMM():
                         )
                         + db_values[12]
                     )
-                elif self.dict_input_userparameters['databasefit'] == "no":
+                elif self.input_dict['databasefit'] == "no":
                     returnvalue = 0
-                    # logger(logfile, "No energy correction.\n")
+                    # logger.info("No energy correction.\n")
             elif energy_or_force == "forces":
-                if self.dict_input_userparameters['databasefit'] == "poly":
+                if self.input_dict['databasefit'] == "poly":
                     returnvalue = (
                         db_values[13] * distance * distance * distance
                         + db_values[14] * distance * distance
                         + db_values[15] * distance
                         + db_values[16]
                     )
-                elif self.dict_input_userparameters['databasefit'] == "morse":
+                elif self.input_dict['databasefit'] == "morse":
                     returnvalue = (
                         db_values[17]
                         * (
@@ -192,20 +198,21 @@ class GeneratorQMMM():
                         )
                         + db_values[20]
                     )
-                elif self.dict_input_userparameters['databasefit'] == "no":
+                elif self.input_dict['databasefit'] == "no":
                     returnvalue = 0
-                    # logger(logfile, "No force correction.\n")
+                    # logger.info("No force correction.\n")
         return returnvalue
 
 
 class GeneratorEnergies(GeneratorQMMM):
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 
@@ -392,12 +399,13 @@ class GeneratorEnergies(GeneratorQMMM):
 
 class GeneratorForces(GeneratorQMMM):
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base, class_qm_job, class_mm_job) -> None:
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
         self.class_qm_job = class_qm_job
         self.class_mm_job = class_mm_job
 

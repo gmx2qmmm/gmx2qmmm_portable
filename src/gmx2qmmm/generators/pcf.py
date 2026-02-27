@@ -16,7 +16,6 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, normalized_vector, _flatten
 
 
@@ -31,7 +30,7 @@ class GeneratePCF():
     XX
     '''
 
-    def __init__(self, input_dict, system, topology, directory_base) -> None:
+    def __init__(self, input_dict, system, topology, work_dir) -> None:
 
         '''
         ------------------------------ \\
@@ -52,9 +51,9 @@ class GeneratePCF():
         self.input_dict = input_dict
         self.system = system
         self.topology = topology
-        self.directory_base = directory_base
+        self.work_dir = work_dir
 
-        self.pcf_filename = self.input_dict['jobname'] + ".pointcharges"
+        self.pcf_filename = self.work_dir / (self.input_dict['jobname'] + ".pointcharges")
 
 
         self.make_pcf()

@@ -15,7 +15,7 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Output
+from gmx2qmmm.logging_utils import Output
 from gmx2qmmm.jobs import mm, qm
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
@@ -23,7 +23,6 @@ from gmx2qmmm.generators.energies import GeneratorEnergies, GeneratorForces
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -33,7 +32,7 @@ class Singlepoint():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -54,34 +53,35 @@ class Singlepoint():
         ------------------------------ \\
         '''
 
-        self.dict_input_userparameters = dict_input_userparameters
+        self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
 
-        #   XX AJ check how to deal with nma flag later
+        #   TODO: check how to deal with nma flag later
         self.nmaflag = 0
 
-        #   Initialize QM Class (XX AJ differentiate between qm program here?)
-        if self.dict_input_userparameters['qmcommand'] == 'g16':
-            self.class_qm_job = qm.QM_gaussian(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
-        elif self.dict_input_userparameters['qmcommand'] == 'orca':
+        #   Initialize QM Class (differentiate between qm program here?)
+        if self.input_dict['qmcommand'] == 'g16':
+            self.class_qm_job = qm.QM_gaussian(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
+        elif self.input_dict['qmcommand'] == 'orca':
             pass
 
         #   Initialize MM Class
-        self.class_mm_job = mm.MM(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.class_mm_job = mm.MM(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
 
         #   Initialize QMMM Energy And Forces Generator Classes
-        self.class_qmmm_energy = GeneratorEnergies(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base, self.class_qm_job, self.class_mm_job)
-        self.class_qmmm_forces = GeneratorForces(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_energy = GeneratorEnergies(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_forces = GeneratorForces(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
 
 
         #   Run (Initial) Singlepoint Calculation
         self.run_calculation()
 
         #   Generating Output Files
-        class_output = Output()
+        class_output = Output(self.work_dir)
         class_output.oenergy_append(0, self.class_qm_job.qmenergy, self.class_mm_job.mmenergy, self.linkcorrenergy, self.total_energy)
         class_output.oforces_append(0, self.total_force)
 

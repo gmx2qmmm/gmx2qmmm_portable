@@ -9,6 +9,9 @@ __date__ = '2024-09-19'
 
 #   Imports Of Existing Libraries
 import re
+import os
+import sys
+import subprocess
 import numpy as np
 
 #   Imports From Existing Libraries
@@ -16,13 +19,11 @@ import numpy as np
 #   Imports Of Custom Libraries
 
 #   Imports From Custom Libraries
-from gmx2qmmm.logging import Logger
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 
 #   // TODOS & NOTES //
 #   TODO:
-#   - Add logger
 #   NOTE:
 
 #   // CLASS & METHOD DEFINITIONS //
@@ -32,21 +33,19 @@ class QM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
-        # XX AJ check later which ones of these I actually need here
-        self.dict_input_userparameters = dict_input_userparameters
+    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+        self.dict_input_userparameters = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
-        # XX AJ nma flag needed for some function
+        # TODO: NMA
         self.nmaflag = 0
 
     '''
     ------------------------------------
     '''
-    # XX Florian and Alina think seperating the functions keeps better flexibility (:
     def generate_qm_input(self):
 
         '''
@@ -64,7 +63,6 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-        # XX AJ needed for every qm software
         #   Filter xyzq For Coordinates (No Charges)
         fullcoords = filter_xyzq(self.system.array_xyzq_current, list(range(1,self.system.int_number_atoms)), charges=False)
 
@@ -87,21 +85,15 @@ class QM():
         atoms_section += "\n"
 
         # Write the input file
-        with open(self.str_inputfile_qm, 'w') as str_inputfile_qm:
+        qm_input = self.work_dir / self.str_inputfile_qm
+        with open(qm_input, 'w') as str_inputfile_qm:
             str_inputfile_qm.write(self.header)
             str_inputfile_qm.write(atoms_section)
             str_inputfile_qm.write(self.additional_input)
 
-        if self.dict_input_userparameters['qmcommand'] == 'g16':
-
-
-
-            # XXX Florian!
-
-            # XX AJ I don't understand this stdout stuff, Florian could you check if that's correct?
+        if self.dict_input_userparameters['qmcommand'] == 'rung16':
             original_stdout = sys.stdout
 
-            # XX AJ what is the benefit of using stdout instead of f.write?
             with open('top_info.txt', 'w') as f:
                 sys.stdout = f # Change the standard output to the file we created.
                 print('QMMMTOPINFO')
@@ -115,11 +107,8 @@ class QM():
                     print(str(i))
                 sys.stdout = original_stdout # Reset the standard output to its original value
 
-            # Ende Florian
-
 
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
-            # XX AJ: Nicola can here add the other input files or change the previous part to work with all of the QM programs
             pass
 
     def run_qm_job(self):
@@ -139,7 +128,7 @@ class QM():
         NONE \\
         ------------------------------ \\
         '''
-
+        
         if self.dict_input_userparameters['qmcommand'] == 'g16':
             insert = ""
             if int(self.system.int_step_current) > 0:
@@ -147,34 +136,28 @@ class QM():
 
             if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
                 # logger(logfile, "Running G16 file.\n")
-                # XX AJ commented out until testing
-                # subprocess.call([g16cmd, str(qmfile)])
-                logname = self.str_inputfile_qm[:-3]
-                logname += "log"
-                # os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
-                # os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
-                # logger(logfile, "G16 Done.\n")
+                subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm)])
+                logname = self.str_inputfile_qm.with_suffix(".log")
+                os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
+                os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
+                # logger.info("G16 Done.\n")
             else:
-                # logger(
-                #     logfile,
+                # logger.info(
                 #     "NOTE: Using existing G16 files, skipping calculation for this step.\n",
                 # )
-                print('XX')
+                pass
             if not os.path.isfile(self.dict_input_userparameters['jobname'] + insert + ".fort.7"):
                 if not os.path.isfile("fort.7"):
-                    # logger(
-                    #     logfile,
+                    # logger.info(
                     #     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                     # )
                     # exit(1)
-                    print('XX error')
+                    pass
                 os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
-                # logger(
-                #     logfile,
+                # logger.info(
                 #     "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
                 # )
         elif self.dict_input_userparameters['qmcommand'] == 'orca':
-            # XX AJ: Nicola adding
             pass
 
     def read_qm_energy(self):
@@ -196,11 +179,11 @@ class QM():
         '''
 
         if self.dict_input_userparameters['qmcommand'] == 'g16':
-            # logger(logfile, "Extracting QM energy.\n")
+            # logger.info("Extracting QM energy.\n")
             self.qmenergy = 0.0
             self.qm_corrdata = []
             if str(self.dict_input_userparameters['program']) == "G16":
-                with open(str(self.str_inputfile_qm + ".log")) as ifile:
+                with open(str(self.str_inputfile_qm) + ".log") as ifile:
                     for line in ifile:
 
                         match = []
@@ -233,10 +216,9 @@ class QM():
                                 flags=re.MULTILINE,
                             )
                         if match:
-                            # logger(logfile, "Obtaining charge self-interaction...\n")
+                            # logger.info("Obtaining charge self-interaction...\n")
                             self.read_pcf_self()
-                            # logger(
-                            #     logfile, "Done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
+                            # logger.info("Done: {:>20.10f} a.u.\n".format(float(pcf_self_pot))
                             # )
                             # G16 energy needs to be corrected for self potential of PCF
                             self.qmenergy = float(match.group(1)) - float(self.pcf_self)
@@ -259,7 +241,7 @@ class QM():
                                 else:
                                     break
                             break
-            # logger(logfile, "QM energy is " + str(float(qmenergy)) + " a.u..\n")
+            # logger.info("QM energy is " + str(float(qmenergy)) + " a.u..\n")
         if self.dict_input_userparameters['qmcommand'] == 'orca':
             # XX AJ: Nicola add
             pass
@@ -291,9 +273,9 @@ class QM():
             insert = ""
             if (int(self.system.int_step_current) != 0):
                 insert = str("." + str(self.system.int_step_current))
-            # logger(logfile,"Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
-            qmlogfile = str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
-            fortfile = str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
+            # logger.info("Reading QM forces using file: "+str(jobname + insert + ".gjf.log")+" and "+ str(jobname + insert + ".fort.7")+"\n")
+            qmlogfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log")
+            fortfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".fort.7")
 
             with open(fortfile) as ifile:
                 for line in ifile:
@@ -403,7 +385,7 @@ class QM():
         '''
 
         self.pcf_self = 0.0
-        with open(self.str_inputfile_qm + ".log") as ifile:
+        with open(str(self.str_inputfile_qm) + ".log") as ifile:
             for line in ifile:
                 match = re.search(
                     r"^\s+Self\s+energy\s+of\s+the\s+charges\s+=\s+([-]*\d+\.\d+)\s+a\.u\.",
@@ -416,14 +398,14 @@ class QM():
 
 
 class QM_gaussian(QM):
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base):
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir):
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
 
-        # XX AJ NMA
+        # TODO: NMA
         self.nmaflag = 0
 
 
@@ -435,22 +417,23 @@ class QM_gaussian(QM):
             insert = str("." + str(int(self.system.int_step_current) ))
             if int(self.system.int_step_current) > 1:
                 oldinsert = str("." + str(int(self.system.int_step_current) - 1))
-        self.str_inputfile_qm = str(self.dict_input_userparameters['jobname'] + insert + ".gjf")
-        self.chkfile = str(self.dict_input_userparameters['jobname'] + insert + ".chk")
-        self.oldchkfile = str(self.dict_input_userparameters['jobname'] + oldinsert + ".chk")
+        self.str_inputfile_qm = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".gjf")
+        self.chkfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + insert + ".chk")
+        self.oldchkfile = self.work_dir / str(self.dict_input_userparameters['jobname'] + oldinsert + ".chk")
 
     def generate_gaussian_header(self):
         self.header = ""
         self.header += "%NPROCSHARED=" + str(self.dict_input_userparameters['cores']) + "\n"
         self.header += "%MEM=" + str(self.dict_input_userparameters['memory']) + "MB\n"
-        self.header += "%CHK=" + self.chkfile + "\n"
+        self.header += "%CHK=" + self.chkfile.name + "\n"
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
-            self.header += "%OLDCHK=" + self.oldchkfile + "\n"
+            self.header += "%OLDCHK=" + self.oldchkfile.name + "\n"
 
         self.header += "#P " + str(self.dict_input_userparameters['method'])
         self.header += "/" + str(self.dict_input_userparameters['basis'])
-        self.header += " " + str(self.dict_input_userparameters['extra'])
+        if not self.dict_input_userparameters['extra'].lower() == 'none':
+            self.header += " " + str(self.dict_input_userparameters['extra'])
 
         if int(self.system.int_step_current) != 0 or self.nmaflag == 1:
             self.header += " guess=read"
