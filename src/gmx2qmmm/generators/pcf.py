@@ -1,34 +1,22 @@
-#   // INITIAL DESCRIPTION //
+"""Generate point charge fields (PCF) for QM/MM calculations"""
 
-
-#   // MEATDATA //
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
-#   // IMPORTS //
-
-#   Imports Of Existing Libraries
 import math
+from typing import List
+
 import numpy as np
 
-#   Imports From Existing Libraries
-
-#   Imports Of Custom Libraries
-
-#   Imports From Custom Libraries
 from gmx2qmmm.generators._helper import filter_xyzq, normalized_vector, _flatten
+from gmx2qmmm.generators.types import Point, PointChargeField
 
 
-#   // TODOS & NOTES //
-#   TODO:
-#   NOTE:
-
-#   // CLASS & METHOD DEFINITIONS //
 class GeneratePCF():
+    """"Deprecated class for PCF generation
 
-    '''
-    XX
-    '''
+    Use :class:`PCF` instead.
+    """
 
     def __init__(self, input_dict, system, topology, work_dir) -> None:
 
@@ -592,3 +580,137 @@ class GeneratePCF():
             )
         ofile.write("$end\n")
         ofile.close()
+
+
+class PCF:
+    """Interface for PCF generation
+
+    Starting from an original PCF (particle coordinates plus partial
+    charges) of a full system, we would like to generate a new PCF
+    for the QM/MM system under charge neutrality, where the charges of
+    the QM atoms are removed and redistributed to the MM atoms.
+
+    The current default implementation follows the following procedure
+    to this effect:
+        * Remove the charges of the QM atoms and shift them to the M1
+        atoms.
+        * Create a list of displacement charges for each M1-M2 pair,
+        where the displacement charges are placed along the M1-M2 vector and
+        their magnitude is determined by the charge difference between
+        the M1 and M2 atoms.
+        * Optimize the positions of the displacement charges to minimize
+        the difference between the original and new PCF felt by the QM
+        atoms.
+    """
+
+    def __init__(
+        self,
+        input_field: PointChargeField,
+        qm_atoms: List[int],
+        m1_atoms: List[int],
+        m2_atoms: List[List[int]],
+        charge: float = 0,
+    ) -> None:
+        self.input_field = input_field
+        self.qm_atoms = qm_atoms
+        self.m1_atoms = m1_atoms
+        self.m2_atoms = m2_atoms
+        self.charge = charge
+
+    @property
+    def input_field(self) -> PointChargeField:
+        return self._input_field
+
+    @input_field.setter
+    def input_field(self, value: PointChargeField) -> None:
+        if not isinstance(value, np.ndarray):
+            raise TypeError("PCF must be a numpy array")
+        if value.ndim != 2 or value.shape[1] != 4:
+            raise ValueError("PCF must be a 2D array with shape (n_atoms, 4)")
+        self._input_field = value
+        self.reset()
+
+    @property
+    def qm_atoms(self) -> List[int]:
+        return self._qm_atoms
+
+    @qm_atoms.setter
+    def qm_atoms(self, value: List[int]) -> None:
+        if not isinstance(value, list) or not all(isinstance(i, int) for i in value):
+            raise TypeError("QM atoms must be a list of integers")
+        self._qm_atoms = value
+        self.reset()
+
+    @property
+    def m1_atoms(self) -> List[int]:
+        return self._m1_atoms
+
+    @m1_atoms.setter
+    def m1_atoms(self, value: List[int]) -> None:
+        if not isinstance(value, list) or not all(isinstance(i, int) for i in value):
+            raise TypeError("M1 atoms must be a list of integers")
+        self._m1_atoms = value
+        self.reset()
+
+    @property
+    def m2_atoms(self) -> List[List[int]]:
+        return self._m2_atoms
+
+    @m2_atoms.setter
+    def m2_atoms(self, value: List[List[int]]) -> None:
+        if not isinstance(value, list) or not all(isinstance(i, list) and all(isinstance(j, int) for j in i) for i in value):
+            raise TypeError("M2 atoms must be a list of lists of integers")
+        self._m2_atoms = value
+        self.reset()
+
+    @property
+    def charge(self) -> float:
+        return self._charge
+
+    @charge.setter
+    def charge(self, value: float) -> None:
+        self._charge = float(value)
+        self.reset()
+
+    @property
+    def output_field(self) -> PointChargeField:
+        if self._output_field is not None:
+            return self._output_field
+        return self.generate()
+
+    def reset(self) -> None:
+        """Reset the generator to the original state"""
+        self._output_field = None
+
+    def generate(self) -> PointChargeField:
+
+        self._output_field = self.input_field.copy()
+
+        return self._output_field
+
+    def _shift_qm_charges_to_m1(self) -> None:
+        """Remove QM charges and shift them to M1 atoms"""
+
+        qm_total_charge = np.sum(self.input_field[self.qm_atoms, 3])
+        self._output_field[self.qm_atoms, 3] = 0
+
+        if len(self.m1_atoms) > 0:
+            qm_parent_charge = qm_total_charge - self.charge
+            charge_per_m1 = qm_parent_charge / len(self.m1_atoms)
+            self._output_field[self.m1_atoms, 3] += charge_per_m1
+
+    @staticmethod
+    def _charge_weighted_displacement_vectors(point: Point, field: PointChargeField) -> np.ndarray:
+        """Calculate charge-weighted displacement vectors
+
+        Args:
+            point: Target point for which to calculate displacements
+            field: Point charge field to calculate displacements from
+
+        Returns:
+            Array of shape (n_atoms, 3) containing charge-weighted displacement vectors
+        """
+
+        displacements = field[:, :3] - point
+        charges = field[:, 3]
+        return displacements * charges[:, np.newaxis]
