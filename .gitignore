@@ -175,3 +175,6 @@ example/
 
 # pdf files
 *.pdf
+
+# Regression test output files
+test/unit/generators/test_pcf/test.pointcharges

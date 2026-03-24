@@ -20,3 +20,8 @@ Summary of changes in regards to the migration to v2
   * Excluded `Documentation` because there is nothing in there (and we should probably use the web page docs instead; where are these at the moment?)
   * Moved `Output` under `logging`
   * Changed super confusing imports like `sum_pcf_tm as make_p_sum`
+
+
+Summary of PCF/charge-shift functionality
+-----------------------------------------
+
