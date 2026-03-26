@@ -653,6 +653,8 @@ class PCFGeneratorShift:
         # Corresponds to 0.0233333333333 shifted charge on three M2
         # atoms; initial guess to start optimisation
         "initial_displacement": 0.1,
+        "initial_displacement_delta": 0.01,
+        "displacement_modifier": 0.1,
         "reference_charge_per_m2": 0.0233333333333,
         "max_displacement_charge": 0.5,
         # Effective cap for displacement charges
@@ -663,7 +665,6 @@ class PCFGeneratorShift:
         "min_displacement": 1e-6,
         # Minimum allowed displacement after optimization of displacement charges
         "max_iterations": 200,
-        "displacement_modifier": 10.0
         # Displacement change modifier for optimization of displacement charges;
         # the change in displacement is divided by this value after each iteration
         # that failed to decrease the error to improve convergence
@@ -925,6 +926,7 @@ class PCFGeneratorShift:
         disp_charge = self._parameters["initial_displacement_charge"]
         ref_charge = self._parameters["reference_charge_per_m2"]
         disp = self._parameters["initial_displacement"]
+        disp_delta = self._parameters["initial_displacement_delta"]
         max_disp_charge = self._parameters["max_displacement_charge"]
         eps = self._parameters["epsilon"]
         min_disp = self._parameters["min_displacement"]
@@ -964,10 +966,11 @@ class PCFGeneratorShift:
         iteration = 0
         strike = 0
         max_disp_change = np.inf
-        delta_disp_vector = np.copy(disp_vector)
+        delta_disp_vector = np.full_like(disp_charge_vector, disp_delta)
         while iteration < max_iter and max_disp_change > eps:
 
             new_disp_vector = np.copy(disp_vector)
+            new_delta_disp_vector = np.copy(delta_disp_vector)
 
             iteration += 1
             max_disp_change = 0
@@ -983,7 +986,7 @@ class PCFGeneratorShift:
                 self._get_correction_charges(
                     m1=field[m1, :3],
                     m2=field[m2, :3],
-                    displacement=new_disp_vector[i] + delta_disp_vector[i],
+                    displacement=new_disp_vector[i] + new_delta_disp_vector[i],
                     charge=disp_charge_vector[i],
                     out_short=field[short_index],
                     out_long=field[long_index],
@@ -994,7 +997,7 @@ class PCFGeneratorShift:
                 self._get_correction_charges(
                     m1=field[m1, :3],
                     m2=field[m2, :3],
-                    displacement=new_disp_vector[i] - delta_disp_vector[i],
+                    displacement=new_disp_vector[i] - new_delta_disp_vector[i],
                     charge=disp_charge_vector[i],
                     out_short=field[short_index],
                     out_long=field[long_index],
@@ -1003,12 +1006,12 @@ class PCFGeneratorShift:
                 new_delta_minus = self._objective()
 
                 if new_delta_plus < delta and new_delta_plus < new_delta_minus:
-                    new_disp_vector[i] += delta_disp_vector[i]
+                    new_disp_vector[i] += new_delta_disp_vector[i]
                 elif new_delta_minus < delta and new_delta_minus < new_delta_plus:
-                    new_disp_vector[i] -= delta_disp_vector[i]
+                    new_disp_vector[i] -= new_delta_disp_vector[i]
                 else:
                     # No improvement; reduce the displacement change for the next iteration
-                    delta_disp_vector[i] = max(delta_disp_vector[i] / disp_modifier, min_disp)
+                    new_delta_disp_vector[i] = max(new_delta_disp_vector[i] * disp_modifier, min_disp)
 
                 field[short_index] = current_short
                 field[long_index] = current_long
@@ -1018,21 +1021,23 @@ class PCFGeneratorShift:
             self._update_all_correction_charges(new_disp_vector, disp_charge_vector)
             new_delta = self._objective()
 
-            if new_delta == delta:
-                strike += 1
-                if strike > 3:
-                    break
-
-            if new_delta > delta:
-                max_disp_change = np.inf
-                delta_disp_vector /= disp_modifier
-                np.clip(disp_vector, min_disp, None, out=disp_vector)
-            else:
+            if new_delta < delta:
                 delta = new_delta
                 self.current_field_vector_ = self.current_field_vector_trial
                 max_disp_change = np.max(np.abs(new_disp_vector - disp_vector))
                 disp_vector = new_disp_vector
+                delta_disp_vector = new_delta_disp_vector
                 strike = 0
+            elif new_delta == delta:
+                disp_vector = new_disp_vector
+                delta_disp_vector = new_delta_disp_vector
+                strike += 1
+                if strike > 3:
+                    break
+            else:
+                max_disp_change = np.inf
+                delta_disp_vector *= disp_modifier
+                np.clip(disp_vector, min_disp, None, out=disp_vector)
 
         self._update_all_correction_charges(disp_vector, disp_charge_vector)
         field[self.m2_indices, 3] += self.m2_charges

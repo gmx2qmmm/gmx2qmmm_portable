@@ -121,7 +121,7 @@ def test_pcf_new(system, input_dict):
             )
 
         for a in correction_lines:
-            assert any(np.allclose(a, b, atol=1e-2) for b in correction_lines_ref), (
+            assert any(np.allclose(a, b, atol=1e-3) for b in correction_lines_ref), (
                 f"Generated correction charge {a} does not match any reference correction charge"
             )
 
