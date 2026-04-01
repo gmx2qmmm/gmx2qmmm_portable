@@ -108,6 +108,7 @@ class Optimisation():
         self.generate_displacement()
 
         #   Update Pointchargefield
+        self.pcf_generator.input_field = self.list_xyzq_all_steps[-1]
         field = self.pcf_generator.generate()
         file = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges")
         self.pcf_generator.write_output(file)

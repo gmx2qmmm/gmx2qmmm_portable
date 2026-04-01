@@ -11,7 +11,13 @@ from collections.abc import Iterable
 from functools import cached_property
 from io import TextIOBase
 from itertools import repeat
-from typing import List, Optional, Self, Tuple, Union
+from typing import List, Optional, Tuple, Union
+
+try:
+    from typing import Self
+except:
+    # Fallback for Python versions < 3.11
+    from typing_extensions import Self
 
 import numpy as np
 
@@ -32,7 +38,7 @@ class PCFGenerator(ABC):
 class GeneratePCF:
     """ "Deprecated class for PCF generation
 
-    Use :class:`PCF` instead.
+    Use :class:`PCFChargeShift` instead.
     """
 
     def __init__(self, input_dict, system, topology, work_dir) -> None:
@@ -650,7 +656,7 @@ class PCFGeneratorShift(PCFGenerator):
     the goal is to generate a new PCF
     for the QM/MM system under charge neutrality, where the charges of
     the QM atoms are removed and eventually redistributed to the M2
-    atoms. Corrective dipol charges are added and optimised for all
+    atoms. Corrective dipol charges are added and optimized for all
     M1-M2 pairs to minimize the difference between the original and new
     PCF felt by the QM atoms.
 

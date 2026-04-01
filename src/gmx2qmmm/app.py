@@ -161,9 +161,9 @@ class App:
             ) from exc
 
         job_func(
+            self.parameters,
             self.system,
             self.topology,
-            parameters=self.parameters,
             pcf_generator=self.pcf_generator,
             work_dir=self.work_dir,
             base_dir=self.base_dir,

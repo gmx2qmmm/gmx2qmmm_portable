@@ -33,10 +33,10 @@ class Singlepoint():
 
     def __init__(
         self,
+        parameters: Mapping[str, Any],
         system: SystemInfo,
         topology: GenerateTopology,
         *,
-        parameters: Mapping[str, Any],
         pcf_generator: PCFGenerator,
         work_dir: StrPath,
         base_dir: StrPath
