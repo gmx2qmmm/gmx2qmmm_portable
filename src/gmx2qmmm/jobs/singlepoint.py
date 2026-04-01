@@ -41,7 +41,7 @@ class Singlepoint():
         work_dir: StrPath,
         base_dir: StrPath
     ) -> None:
-        """Ïnitialise Singlepoint Job
+        """Initialise Singlepoint Job
 
         Args:
             parameters: A dictionary containing all input parameters for the job
