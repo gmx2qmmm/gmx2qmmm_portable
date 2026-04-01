@@ -177,4 +177,5 @@ example/
 *.pdf
 
 # Regression test output files
+test/production/test_files/*
 test/unit/generators/test_pcf/test.pointcharges

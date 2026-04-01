@@ -19,13 +19,7 @@ from gmx2qmmm.input_handler import FileReader
 
 
 class App:
-    """Main job orchestrator
-
-    Args:
-        parameters: Path to a file with input parameter definition
-        logfile: Path to a logfile. If `None`, use `"logfile.log"` in the `working_directory`.
-        work_dir: Job working and output directory
-    """
+    """Main job orchestrator"""
 
     def __init__(
         self,
@@ -34,6 +28,16 @@ class App:
         loglevel: str = "DEBUG",
         work_dir: StrPath = ".",
     ) -> None:
+        """Initialise app
+
+        Args:
+            parameters: Path to a file with input parameter definition
+            logfile: Path to a logfile. If `None`, use `"logfile.log"`
+                in the `working_directory`.
+            loglevel: Log level for the logfile.
+            work_dir: Job working and output directory
+        """
+
         # TODO: Work with parameters alternatively provided in a dictionary
         self.base_dir = pathlib.Path(__file__).parents[2]
         self.work_dir = pathlib.Path(work_dir).resolve()
@@ -123,10 +127,20 @@ class App:
         logger.success("Generated topology")
 
     def generate_PCF(self) -> None:
-        """Setup point charge field using input parameters, system, and topology"""
-        self.pointchargefield = pcf.GeneratePCF(
-            self.parameters, self.system, self.topology, self.work_dir
+        """Setup point charge field using input parameters, system, and
+        topology"""
+
+        charge = self.parameters["charge"]
+        parameters = self.parameters.get("pcf_generator", {})
+        self.pcf_generator = pcf.PCFGeneratorShift.from_system(
+            self.system, charge=charge, **parameters
         )
+        field = self.pcf_generator.generate()
+        file = self.work_dir / (
+            self.parameters["jobname"] + ".pointcharges"
+        )
+        self.pcf_generator.write_output(file)
+
         logger.success("Generated PCF")
 
     def run(self) -> None:
@@ -147,10 +161,10 @@ class App:
             ) from exc
 
         job_func(
-            self.parameters,
             self.system,
             self.topology,
-            self.pointchargefield,
-            self.work_dir,
-            self.base_dir,
+            parameters=self.parameters,
+            pcf_generator=self.pcf_generator,
+            work_dir=self.work_dir,
+            base_dir=self.base_dir,
         )

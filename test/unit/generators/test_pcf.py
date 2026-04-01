@@ -28,6 +28,7 @@ def system(pcf_input_data):
         list_atoms_m2=pcf_input_data["m2_atoms"],
     )
 
+
 @pytest.fixture
 def input_dict(pcf_input_data):
     return {
@@ -36,8 +37,8 @@ def input_dict(pcf_input_data):
     }
 
 
-def test_pcf_current(system, input_dict):
-    """Test that PCF generation produces expected output for current input data"""
+def test_pcf_old(system, input_dict):
+    """Test that PCF generation produces expected output"""
 
     module_path = pathlib.Path(__file__)
     work_dir = module_path.parent / module_path.stem
@@ -56,7 +57,9 @@ def test_pcf_current(system, input_dict):
 
     if not reference_output_file.exists():
         shutil.move(output_file, reference_output_file)
-        assert False, "Reference output file did not exist, created from current output. Please verify that the generated PCF is correct and commit the reference output file."
+        assert False, (
+            "Reference output file did not exist, created from current output. Please verify that the generated PCF is correct and commit the reference output file."
+        )
     else:
         with open(output_file) as f_out, open(reference_output_file) as f_ref:
             output_lines = f_out.readlines()
@@ -65,11 +68,13 @@ def test_pcf_current(system, input_dict):
                 "Generated PCF does not match reference output"
             )
 
-    print(f"delta={np.linalg.norm(pcf.new_sum - pcf.target_sum)} after {pcf.iterations_} iterations")
+    print(
+        f"delta={np.linalg.norm(pcf.new_sum - pcf.target_sum)} after {pcf.iterations_} iterations"
+    )
 
 
 def test_pcf_new(system, input_dict):
-    """Test that PCF generation produces expected output for current input data"""
+    """Test that PCF generation produces expected output"""
 
     module_path = pathlib.Path(__file__)
     work_dir = module_path.parent / module_path.stem
@@ -82,14 +87,12 @@ def test_pcf_new(system, input_dict):
     reference_output_file = work_dir / "test.pointcharges.ref"
 
     with open(output_file, "w") as fp:
-        dump_field(
-            fp,
-            field,
-            annotations=pcf.annotations
-            )
+        dump_field(fp, field, annotations=pcf.annotations)
 
     if not reference_output_file.exists():
-        assert False, "Reference output file does not exist. Please run test_pcf_current first to generate it."
+        assert False, (
+            "Reference output file does not exist. Please run test_pcf_current first to generate it."
+        )
     else:
         with open(output_file) as fp, open(reference_output_file) as fp_ref:
             output_lines = fp.readlines()
@@ -125,4 +128,6 @@ def test_pcf_new(system, input_dict):
                 f"Generated correction charge {a} does not match any reference correction charge"
             )
 
-        print(f"delta={np.linalg.norm(pcf.current_field_vector_ - pcf.target_field_vector_)} after {pcf.iterations_} iterations")
+        print(
+            f"delta={np.linalg.norm(pcf.current_field_vector_ - pcf.target_field_vector_)} after {pcf.iterations_} iterations"
+        )

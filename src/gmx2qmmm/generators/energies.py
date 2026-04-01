@@ -20,6 +20,7 @@ from loguru import logger
 
 #   Imports From Custom Libraries
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
+from gmx2qmmm.generators.pcf import PCFGenerator, load_field_legacy
 
 
 #   // TODOS & NOTES //
@@ -29,11 +30,11 @@ from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 
 class GeneratorQMMM():
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+    def __init__(self, input_dict, class_system, class_topology, pcf_generator: PCFGenerator, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
         self.base_dir = base_dir
         self.class_qm_job = class_qm_job
@@ -51,49 +52,6 @@ class GeneratorQMMM():
             count += 1
             self.m2charges.append(m2chargeline)
 
-    def read_pcffile(self):
-            # XX AJ because of lazyness we have this function in each class in this file! Change that, Alina!
-
-            '''
-            ------------------------------ \\
-            EFFECT: \\
-            --------------- \\
-            XX \\
-            ------------------------------ \\
-            INPUT: \\
-            --------------- \\
-            NONE \\
-            ------------------------------ \\
-            RETURN: \\
-            --------------- \\
-            NONE \\
-            ------------------------------ \\
-            '''
-
-            pcf = []
-            with open(self.PCF.pcf_filename) as ifile:
-                for line in ifile:
-                    match = re.search(r"^QM", line, flags=re.MULTILINE)
-                    if match:
-                        pcf.append(["QM"])
-                        continue
-                    match = re.search(
-                        r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
-                    )
-                    if match:
-                        pcf.append(
-                            [
-                                float(match.group(1)),
-                                float(match.group(2)),
-                                float(match.group(3)),
-                                float(match.group(4)),
-                            ]
-                        )
-                        continue
-                    match = re.search(r"^$end", line, flags=re.MULTILINE)
-                    if match:
-                        break
-            return pcf
 
     def databasecorrection(self, energy_or_force, cut, distance):
 
@@ -206,11 +164,11 @@ class GeneratorQMMM():
 
 class GeneratorEnergies(GeneratorQMMM):
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+    def __init__(self, input_dict, class_system, class_topology, pcf_generator, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
         self.base_dir = base_dir
         self.class_qm_job = class_qm_job
@@ -317,7 +275,7 @@ class GeneratorEnergies(GeneratorQMMM):
             linkenergy += z1 * z2 / dist
         # now also all atoms in the corrdata list with the mod and linkcorr point charges
         # mod first. mod is charge in pcffile minus m2charge
-        pcf = self.read_pcffile()
+        pcf = load_field_legacy(self.pcf_generator.output_file)
         for i in range(0, len(self.system.list_atoms_m2)):
             for j in range(0, len(self.system.list_atoms_m2[i])):
                 curr_mod = []
@@ -399,11 +357,11 @@ class GeneratorEnergies(GeneratorQMMM):
 
 class GeneratorForces(GeneratorQMMM):
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
+    def __init__(self, input_dict, class_system, class_topology, pcf_generator: PCFGenerator, work_dir, base_dir, class_qm_job, class_mm_job) -> None:
         self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
         self.base_dir = base_dir
         self.class_qm_job = class_qm_job
@@ -536,7 +494,7 @@ class GeneratorForces(GeneratorQMMM):
                 )
         # now also all atoms in the corrdata list with the mod and linkcorr point charges
         # mod first. mod is charge in pcffile minus m2charge
-        pcf = self.read_pcffile()
+        pcf = load_field_legacy(self.pcf_generator.output_file)
         for i in range(0, len(self.system.list_atoms_m2)):
             for j in range(0, len(self.system.list_atoms_m2[i])):
                 curr_mod = []

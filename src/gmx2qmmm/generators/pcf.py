@@ -4,16 +4,29 @@ __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
 import math
-from collections.abc import Mapping
+import pathlib
+import warnings
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from functools import cached_property
 from io import TextIOBase
-from typing import List, Self
+from itertools import repeat
+from typing import List, Optional, Self, Tuple, Union
 
 import numpy as np
 
 from gmx2qmmm.generators._helper import filter_xyzq, normalized_vector, _flatten
 from gmx2qmmm.generators.system import SystemInfo
-from gmx2qmmm.generators.types import Point, Points, PointChargeField, Vector, Vectors3D
+from gmx2qmmm.generators.types import Point, Points, PointCharge, PointChargeField, Vector, Vectors3D
+from gmx2qmmm.types import StrPath
+
+
+class PCFGenerator(ABC):
+    """Abstract base class for point charge field generators"""
+
+    @abstractmethod
+    def generate(self) -> PointChargeField:
+        """Generate a point charge field"""
 
 
 class GeneratePCF:
@@ -38,6 +51,11 @@ class GeneratePCF:
         NONE \\
         ------------------------------ \\
         """
+
+        warnings.warn(
+            "GeneratePCF is deprecated and will be removed in a future version. Please use PCFGeneratorShift instead.",
+            DeprecationWarning,
+        )
 
         self.input_dict = input_dict
         self.system = system
@@ -623,8 +641,8 @@ class GeneratePCF:
         ofile.close()
 
 
-class PCFGeneratorShift:
-    """Interface for point charge field (PCF) generation
+class PCFGeneratorShift(PCFGenerator):
+    """Default point charge field (PCF) generator
 
     Starting from an original PCF (particle coordinates plus partial
     charges) of a full system (in the sense of including QM, M1, and M2
@@ -663,7 +681,8 @@ class PCFGeneratorShift:
         # charges; the optimization is considered converged if the maximum
         # change in displacement is less than this value
         "min_displacement": 1e-6,
-        # Minimum allowed displacement after optimization of displacement charges
+        # Minimum allowed displacement after optimization of
+        # displacement charges
         "max_iterations": 200,
         # Displacement change modifier for optimization of displacement charges;
         # the change in displacement is divided by this value after each iteration
@@ -677,7 +696,7 @@ class PCFGeneratorShift:
         m1_atoms: List[int],
         m2_atoms: List[List[int]],
         charge: float = 0,
-        **parameters: float | int
+        **parameters: float | int,
     ) -> None:
         """Ïnitialize the PCF generator
 
@@ -704,7 +723,9 @@ class PCFGeneratorShift:
         self._parameters = {**self._default_parameters, **parameters}
 
     @classmethod
-    def from_system(cls, system_info: SystemInfo, charge: float = 0, **parameters) -> Self:
+    def from_system(
+        cls, system_info: SystemInfo, charge: float = 0, **parameters
+    ) -> Self:
         """Create a PCF instance from a SystemInfo object
 
         As atom indices in SystemInfo are 1-based,
@@ -720,7 +741,9 @@ class PCFGeneratorShift:
 
         qm_atoms = [index - 1 for index in system_info.list_atoms_qm]
         m1_atoms = [index - 1 for index in system_info.list_atoms_m1]
-        m2_atoms = [[index - 1 for index in group] for group in system_info.list_atoms_m2]
+        m2_atoms = [
+            [index - 1 for index in group] for group in system_info.list_atoms_m2
+        ]
 
         return cls(
             input_field=system_info.array_xyzq_current,
@@ -752,7 +775,7 @@ class PCFGeneratorShift:
     @qm_atoms.setter
     def qm_atoms(self, value: List[int]) -> None:
         """Set the QM atoms and trigger reset of the generator"""
-        if not isinstance(value, list) or not all(isinstance(i, int) for i in value):
+        if not isinstance(value, list) or not all(isinstance(i, (int, np.integer)) for i in value):
             raise TypeError("QM atoms must be a list of integers")
         self._qm_atoms = value
         self.reset()
@@ -824,7 +847,11 @@ class PCFGeneratorShift:
 
     @cached_property
     def m1m2_pairs(self) -> List[int]:
-        return [(m1_index, m2_index) for m1_index, m2_indices in zip(self.m1_atoms, self.m2_atoms) for m2_index in m2_indices]
+        return [
+            (m1_index, m2_index)
+            for m1_index, m2_indices in zip(self.m1_atoms, self.m2_atoms)
+            for m2_index in m2_indices
+        ]
 
     @cached_property
     def correction_indices(self) -> List[int]:
@@ -860,7 +887,10 @@ class PCFGeneratorShift:
         for index in self.correction_indices:
             mapping[index] = "CORRECTION"
 
-        return [mapping.get(i, "OTHER") for i in range(self.input_field.shape[0] + len(self.correction_indices))]
+        return [
+            mapping.get(i, "OTHER")
+            for i in range(self.input_field.shape[0] + len(self.correction_indices))
+        ]
 
     def reset(self) -> None:
         """Reset the generator to the original state
@@ -880,6 +910,7 @@ class PCFGeneratorShift:
         self.qm_total_charge_ = None
         self.target_field_vector_ = None
         self.current_field_vector_ = None
+        self.output_file = None
 
         # Clear cached properties
         if hasattr(self, "m2_indices"):
@@ -895,15 +926,29 @@ class PCFGeneratorShift:
 
     def generate(self) -> PointChargeField:
 
-        self.output_field_ = np.vstack([
-            self.input_field.copy(),
-            np.zeros((len(self.m2_indices) * 2, 4))  # Placeholder for M2 correction charges
-        ])
+        self.output_field_ = np.vstack(
+            [
+                self.input_field.copy(),
+                np.zeros(
+                    (len(self.m2_indices) * 2, 4)
+                ),  # Placeholder for M2 correction charges
+            ]
+        )
 
         self._shift_qm_charges_to_m1()
         self._shift_m1_charges_to_m2()
 
         return self.output_field_
+
+    def write_output(self, filename: StrPath) -> None:
+        if self.output_field_ is None:
+            raise ValueError("No output field to write. Please call generate() first.")
+
+        filename = pathlib.Path(filename)
+        with open(filename, "w") as fp:
+            dump_field(fp, self.output_field_, annotations=self.annotations, legacy=True)
+
+        self.output_file = filename
 
     def _shift_qm_charges_to_m1(self) -> None:
         """Remove QM charges and shift them to M1 atoms"""
@@ -955,7 +1000,12 @@ class PCFGeneratorShift:
 
         # Prepare displacement vectors for optimization (1 element per M1-M2 pair)
         disp_charge_vector = disp_charge * field[self.m2_indices, 3] / ref_charge
-        np.clip(disp_charge_vector, -max_disp_charge, max_disp_charge, out=disp_charge_vector)
+        np.clip(
+            disp_charge_vector,
+            -max_disp_charge,
+            max_disp_charge,
+            out=disp_charge_vector,
+        )
         disp_vector = np.full_like(disp_charge_vector, disp)
 
         # Compute two initial correction charges for each M1-M2 pair and add them to the output field
@@ -968,7 +1018,6 @@ class PCFGeneratorShift:
         max_disp_change = np.inf
         delta_disp_vector = np.full_like(disp_charge_vector, disp_delta)
         while iteration < max_iter and max_disp_change > eps:
-
             new_disp_vector = np.copy(disp_vector)
             new_delta_disp_vector = np.copy(delta_disp_vector)
 
@@ -976,7 +1025,6 @@ class PCFGeneratorShift:
             max_disp_change = 0
 
             for i, (m1, m2) in enumerate(self.m1m2_pairs):
-
                 short_index = self.correction_indices[2 * i]
                 long_index = short_index + 1
                 current_short = np.copy(field[short_index])
@@ -1011,7 +1059,9 @@ class PCFGeneratorShift:
                     new_disp_vector[i] -= new_delta_disp_vector[i]
                 else:
                     # No improvement; reduce the displacement change for the next iteration
-                    new_delta_disp_vector[i] = max(new_delta_disp_vector[i] * disp_modifier, min_disp)
+                    new_delta_disp_vector[i] = max(
+                        new_delta_disp_vector[i] * disp_modifier, min_disp
+                    )
 
                 field[short_index] = current_short
                 field[long_index] = current_long
@@ -1050,11 +1100,15 @@ class PCFGeneratorShift:
     def _objective(self) -> float:
         """Calculate the objective function value for the current field configuration"""
 
-        self.current_field_vector_trial = self._effective_charge_weighted_displacement_vector(
-            self.qm_positions,
-            field=self.output_field_[self.m2_and_correction_indices],
+        self.current_field_vector_trial = (
+            self._effective_charge_weighted_displacement_vector(
+                self.qm_positions,
+                field=self.output_field_[self.m2_and_correction_indices],
+            )
         )
-        return np.linalg.norm(self.current_field_vector_trial - self.target_field_vector_)
+        return np.linalg.norm(
+            self.current_field_vector_trial - self.target_field_vector_
+        )
 
     @staticmethod
     def _charge_weighted_displacement_vectors(
@@ -1118,7 +1172,9 @@ class PCFGeneratorShift:
             field=field,
         ).sum(axis=0)
 
-    def _update_all_correction_charges(self, disp_vector: Vector, disp_charge_vector: Vector) -> None:
+    def _update_all_correction_charges(
+        self, disp_vector: Vector, disp_charge_vector: Vector
+    ) -> None:
         """Calculate and update the correction charges for all M1-M2 pairs
 
         Args:
@@ -1199,21 +1255,50 @@ class PCFGeneratorShift:
 def dump_field(
     fp: TextIOBase,
     field: PointChargeField,
+    *,
+    annotations: Optional[Iterable[Union[str, None]]] = None,
     precision: int = 10,
-    annotations: Optional[List[str]] = None,
-    ) -> None:
+    legacy: bool = False,
+) -> None:
     """Dump a point charge field to a file-like object in the format of a PCF file"""
 
     if annotations is not None:
+        annotations = list(annotations)
         if len(annotations) != field.shape[0]:
-            raise ValueError(f"Length of annotations {len(annotations)} must match the number of charges in the field {field.shape[0]}")
+            raise ValueError(
+                f"Length of annotations {len(annotations)} must match the number of charges in the field {field.shape[0]}"
+            )
+    else:
+        annotations = repeat(None)
+
+    if legacy:
+        _dump_field_legacy(fp, field, annotations=annotations, precision=precision)
+        return
 
     charge_str = f"{{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}}"
-    for i, charge in enumerate(field):
-        annotation_str = ""
-        if annotations is not None:
-            annotation_str = f"  # {annotations[i]}"
+    for charge, annotation in zip(field, annotations):
+        if annotation is not None:
+            annotation_str = f"  # {annotation}"
+        else:
+            annotation_str = ""
+
         fp.write(charge_str.format(*charge) + annotation_str + "\n")
+
+
+def _dump_field_legacy(
+    fp: TextIOBase,
+    field: PointChargeField,
+    annotations: Iterable[Union[str, None]],
+    precision: int = 10,
+) -> None:
+
+    charge_str = f"{{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}} {{:{precision + 4}.{precision}f}}"
+    for charge, annotation in zip(field, annotations):
+        if annotation in {"QM", "M1"}:
+            fp.write("QM\n")
+            continue
+        fp.write(charge_str.format(*charge) + "\n")
+    fp.write("$end\n")
 
 
 def load_field(fp: TextIOBase) -> PointChargeField:
@@ -1248,3 +1333,33 @@ def load_field(fp: TextIOBase) -> PointChargeField:
         charges.append(parsed)
 
     return np.array(charges)
+
+
+def load_field_legacy(fp: Union[StrPath, TextIOBase]) -> List[List[Union[float, str]]]:
+    """Load a point charge field from a file-like object in the legacy format of a PCF file"""
+
+    if isinstance(fp, (str, pathlib.Path)):
+        with open(fp, "r") as f:
+            return load_field_legacy(f)
+
+    charges = []
+    for line in fp:
+        line = line.strip()
+        if not line or line.startswith("$end"):
+            continue
+
+        if line.startswith("QM"):
+            charges.append(["QM"])
+            continue
+
+        parts = line.split()
+        if len(parts) != 4:
+            raise ValueError(f"Invalid line in PCF file: {line}")
+        try:
+            parsed = [float(part) for part in parts]
+        except ValueError as e:
+            raise ValueError(f"Invalid numeric value in line: {line}") from e
+
+        charges.append(parsed)
+
+    return charges

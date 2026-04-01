@@ -21,6 +21,7 @@ import numpy as np
 #   Imports From Custom Libraries
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators.pcf import PCFGenerator
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -33,11 +34,11 @@ class QM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+    def __init__(self, input_dict, class_system, class_topology, pcf_generator: PCFGenerator, work_dir) -> None:
         self.dict_input_userparameters = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
 
         # TODO: NMA
@@ -398,11 +399,11 @@ class QM():
 
 
 class QM_gaussian(QM):
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir):
+    def __init__(self, dict_input_userparameters, class_system, class_topology, pcf_generator: PCFGenerator, work_dir):
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
 
         # TODO: NMA
@@ -446,8 +447,8 @@ class QM_gaussian(QM):
         list_info_pcf = []
         self.additional_input = ""
 
-        with open(self.PCF.pcf_filename) as pcffile:
-            for line in pcffile:
+        with open(self.pcf_generator.output_file) as fp:
+            for line in fp:
                 match = re.search(
                     r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", line, flags=re.MULTILINE
                 )

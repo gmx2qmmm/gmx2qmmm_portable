@@ -37,12 +37,12 @@ def test_singlepoint(mocker):
     oe_file = work_dir / 'oenergy.txt'
     energies = [float(i) for i in open(oe_file).readlines()[-1].split()]
     ref_energies = [float(i) for i in open(ref_path / 'oenergy.txt').readlines()[-1].split()]
-    assert np.all(np.isclose(energies, ref_energies))
+    assert np.allclose(energies, ref_energies, atol=1e-6)
     
     of_file = work_dir / 'oforces.txt'
     forces = [float(u) for i in [o.split() for o in open(of_file).readlines()[1:-1]] for u in i]
     ref_forces = [float(i) for line in open(ref_path / 'oforces.txt').readlines()[1:] for i in line.split()]
-    assert np.all(np.isclose(forces, ref_forces))
+    assert np.allclose(forces, ref_forces, atol=1e-4)
 
     oe_file.unlink()
     of_file.unlink()

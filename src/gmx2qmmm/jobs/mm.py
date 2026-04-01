@@ -23,6 +23,7 @@ from loguru import logger
 
 #   Imports From Custom Libraries
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
+from gmx2qmmm.generators.pcf import PCFGenerator
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -35,11 +36,11 @@ class MM():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir) -> None:
+    def __init__(self, input_dict, class_system, class_topology, pcf_generator: PCFGenerator, work_dir) -> None:
         self.input_dict = input_dict
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
 
         #   Initialize Gromacs Input
