@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple, Union
 
 try:
     from typing import Self
-except:
+except ImportError:
     # Fallback for Python versions < 3.11
     from typing_extensions import Self
 
@@ -719,7 +719,6 @@ class PCFGeneratorShift(PCFGenerator):
                 (see :attr:`PCFGeneratorShift._default_parameters`).
         """
 
-        self._reset = False
         self.input_field = input_field
         self.qm_atoms = qm_atoms
         self.m1_atoms = m1_atoms
@@ -852,7 +851,7 @@ class PCFGeneratorShift(PCFGenerator):
         return [index for group in self.m2_atoms for index in group]
 
     @cached_property
-    def m1m2_pairs(self) -> List[int]:
+    def m1m2_pairs(self) -> List[Tuple[int, int]]:
         return [
             (m1_index, m2_index)
             for m1_index, m2_indices in zip(self.m1_atoms, self.m2_atoms)
@@ -909,9 +908,6 @@ class PCFGeneratorShift(PCFGenerator):
         possibly updated input data
         """
 
-        if self._reset:
-            return
-
         self.output_field_ = None
         self.qm_total_charge_ = None
         self.target_field_vector_ = None
@@ -919,16 +915,14 @@ class PCFGeneratorShift(PCFGenerator):
         self.output_file = None
 
         # Clear cached properties
-        if hasattr(self, "m2_indices"):
+        if "m2_indices" in self.__dict__:
             del self.m2_indices
-        if hasattr(self, "m1m2_pairs"):
+        if "m1m2_pairs" in self.__dict__:
             del self.m1m2_pairs
-        if hasattr(self, "correction_indices"):
+        if "correction_indices" in self.__dict__:
             del self.correction_indices
-        if hasattr(self, "m2_and_correction_indices"):
+        if "m2_and_correction_indices" in self.__dict__:
             del self.m2_and_correction_indices
-
-        self._reset = True
 
     def generate(self) -> PointChargeField:
 
