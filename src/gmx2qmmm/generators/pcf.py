@@ -1063,6 +1063,9 @@ class PCFGeneratorShift(PCFGenerator):
                         new_delta_disp_vector[i] * disp_modifier, min_disp
                     )
 
+                # Ensure displacement does not fall below the minimum allowed value
+                if new_disp_vector[i] < min_displacement:
+                    new_disp_vector[i] = min_displacement
                 field[short_index] = current_short
                 field[long_index] = current_long
 
