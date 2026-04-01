@@ -32,7 +32,7 @@ class Optimisation():
     This Class Performs An Optimization
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, pcf_generator: PCFGenerator, str_directory_base) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, pcf_generator: PCFGenerator, work_dir, str_directory_base) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -45,7 +45,8 @@ class Optimisation():
         class_system: class -> Class Object Of The System \\
         class_topology: class -> Class Object Of The Topology \\
         pcf_generator: A point charge field generator \\
-        str_directory_base: str -> Directory Path \\
+        work_dir: str -> Working Directory Path \\
+        str_directory_base: str -> Base Directory Path \\
         ------------------------------ \\
         RETURN: \\
         --------------- \\
@@ -68,7 +69,7 @@ class Optimisation():
         self.STEPSIZE = 2
 
         #   Perform Initial Singlepoint Calculation
-        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.pcf_generator, self.str_directory_base)
+        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, pcf_generator=self.pcf_generator, work_dir=work_dir, base_dir=self.str_directory_base)
 
         #   Setting Up Variables
         self.list_forces_max_all_steps = []
@@ -222,4 +223,4 @@ class Optimisation():
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf"))
-        os.remove(self.pcf_generator.pcf_filename)
+        os.remove(self.pcf_generator.output_file)

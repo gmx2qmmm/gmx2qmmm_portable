@@ -1095,7 +1095,7 @@ class PCFGeneratorShift(PCFGenerator):
 
         self.iterations_ = iteration
 
-        return field
+        return
 
     def _objective(self) -> float:
         """Calculate the objective function value for the current field configuration"""
