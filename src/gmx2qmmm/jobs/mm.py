@@ -64,6 +64,7 @@ class MM():
         self.outname = self.work_dir / (self.input_dict['jobname'] + ".out.gro")
         self.gmxlogname = self.work_dir / (self.input_dict['jobname'] + ".gmx.log")
         self.edrname = self.work_dir / (self.input_dict['jobname'] + ".edr")
+        self.edr_xvg_file = self.work_dir / str(self.edrname) + ".xvg"
 
 
     def make_gmx_inp(self):
@@ -249,7 +250,7 @@ class MM():
         
         self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
         # logger(logfile, "Extracting MM energy.\n")
-        self.edr_xvg_file = str(self.edrname) + ".xvg"
+        
         p = subprocess.Popen(
             [
                 self.prefix,

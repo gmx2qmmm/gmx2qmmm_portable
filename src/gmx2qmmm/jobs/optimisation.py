@@ -199,6 +199,7 @@ class Optimisation():
         self.singlepoint.class_mm_job.outname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".out.gro")
         self.singlepoint.class_mm_job.gmxlogname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gmx.log")
         self.singlepoint.class_mm_job.edrname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr")
+        self.singlepoint.class_mm_job.edr_xvg_file = str(self.edrname) + ".xvg"
 
     def generate_displacement(self):
         if self.dict_input_userparameters['jobtype'] == "SCAN" :
