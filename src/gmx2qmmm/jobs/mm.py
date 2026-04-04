@@ -219,7 +219,7 @@ class MM():
         # logger(logfile, "Extracting MM energy.\n")
         self.call_mm_energy()
         
-        with open(str(self.edrname) + ".xvg") as ifile:
+        with open(self.edr_xvg_file) as ifile:
             for line in ifile:
                 match = re.search(
                     r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
@@ -246,10 +246,10 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-
+        
         self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
         # logger(logfile, "Extracting MM energy.\n")
-        xvg_file = str(self.edrname) + ".xvg"
+        self.edr_xvg_file = str(self.edrname) + ".xvg"
         p = subprocess.Popen(
             [
                 self.prefix,
@@ -257,7 +257,7 @@ class MM():
                 "-f",
                 self.edrname,
                 "-o",
-                str(xvg_file),
+                self.edr_xvg_file,
                 "-backup",
                 "no",
             ],
