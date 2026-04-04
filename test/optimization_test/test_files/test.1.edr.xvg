@@ -6,10 +6,10 @@
 # Data prefix:  /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a
 # Working dir:  /home/jansea92/gmx2qmmm_portable/examples/opt
 # Command line:
-#   gmx energy -f /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr -o /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr.xvg -backup no
+#   gmx energy -f test.1.edr -o test.1.edr.xvg -backup no
 # gmx energy is part of G R O M A C S:
 #
-# GROwing Monsters And Cloning Shrimps
+# GROningen Mixture of Alchemy and Childrens' Stories
 #
 @    title "GROMACS Energies"
 @    xaxis  label "Time (ps)"

@@ -105,7 +105,7 @@ class Optimisation():
         self.update_input_filenames()
 
         #   Update Pointchargefield Filename
-        self.PCF.pcf_filename = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges")
+        self.PCF.pcf_filename = self.work_dir / (str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges"))
 
         #   Calculate And Apply Displacement
         self.generate_displacement()
@@ -192,14 +192,14 @@ class Optimisation():
 
 
     def update_input_filenames(self):
-        self.singlepoint.class_mm_job.groname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
-        self.singlepoint.class_mm_job.tprname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".tpr")
-        self.singlepoint.class_mm_job.trrname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".trr")
-        self.singlepoint.class_mm_job.xtcname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".xtc")
-        self.singlepoint.class_mm_job.outname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".out.gro")
-        self.singlepoint.class_mm_job.gmxlogname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gmx.log")
-        self.singlepoint.class_mm_job.edrname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr")
-        self.singlepoint.class_mm_job.edr_xvg_file = str(self.edrname) + ".xvg"
+        self.singlepoint.class_mm_job.groname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
+        self.singlepoint.class_mm_job.tprname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".tpr")
+        self.singlepoint.class_mm_job.trrname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".trr")
+        self.singlepoint.class_mm_job.xtcname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".xtc")
+        self.singlepoint.class_mm_job.outname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".out.gro")
+        self.singlepoint.class_mm_job.gmxlogname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gmx.log")
+        self.singlepoint.class_mm_job.edrname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr")
+        self.singlepoint.class_mm_job.edr_xvg_file = self.work_dir / (str(self.singlepoint.class_mm_job.edrname) + ".xvg")
 
     def generate_displacement(self):
         if self.dict_input_userparameters['jobtype'] == "SCAN" :

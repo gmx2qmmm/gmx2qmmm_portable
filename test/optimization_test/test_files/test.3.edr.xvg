@@ -1,4 +1,4 @@
-# This file was created Sat Apr  4 18:56:47 2026
+# This file was created Sat Apr  4 18:56:54 2026
 # Created by:
 #                      :-) GROMACS - gmx energy, 2019.4 (-:
 # 
@@ -6,10 +6,10 @@
 # Data prefix:  /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a
 # Working dir:  /home/jansea92/gmx2qmmm_portable/examples/opt
 # Command line:
-#   gmx energy -f /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr -o /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr.xvg -backup no
+#   gmx energy -f test.3.edr -o test.3.edr.xvg -backup no
 # gmx energy is part of G R O M A C S:
 #
-# GROwing Monsters And Cloning Shrimps
+# Gravel Rubs Often Many Awfully Cauterized Sores
 #
 @    title "GROMACS Energies"
 @    xaxis  label "Time (ps)"
