@@ -41,6 +41,6 @@ forcefield=amberGS
 
 # optimization
 f_thresh=0
-maxcycle=1000
+maxcycle=2
 propagator=STEEP
 stepsize=1

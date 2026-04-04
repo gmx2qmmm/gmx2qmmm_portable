@@ -128,7 +128,7 @@ class Optimisation():
         #   Check If The Total Energy Improved
 
         #   Evaluate current step
-        if self.dict_input_userparameters['propagator'] == 'steep':
+        if self.dict_input_userparameters['propagator'] == 'STEEP':
             self.evaluate_step_steep()
         elif self.dict_input_userparameters['propagator'] == 'conjgrad':
             self.evaluate_step_conjgrad()
