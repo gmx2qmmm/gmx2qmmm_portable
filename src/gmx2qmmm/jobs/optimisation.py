@@ -31,7 +31,7 @@ class Optimisation():
     This Class Performs An Optimization
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -56,7 +56,8 @@ class Optimisation():
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
 
         #   XX AJ check how to deal with nma flag later
         self.nmaflag = 0
@@ -67,7 +68,7 @@ class Optimisation():
         self.STEPSIZE = 2
 
         #   Perform Initial Singlepoint Calculation
-        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir)
 
         #   Setting Up Variables
         self.list_forces_max_all_steps = []

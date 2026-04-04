@@ -167,11 +167,15 @@ cython_debug/
 # gmx2qmmm example files (AJ)
 params.txt
 !test/production/test_files/params.txt
+!test/optimization_test/test_files/params.txt
 !test/unit/test_files/params.txt
 example/
 !test/production/test_files/*
 !test/unit/test_files/*
 */logfile.log*
+test/optimization_test/test_files/logfile*
+!test/optimization_test/test_files/test.gjf.log
+!test/optimization_test/test_files/test.gmx.log
 
 # pdf files
 *.pdf
