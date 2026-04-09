@@ -5,7 +5,7 @@ from pathlib import Path
 from gmx2qmmm.app import App
 from gmx2qmmm.jobs import qm, mm
 
-def test_singlepoint(mocker):
+def test_optimization(mocker):
 
     current_path = Path(__file__).resolve().parent
     work_dir = current_path / 'test_files'

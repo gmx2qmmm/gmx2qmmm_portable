@@ -1,8 +1,8 @@
-2026-04-09 23:31:43.156 | INFO     | gmx2qmmm.app:logfile:85 - Backed up existing logfile to /home/jansea92/new_gmx2qmmm/gmx2qmmm_portable/test/optimization_test/test_files/logfile.log_2026-04-09_23-31-43
-2026-04-09 23:31:43.157 | INFO     | gmx2qmmm.app:__init__:46 - Initialising gmx2qmmm
-2026-04-09 23:31:43.157 | INFO     | gmx2qmmm.input_handler:read_file:165 - Asserting basic correctness of inputs
-2026-04-09 23:31:43.157 | SUCCESS  | gmx2qmmm.input_handler:read_file:170 - Basic correctness check COMPLETE
-2026-04-09 23:31:43.158 | INFO     | gmx2qmmm.app:__init__:55 - Parameters:
+2026-04-09 23:18:20.196 | INFO     | gmx2qmmm.app:logfile:85 - Backed up existing logfile to /home/jansea92/new_gmx2qmmm/gmx2qmmm_portable/test/optimization_test/test_files/logfile.log_2026-04-09_23-18-20
+2026-04-09 23:18:20.197 | INFO     | gmx2qmmm.app:__init__:46 - Initialising gmx2qmmm
+2026-04-09 23:18:20.198 | INFO     | gmx2qmmm.input_handler:read_file:165 - Asserting basic correctness of inputs
+2026-04-09 23:18:20.198 | SUCCESS  | gmx2qmmm.input_handler:read_file:170 - Basic correctness check COMPLETE
+2026-04-09 23:18:20.198 | INFO     | gmx2qmmm.app:__init__:55 - Parameters:
 	includeprio:             0
 	jobtype:                 opt
 	jobname:                 test
@@ -34,8 +34,8 @@
 	maxcycle:                2
 	propagator:              STEEP
 	stepsize:                1
-2026-04-09 23:31:43.165 | INFO     | gmx2qmmm.generators.system:__init__:103 - Reading geometry (.g96)...
+2026-04-09 23:18:20.208 | INFO     | gmx2qmmm.generators.system:__init__:103 - Reading geometry (.g96)...
 
-2026-04-09 23:31:43.167 | SUCCESS  | gmx2qmmm.app:initialize_system:116 - Initialised system
-2026-04-09 23:31:43.176 | SUCCESS  | gmx2qmmm.app:generate_topology:123 - Generated topology
-2026-04-09 23:31:43.408 | SUCCESS  | gmx2qmmm.app:generate_PCF:130 - Generated PCF
+2026-04-09 23:18:20.211 | SUCCESS  | gmx2qmmm.app:initialize_system:116 - Initialised system
+2026-04-09 23:18:20.220 | SUCCESS  | gmx2qmmm.app:generate_topology:123 - Generated topology
+2026-04-09 23:18:20.460 | SUCCESS  | gmx2qmmm.app:generate_PCF:130 - Generated PCF

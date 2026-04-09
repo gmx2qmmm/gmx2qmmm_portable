@@ -106,7 +106,7 @@ class Optimisation():
 
         #   Calculate And Apply Displacement
         self.generate_displacement()
-        self.system.self.list_xyzq_all_steps = self.list_xyzq_all_steps[-1]
+        self.system.list_xyzq_all_steps = self.list_xyzq_all_steps[-1]
 
         #   Update Pointchargefield
         self.PCF.make_pcf()
