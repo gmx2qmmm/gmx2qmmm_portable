@@ -46,13 +46,13 @@ def test_singlepoint(mocker):
 
     oe_file.unlink()
     of_file.unlink()
-    files_to_delete = [ 'test.pointcharges'
-                      , 'logfile.log'
-                      , 'test.qmmm.top'
-                      , 'test.boxlarge.g96'
-                      , 'test.gjf'
-                      , 'test.mdp'
-                      , 'test.qmmm.top.ndx']
+    files_to_delete = [ 'test.pointcharges', 'test.1.pointcharges', 'test.2.pointcharges', 'test.3.pointcharges', 
+                        'test.gjf', 'test.1.gjf', 'test.2.gjf', 'test.3.gjf', 
+                        'logfile.log',
+                        'test.qmmm.top',
+                        'test.boxlarge.g96',
+                        'test.mdp',
+                        'test.qmmm.top.ndx']
 
     for i in files_to_delete:
         file = work_dir / i
