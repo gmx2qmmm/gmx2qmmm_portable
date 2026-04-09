@@ -81,9 +81,6 @@ class Optimisation():
         #   Initialize xyzq List, Always Keep The Last Two xyzq In The List -> Therefore, We Start With Two Times The Initial xyzq
         self.list_xyzq_all_steps = [self.system.array_xyzq_current, self.system.array_xyzq_current]
 
-        # XX AJ at this point I don't think we still need this function, but I'll keep these comments for now in case I'm wrong
-        # self.force_clean = self.make_clean_force()
-
         #   Check If Maximum Force Is Below Threshold
         float_force_max = max(np.max(self.singlepoint.total_force), np.min(self.singlepoint.total_force), key=abs)
         if abs(float_force_max) < self.dict_input_userparameters['f_thresh']:
@@ -135,18 +132,14 @@ class Optimisation():
         elif self.dict_input_userparameters['propagator'] == 'bfgs':
             self.evaluate_step_bfgs()
 
-        # XX AJ take care of the output later
         if self.dict_input_userparameters['jobname'] == "SCAN" :
             # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step, energy_file="oenergy_%s.txt"%jobname, forces_file="oforces_%s.txt"%jobname)
             pass
         else:
-            # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
+            self.singlepoint.class_output.oenergy_append(self.system.int_step_current, self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy)
+            self.singlepoint.class_output.oforces_append(self.system.int_step_current, self.singlepoint.total_force)
             pass
-        # gro = qmmmInputs.gro            #SIMON
-        # logger.info("Due to the decrease of the energy, the structure "+str(gro)+" will be used from now on.\n")
 
-
-        pass
 
     def evaluate_step_steep(self):
         if self.list_energies_all_steps[-1][-1] > self.list_energies_all_steps[-2][-1]:
@@ -207,7 +200,6 @@ class Optimisation():
             # dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, self.system.int_step_current, True, qmmmInputs.scan_atoms)
         else :
             dispvec = propagate_dispvec(self.dict_input_userparameters['propagator'], self.list_xyzq_all_steps, self.list_forces_all_steps, self.list_forces_max_all_steps[-1], self.dict_input_userparameters['stepsize'], self.system.int_step_current)
-        #    write_dispvec(dispvec, curr_step, count_trash) Simon implemented this to check if the dispvec is correct!
 
         #   Apply Displacement
         list_xyzq_new = self.list_xyzq_all_steps[-1] + np.append(dispvec, np.zeros((len(dispvec),1)), axis=1)

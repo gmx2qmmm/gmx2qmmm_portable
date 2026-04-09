@@ -1,0 +1,41 @@
+2026-04-09 17:54:01.956 | INFO     | gmx2qmmm.app:logfile:85 - Backed up existing logfile to /home/jansea92/gmx2qmmm_portable/test/optimization_test/test_files/logfile.log_2026-04-09_17-54-1
+2026-04-09 17:54:01.957 | INFO     | gmx2qmmm.app:__init__:46 - Initialising gmx2qmmm
+2026-04-09 17:54:01.959 | INFO     | gmx2qmmm.input_handler:read_file:165 - Asserting basic correctness of inputs
+2026-04-09 17:54:01.959 | SUCCESS  | gmx2qmmm.input_handler:read_file:170 - Basic correctness check COMPLETE
+2026-04-09 17:54:01.959 | INFO     | gmx2qmmm.app:__init__:55 - Parameters:
+	includeprio:             0
+	jobtype:                 opt
+	jobname:                 test
+	gmxtop_path:             test/production
+	gmxcmd:                  gmx
+	gmxpath:                 /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/
+	qmcommand:               g16
+	charge:                  1
+	qmatomslist:             qmatoms.ndx
+	activeatomslist:         act.ndx
+	coordinatefile:          conf.g96
+	topologyfile:            topol.top
+	useinnerouter:           0
+	inneratomslist:          []
+	outeratomslist:          []
+	cores:                   1
+	program:                 G16
+	method:                  BP86
+	basis:                   STO-3G
+	multiplicity:            1
+	memory:                  1000
+	extra:                   NONE
+	rvdw:                    2.0
+	rcoulomb:                2.0
+	databasefit:             morse
+	print_level:             normal
+	forcefield:              amberGS
+	f_thresh:                0
+	maxcycle:                2
+	propagator:              STEEP
+	stepsize:                1
+2026-04-09 17:54:01.969 | INFO     | gmx2qmmm.generators.system:__init__:103 - Reading geometry (.g96)...
+
+2026-04-09 17:54:01.972 | SUCCESS  | gmx2qmmm.app:initialize_system:116 - Initialised system
+2026-04-09 17:54:01.989 | SUCCESS  | gmx2qmmm.app:generate_topology:123 - Generated topology
+2026-04-09 17:54:02.366 | SUCCESS  | gmx2qmmm.app:generate_PCF:130 - Generated PCF

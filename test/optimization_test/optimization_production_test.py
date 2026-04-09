@@ -44,8 +44,8 @@ def test_singlepoint(mocker):
     ref_forces = [float(i) for line in open(ref_path / 'oforces.txt').readlines()[1:] for i in line.split()]
     assert np.all(np.isclose(forces, ref_forces))
 
-    oe_file.unlink()
-    of_file.unlink()
+    # oe_file.unlink()
+    # of_file.unlink()
     files_to_delete = [ 'test.pointcharges', 'test.1.pointcharges', 'test.2.pointcharges', 'test.3.pointcharges', 
                         'test.gjf', 'test.1.gjf', 'test.2.gjf', 'test.3.gjf', 
                         'logfile.log',
