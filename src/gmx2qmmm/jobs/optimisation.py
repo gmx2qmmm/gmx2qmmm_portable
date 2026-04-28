@@ -73,6 +73,7 @@ class Optimisation():
         #   Setting Up Variables
         self.list_forces_max_all_steps = []
         self.list_forces_all_steps = []
+        self.singlepoint.total_force = mask_atoms(self.singlepoint.total_force, self.system.list_atoms_active)
         self.list_forces_all_steps.append(self.singlepoint.total_force)
 
         self.list_energies_all_steps = []
@@ -145,7 +146,7 @@ class Optimisation():
     def evaluate_step_steep(self):
         if self.list_energies_all_steps[-1][-1] > self.list_energies_all_steps[-2][-1]:
             #   Step Gets Rejected, Decrease Stepsize
-            self.dict_input_userparameters['stepsize'] *= 0.2
+            self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 0.2
 
             #   Remove Files
             self.remove_previous_files()
@@ -153,12 +154,8 @@ class Optimisation():
             #   Rejected Current Step And Use Previous Parameters
             self.system.int_step_current -= 1
 
-            self.list_xyzq_all_steps.pop()
-            self.list_forces_all_steps.pop()
-            self.list_forces_max_all_steps.pop()
-
         else:
-            self.dict_input_userparameters['stepsize'] *= 1.2
+            self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 1.2
 
             #   Remove xyzq From Two Steps Ago
             self.list_xyzq_all_steps.pop(0)
@@ -200,17 +197,17 @@ class Optimisation():
             pass # XX AJ add scan later
             # dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, self.system.int_step_current, True, qmmmInputs.scan_atoms)
         else :
+            print(self.list_forces_max_all_steps)
             dispvec = propagate_dispvec(self.dict_input_userparameters['propagator'], self.list_xyzq_all_steps, self.list_forces_all_steps, self.list_forces_max_all_steps[-1], self.dict_input_userparameters['stepsize'], self.system.int_step_current)
-
         #   Apply Displacement
         list_xyzq_new = self.list_xyzq_all_steps[-1] + np.append(dispvec, np.zeros((len(dispvec),1)), axis=1)
         self.list_xyzq_all_steps.append(list_xyzq_new)
 
     def remove_previous_files(self):
-        os.remove(self.singlepoint.trrname)
-        os.remove(self.singlepoint.tprname)
-        os.remove(self.singlepoint.gmxlogname)
-        os.remove(self.singlepoint.edrname)
+        os.remove(self.singlepoint.class_mm_job.trrname)
+        os.remove(self.singlepoint.class_mm_job.tprname)
+        os.remove(self.singlepoint.class_mm_job.gmxlogname)
+        os.remove(self.singlepoint.class_mm_job.edrname)
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr.xvg"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))
