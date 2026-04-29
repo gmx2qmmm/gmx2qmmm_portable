@@ -25,3 +25,20 @@ Summary of changes in regards to the migration to v2
 Summary of PCF/charge-shift functionality
 -----------------------------------------
 
+Expectations:
+
+  * Re-write to increase clarity and make it easier to understand the
+   code (PR open)
+  * Performance? Not measured. Is it crucial? A known bottleneck?
+  * Alternative solvers?:
+    * SciPy optimise? Object function already factored out
+    * Poisson solver?
+  * Improved flow of information from user config down to calling this generator?
+
+Questions:
+
+ * Initial correction charges are irrelevant, aren't they? Only used to
+   determine sign of charge? Initial
+   displacements are fixed. New charges are tied to new displacements.
+ * `pcf_from_top`, `sum_pcf_tm` needed?
+ * Atom indices should be 0-based by default, no?

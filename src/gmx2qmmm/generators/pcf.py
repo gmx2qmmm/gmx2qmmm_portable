@@ -704,7 +704,7 @@ class PCFGeneratorShift(PCFGenerator):
         charge: float = 0,
         **parameters: float | int,
     ) -> None:
-        """Ïnitialize the PCF generator
+        """Initialize the PCF generator
 
         Args:
             input_field: Original point charge field of the full system,
