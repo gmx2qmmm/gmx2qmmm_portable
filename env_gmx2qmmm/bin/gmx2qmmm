@@ -1,0 +1,6 @@
+#!/net/work/jansen/env_gmx2qmmm/bin/python3.9
+import sys
+from gmx2qmmm.cli import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

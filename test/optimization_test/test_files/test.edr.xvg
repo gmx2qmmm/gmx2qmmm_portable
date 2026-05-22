@@ -1,15 +1,15 @@
-# This file was created Sat Apr  4 18:56:47 2026
+# This file was created Fri May 22 12:39:19 2026
 # Created by:
-#                      :-) GROMACS - gmx energy, 2019.4 (-:
+#                      :-) GROMACS - gmx energy, 2019.6 (-:
 # 
-# Executable:   /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/gmx
-# Data prefix:  /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a
-# Working dir:  /home/jansea92/gmx2qmmm_portable/examples/opt
+# Executable:   /afs/math/software/gromacs/2019.6-plumed/em64t_avx/bin/gmx
+# Data prefix:  /afs/math/software/gromacs/2019.6-plumed/em64t_avx
+# Working dir:  /net/work/jansen/gmx2qmmm_portable/examples/opt
 # Command line:
-#   gmx energy -f /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr -o /home/jansea92/gmx2qmmm_portable/examples/opt/test.edr.xvg -backup no
+#   gmx energy -f /net/work/jansen/gmx2qmmm_portable/examples/opt/test.edr -o /net/work/jansen/gmx2qmmm_portable/examples/opt/test.edr.xvg -backup no
 # gmx energy is part of G R O M A C S:
 #
-# GROwing Monsters And Cloning Shrimps
+# Great Red Oystrich Makes All Chemists Sane
 #
 @    title "GROMACS Energies"
 @    xaxis  label "Time (ps)"
@@ -22,5 +22,5 @@
 @ legend 0.78, 0.8
 @ legend length 2
 @ s0 legend "Total Energy"
-    0.000000  309.883789
-    0.001000  306.106110
+    0.000000  310.560333
+    0.001000  306.784180

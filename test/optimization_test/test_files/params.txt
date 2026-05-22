@@ -5,9 +5,9 @@ includeprio=0
 jobtype=opt
 jobname=test
 
-gmxtop_path=test/production
+gmxtop_path=/afs/math/software/gromacs/2019.6-plumed/@sys/share/gromacs/top/
 gmxcmd=gmx
-gmxpath=/trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/
+gmxpath=/afs/math/software/gromacs/2019.6-plumed/@sys/bin/
 qmcommand=g16
 charge=1
 

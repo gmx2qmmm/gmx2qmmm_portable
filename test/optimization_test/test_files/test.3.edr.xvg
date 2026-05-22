@@ -1,15 +1,15 @@
-# This file was created Sat Apr  4 18:56:54 2026
+# This file was created Fri May 22 12:39:36 2026
 # Created by:
-#                      :-) GROMACS - gmx energy, 2019.4 (-:
+#                      :-) GROMACS - gmx energy, 2019.6 (-:
 # 
-# Executable:   /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a/bin/gmx
-# Data prefix:  /trinity/shared/easybuild/software/GROMACS/2019.4-foss-2019a
-# Working dir:  /home/jansea92/gmx2qmmm_portable/examples/opt
+# Executable:   /afs/math/software/gromacs/2019.6-plumed/em64t_avx/bin/gmx
+# Data prefix:  /afs/math/software/gromacs/2019.6-plumed/em64t_avx
+# Working dir:  /net/work/jansen/gmx2qmmm_portable/examples/opt
 # Command line:
-#   gmx energy -f test.3.edr -o test.3.edr.xvg -backup no
+#   gmx energy -f /net/work/jansen/gmx2qmmm_portable/examples/opt/test.3.edr -o /net/work/jansen/gmx2qmmm_portable/examples/opt/test.3.edr.xvg -backup no
 # gmx energy is part of G R O M A C S:
 #
-# Gravel Rubs Often Many Awfully Cauterized Sores
+# Getting the Right Output Means no Artefacts in Calculating Stuff
 #
 @    title "GROMACS Energies"
 @    xaxis  label "Time (ps)"
@@ -22,5 +22,5 @@
 @ legend 0.78, 0.8
 @ legend length 2
 @ s0 legend "Total Energy"
-    0.000000  309.883789
-    0.001000  306.106110
+    0.000000  109.849823
+    0.001000  109.634506
