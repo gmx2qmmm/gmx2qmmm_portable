@@ -5,9 +5,6 @@ includeprio=0
 jobtype=opt
 jobname=test
 
-gmxtop_path=/Users/jan/.pyenv/versions/miniforge3-24.11.3-2/envs/gmx_MMPBSA/share/gromacs/top/
-gmxcmd=gmx
-gmxpath=/Users/jan/.pyenv/versions/miniforge3-24.11.3-2/envs/gmx_MMPBSA/
 qmcommand=g16
 charge=1
 

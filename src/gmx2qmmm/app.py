@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+import shutil
 from datetime import datetime
 from typing import Optional
 
@@ -48,6 +49,7 @@ class App:
         self.parameters = FileReader.read_file(
             path_file_logging=self.logfile, str_filename_input=parameters
         )
+        self.check_gmx_paths()
 
         log_entry = "Parameters:\n" + "\n".join(
             [f"\t{k + ':':<25}{v}" for k, v in self.parameters.items()]
@@ -154,3 +156,25 @@ class App:
             self.work_dir,
             self.base_dir,
         )
+
+    def check_gmx_paths(self) -> None:
+        """Set default paths for GROMACS executables and files if not provided in parameters"""
+
+        self.parameters.setdefault("gmxcmd", "gmx")
+        gmxcmd = self.parameters["gmxcmd"]
+        gmx_path = shutil.which(gmxcmd)
+
+        if "gmxpath" not in self.parameters or "gmxtop_path" not in self.parameters:
+
+            if gmx_path is None:
+                raise ValueError(
+                    f"Could not find {gmxcmd!r} in PATH.\n"
+                    "Please provide the path to the GROMACS executables"
+                    "and/or bin/top paths in the parameters."
+                    )
+
+            if "gmxpath" not in self.parameters:
+                self.parameters["gmxpath"] = str(pathlib.Path(gmx_path).parent)
+
+            if "gmxtop_path" not in self.parameters:
+                self.parameters["gmxtop_path"] = str(pathlib.Path(gmx_path).parent.parent / "share" / "gromacs" / "top")
