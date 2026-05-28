@@ -695,7 +695,6 @@ class SystemInfo():
         return list_atoms_m2
 
     def get_list_atoms_link(self) -> tuple:
-        # XX AJ evaluate return type later with Florian
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -1049,3 +1048,6 @@ class SystemInfo():
                         # logger.info(line)
                         exit(1)
         return atoms
+
+    def update_linkatom_coordinates(self):
+        self.list_coordinates_linkatoms = get_coordinates_linkatoms_angstrom(self.array_xyzq_current, self.list_atoms_qm, self.list_atoms_m1, self.list_connectivity_topology, [])

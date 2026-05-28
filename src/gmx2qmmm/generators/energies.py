@@ -137,9 +137,9 @@ class GeneratorQMMM():
         method_set_value = method_set.fetchall()
         if len(method_set_value) == 0:
             cut = "aminoacid_CACB"
-            self.input_dict['forcefield'] = "amberGS"
-            self.input_dict['method'] = "CAM-B3LYP"
-            self.input_dict['basis'] = "6-31++G**"
+            forcefield = "amberGS"
+            method = "CAM-B3LYP"
+            basisset = "6-31++G**"
             # logger.info(
             #     "Unexisted method in correction database, changing to default correction method...\n",
             # )
@@ -149,11 +149,11 @@ class GeneratorQMMM():
             "SELECT * FROM "
             + cut
             + ' WHERE forcefield="'
-            + self.input_dict['forcefield']
+            + forcefield
             + '" AND method="'
-            + self.input_dict['method']
+            + method
             + '" AND basisset ="'
-            + self.input_dict['basis']
+            + basisset
             + '"'
         )
         db_values = c.fetchall()[0]

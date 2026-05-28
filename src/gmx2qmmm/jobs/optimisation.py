@@ -31,7 +31,7 @@ class Optimisation():
     This Class Performs An Optimization
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, work_dir, base_dir) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -56,7 +56,8 @@ class Optimisation():
         self.system = class_system
         self.class_topology_qmmm = class_topology
         self.PCF = class_pcf
-        self.str_directory_base = str_directory_base
+        self.work_dir = work_dir
+        self.base_dir = base_dir
 
         #   XX AJ check how to deal with nma flag later
         self.nmaflag = 0
@@ -67,11 +68,12 @@ class Optimisation():
         self.STEPSIZE = 2
 
         #   Perform Initial Singlepoint Calculation
-        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir)
 
         #   Setting Up Variables
         self.list_forces_max_all_steps = []
         self.list_forces_all_steps = []
+        self.singlepoint.total_force = mask_atoms(self.singlepoint.total_force, self.system.list_atoms_active)
         self.list_forces_all_steps.append(self.singlepoint.total_force)
 
         self.list_energies_all_steps = []
@@ -79,9 +81,6 @@ class Optimisation():
 
         #   Initialize xyzq List, Always Keep The Last Two xyzq In The List -> Therefore, We Start With Two Times The Initial xyzq
         self.list_xyzq_all_steps = [self.system.array_xyzq_current, self.system.array_xyzq_current]
-
-        # XX AJ at this point I don't think we still need this function, but I'll keep these comments for now in case I'm wrong
-        # self.force_clean = self.make_clean_force()
 
         #   Check If Maximum Force Is Below Threshold
         float_force_max = max(np.max(self.singlepoint.total_force), np.min(self.singlepoint.total_force), key=abs)
@@ -104,10 +103,12 @@ class Optimisation():
         self.update_input_filenames()
 
         #   Update Pointchargefield Filename
-        self.PCF.pcf_filename = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges")
+        self.PCF.pcf_filename = self.work_dir / (str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges"))
 
         #   Calculate And Apply Displacement
         self.generate_displacement()
+        self.system.array_xyzq_current = self.list_xyzq_all_steps[-1]
+        self.system.update_linkatom_coordinates()
 
         #   Update Pointchargefield
         self.PCF.make_pcf()
@@ -127,30 +128,26 @@ class Optimisation():
         #   Check If The Total Energy Improved
 
         #   Evaluate current step
-        if self.dict_input_userparameters['propagator'] == 'steep':
+        if self.dict_input_userparameters['propagator'] == 'STEEP':
             self.evaluate_step_steep()
         elif self.dict_input_userparameters['propagator'] == 'conjgrad':
             self.evaluate_step_conjgrad()
         elif self.dict_input_userparameters['propagator'] == 'bfgs':
             self.evaluate_step_bfgs()
 
-        # XX AJ take care of the output later
         if self.dict_input_userparameters['jobname'] == "SCAN" :
             # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step, energy_file="oenergy_%s.txt"%jobname, forces_file="oforces_%s.txt"%jobname)
             pass
         else:
-            # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step)
+            self.singlepoint.class_output.oenergy_append(self.system.int_step_current, self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy)
+            self.singlepoint.class_output.oforces_append(self.system.int_step_current, self.singlepoint.total_force)
             pass
-        # gro = qmmmInputs.gro            #SIMON
-        # logger.info("Due to the decrease of the energy, the structure "+str(gro)+" will be used from now on.\n")
 
-
-        pass
 
     def evaluate_step_steep(self):
         if self.list_energies_all_steps[-1][-1] > self.list_energies_all_steps[-2][-1]:
             #   Step Gets Rejected, Decrease Stepsize
-            self.dict_input_userparameters['stepsize'] *= 0.2
+            self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 0.2
 
             #   Remove Files
             self.remove_previous_files()
@@ -158,12 +155,8 @@ class Optimisation():
             #   Rejected Current Step And Use Previous Parameters
             self.system.int_step_current -= 1
 
-            self.list_xyzq_all_steps.pop()
-            self.list_forces_all_steps.pop()
-            self.list_forces_max_all_steps.pop()
-
         else:
-            self.dict_input_userparameters['stepsize'] *= 1.2
+            self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 1.2
 
             #   Remove xyzq From Two Steps Ago
             self.list_xyzq_all_steps.pop(0)
@@ -191,31 +184,31 @@ class Optimisation():
 
 
     def update_input_filenames(self):
-        self.singlepoint.groname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
-        self.singlepoint.tprname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".tpr")
-        self.singlepoint.trrname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".trr")
-        self.singlepoint.xtcname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".xtc")
-        self.singlepoint.outname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".out.gro")
-        self.singlepoint.gmxlogname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gmx.log")
-        self.singlepoint.edrname = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr")
+        self.singlepoint.class_mm_job.groname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
+        self.singlepoint.class_mm_job.tprname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".tpr")
+        self.singlepoint.class_mm_job.trrname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".trr")
+        self.singlepoint.class_mm_job.xtcname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".xtc")
+        self.singlepoint.class_mm_job.outname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".out.gro")
+        self.singlepoint.class_mm_job.gmxlogname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gmx.log")
+        self.singlepoint.class_mm_job.edrname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr")
+        self.singlepoint.class_mm_job.edr_xvg_file = self.work_dir / (str(self.singlepoint.class_mm_job.edrname) + ".xvg")
 
     def generate_displacement(self):
         if self.dict_input_userparameters['jobtype'] == "SCAN" :
             pass # XX AJ add scan later
             # dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, self.system.int_step_current, True, qmmmInputs.scan_atoms)
         else :
+            print(self.list_forces_max_all_steps)
             dispvec = propagate_dispvec(self.dict_input_userparameters['propagator'], self.list_xyzq_all_steps, self.list_forces_all_steps, self.list_forces_max_all_steps[-1], self.dict_input_userparameters['stepsize'], self.system.int_step_current)
-        #    write_dispvec(dispvec, curr_step, count_trash) Simon implemented this to check if the dispvec is correct!
-
         #   Apply Displacement
         list_xyzq_new = self.list_xyzq_all_steps[-1] + np.append(dispvec, np.zeros((len(dispvec),1)), axis=1)
         self.list_xyzq_all_steps.append(list_xyzq_new)
 
     def remove_previous_files(self):
-        os.remove(self.singlepoint.trrname)
-        os.remove(self.singlepoint.tprname)
-        os.remove(self.singlepoint.gmxlogname)
-        os.remove(self.singlepoint.edrname)
+        os.remove(self.singlepoint.class_mm_job.trrname)
+        os.remove(self.singlepoint.class_mm_job.tprname)
+        os.remove(self.singlepoint.class_mm_job.gmxlogname)
+        os.remove(self.singlepoint.class_mm_job.edrname)
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr.xvg"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))

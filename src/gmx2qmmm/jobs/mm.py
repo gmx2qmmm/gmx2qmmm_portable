@@ -50,9 +50,8 @@ class MM():
         #   Calculate The Maximum Eucledian Distance Between Any Two Atoms And Get New Box Vectors
         array_coordinates_all = self.system.array_xyzq_current[:,:3]
         self.float_distance_max = np.max(np.linalg.norm(array_coordinates_all[np.newaxis, :, :] - array_coordinates_all[:, np.newaxis, :], axis=-1))
-        self.list_box_vectors_large = (np.array(self.list_box_vectors_initial) + 10.0 * self.float_distance_max).tolist()
-
-
+        # self.list_box_vectors_large = (np.array(self.list_box_vectors_initial) + 10.0 * self.float_distance_max).tolist()
+        self.list_box_vectors_large = (np.array(self.list_box_vectors_initial)).tolist()
 
         #   Initialize Gromacs Filenames
         self.mdpname = self.work_dir / (self.input_dict['jobname'] + ".mdp")
@@ -64,6 +63,7 @@ class MM():
         self.outname = self.work_dir / (self.input_dict['jobname'] + ".out.gro")
         self.gmxlogname = self.work_dir / (self.input_dict['jobname'] + ".gmx.log")
         self.edrname = self.work_dir / (self.input_dict['jobname'] + ".edr")
+        self.edr_xvg_file = self.work_dir / (str(self.edrname) + ".xvg")
 
 
     def make_gmx_inp(self):
@@ -219,7 +219,7 @@ class MM():
         # logger(logfile, "Extracting MM energy.\n")
         self.call_mm_energy()
         
-        with open(str(self.edrname) + ".xvg") as ifile:
+        with open(self.edr_xvg_file) as ifile:
             for line in ifile:
                 match = re.search(
                     r"^    0.000000\s*([-]*\d+.\d+)\n", line, flags=re.MULTILINE
@@ -246,10 +246,10 @@ class MM():
         NONE \\
         ------------------------------ \\
         '''
-
+        
         self.prefix =  self.input_dict['gmxpath'] + self.input_dict['gmxcmd']
         # logger(logfile, "Extracting MM energy.\n")
-        xvg_file = str(self.edrname) + ".xvg"
+        
         p = subprocess.Popen(
             [
                 self.prefix,
@@ -257,7 +257,7 @@ class MM():
                 "-f",
                 self.edrname,
                 "-o",
-                str(xvg_file),
+                self.edr_xvg_file,
                 "-backup",
                 "no",
             ],
