@@ -1,7 +1,7 @@
 import pathlib
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from typing import List, Optional, Union, TextIO
+from typing import List, Optional, TextIO, Union
 
 from gmx2qmmm.generators.types import PointChargeField
 
