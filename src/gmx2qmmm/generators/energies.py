@@ -20,7 +20,7 @@ from loguru import logger
 
 #   Imports From Custom Libraries
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
-from gmx2qmmm.generators.pcf import PCFGenerator, load_field_legacy
+from gmx2qmmm.generators.pcf.base import PCFGenerator, load_field_legacy
 
 
 #   // TODOS & NOTES //

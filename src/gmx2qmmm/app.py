@@ -7,7 +7,7 @@ from loguru import logger
 
 from gmx2qmmm.generators.system import SystemInfo
 from gmx2qmmm.generators import topology
-from gmx2qmmm.generators import pcf
+from gmx2qmmm.generators import PCFGeneratorShift
 from gmx2qmmm.jobs.singlepoint import Singlepoint
 from gmx2qmmm.jobs.optimisation import Optimisation
 from gmx2qmmm.types import StrPath
@@ -132,7 +132,7 @@ class App:
 
         charge = self.parameters["charge"]
         parameters = self.parameters.get("pcf_generator", {})
-        self.pcf_generator = pcf.PCFGeneratorShift.from_system(
+        self.pcf_generator = PCFGeneratorShift.from_system(
             self.system, charge=charge, **parameters
         )
         field = self.pcf_generator.generate()

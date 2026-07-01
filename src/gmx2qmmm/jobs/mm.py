@@ -23,7 +23,7 @@ from loguru import logger
 
 #   Imports From Custom Libraries
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
-from gmx2qmmm.generators.pcf import PCFGenerator
+from gmx2qmmm.generators.pcf.base import PCFGenerator
 
 #   // TODOS & NOTES //
 #   TODO:

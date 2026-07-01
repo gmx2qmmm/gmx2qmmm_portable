@@ -12,7 +12,7 @@ import numpy as np
 
 from gmx2qmmm.generators.system import SystemInfo
 from gmx2qmmm.generators.topology import GenerateTopology
-from gmx2qmmm.generators.pcf import PCFGenerator
+from gmx2qmmm.generators.pcf.base import PCFGenerator
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 from gmx2qmmm.generators.energies import GeneratorEnergies, GeneratorForces

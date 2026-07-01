@@ -19,7 +19,7 @@ import numpy as np
 from gmx2qmmm.jobs.singlepoint import Singlepoint
 from gmx2qmmm.generators.geometry import propagate_dispvec
 from gmx2qmmm.generators._helper import mask_atoms
-from gmx2qmmm.generators.pcf import PCFGenerator
+from gmx2qmmm.generators.pcf.base import PCFGenerator
 
 #   // TODOS & NOTES //
 #   TODO:

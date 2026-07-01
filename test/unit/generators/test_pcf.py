@@ -1,14 +1,16 @@
 """Regression test for PCF generation"""
 
-import shutil
 import pathlib
+import shutil
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
 import pytest
 
-from gmx2qmmm.generators.pcf import GeneratePCF, PCFGeneratorShift, dump_field
+from gmx2qmmm.generators import PCFGeneratorShift
+from gmx2qmmm.generators.pcf.base import dump_field, load_field
+from gmx2qmmm.generators.pcf.legacy import GeneratePCF
 
 
 @dataclass
