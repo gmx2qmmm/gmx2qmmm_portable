@@ -38,7 +38,7 @@ class PCFGenerator(ABC):
 class GeneratePCF:
     """ "Deprecated class for PCF generation
 
-    Use :class:`PCFChargeShift` instead.
+    Use :class:`PCFGeneratorShift` instead.
     """
 
     def __init__(self, input_dict, system, topology, work_dir) -> None:
