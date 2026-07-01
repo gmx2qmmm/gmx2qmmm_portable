@@ -1,9 +1,13 @@
 import pathlib
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from itertools import repeat
 from typing import List, Optional, TextIO, Union
 
+import numpy as np
+
 from gmx2qmmm.generators.types import PointChargeField
+from gmx2qmmm.types import StrPath
 
 
 class PCFGenerator(ABC):
