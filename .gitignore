@@ -19,7 +19,7 @@ lib64/
 parts/
 sdist/
 var/
-wheels/
+wheels/pc
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -173,5 +173,13 @@ example/
 !test/unit/test_files/*
 */logfile.log*
 
+# Temporary test files
+test/unit/generators/test_pcf/test.pointcharges.current
+test/unit/generators/test_pcf/test.pointcharges.new
+
 # pdf files
 *.pdf
+
+# Regression test output files
+test/production/test_files/*
+test/unit/generators/test_pcf/test.pointcharges

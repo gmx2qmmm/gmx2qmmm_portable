@@ -5,21 +5,20 @@
 __author__ = 'Alina Jansen'
 __date__ = '2024-08-12'
 
-#   // IMPORTS //
+from collections.abc import Mapping
+from typing import Any
 
-#   Imports Of Existing Libraries
 import numpy as np
 
-#   Imports From Existing Libraries
-
-#   Imports Of Custom Libraries
-
-#   Imports From Custom Libraries
-from gmx2qmmm.logging_utils import Output
-from gmx2qmmm.jobs import mm, qm
+from gmx2qmmm.generators.system import SystemInfo
+from gmx2qmmm.generators.topology import GenerateTopology
+from gmx2qmmm.generators.pcf.base import PCFGenerator
 from gmx2qmmm.generators._helper import filter_xyzq, _flatten
 from gmx2qmmm.generators.geometry import read_gmx_structure_header, read_gmx_structure_atoms, read_gmx_box_vectors, write_g96
 from gmx2qmmm.generators.energies import GeneratorEnergies, GeneratorForces
+from gmx2qmmm.logging_utils import Output
+from gmx2qmmm.jobs import mm, qm
+from gmx2qmmm.types import StrPath
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -32,31 +31,32 @@ class Singlepoint():
     This Class Performs A Singlepoint Calculation
     '''
 
-    def __init__(self, input_dict, class_system, class_topology, class_pcf, work_dir, base_dir) -> None:
-        '''
-        ------------------------------ \\
-        EFFECT: \\
-        --------------- \\
-        XX\\
-        ------------------------------ \\
-        INPUT: \\
-        --------------- \\
-        input_dict: dict -> Dictionary Of The User Parameter Input \\
-        class_system: class -> Class Object Of The System \\
-        class_topology: class -> Class Object Of The Topology \\
-        class_pcf: class -> Class Object Of The Pointchargefield \\
-        str_directory_base: str -> Directory Path \\
-        ------------------------------ \\
-        RETURN: \\
-        --------------- \\
-        NONE \\
-        ------------------------------ \\
-        '''
+    def __init__(
+        self,
+        parameters: Mapping[str, Any],
+        system: SystemInfo,
+        topology: GenerateTopology,
+        *,
+        pcf_generator: PCFGenerator,
+        work_dir: StrPath,
+        base_dir: StrPath
+    ) -> None:
+        """Initialise Singlepoint Job
 
-        self.input_dict = input_dict
-        self.system = class_system
-        self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        Args:
+            parameters: A dictionary containing all input parameters for the job
+            system: An instance of :class:`~gmx2qmmm.generators.system.SystemInfo`
+                containing information about the system
+            topology: An instance of :class:`~gmx2qmmm.generators.topology.GenerateTopology`
+            pcf_generator: A point charge field generator
+            work_dir: The working directory for the job
+            base_dir: The base directory for the job
+        """
+
+        self.system = system
+        self.topology = topology
+        self.parameters = parameters
+        self.pcf_generator = pcf_generator
         self.work_dir = work_dir
         self.base_dir = base_dir
 
@@ -64,17 +64,17 @@ class Singlepoint():
         self.nmaflag = 0
 
         #   Initialize QM Class (differentiate between qm program here?)
-        if self.input_dict['qmcommand'] == 'g16':
-            self.class_qm_job = qm.QM_gaussian(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
-        elif self.input_dict['qmcommand'] == 'orca':
+        if self.parameters['qmcommand'] == 'g16':
+            self.class_qm_job = qm.QM_gaussian(self.parameters, self.system, self.topology, self.pcf_generator, self.work_dir)
+        elif self.parameters['qmcommand'] == 'orca':
             pass
 
         #   Initialize MM Class
-        self.class_mm_job = mm.MM(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir)
+        self.class_mm_job = mm.MM(self.parameters, self.system, self.topology, self.pcf_generator, self.work_dir)
 
         #   Initialize QMMM Energy And Forces Generator Classes
-        self.class_qmmm_energy = GeneratorEnergies(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
-        self.class_qmmm_forces = GeneratorForces(self.input_dict, self.system, self.class_topology_qmmm, self.PCF, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_energy = GeneratorEnergies(self.parameters, self.system, self.topology, self.pcf_generator, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
+        self.class_qmmm_forces = GeneratorForces(self.parameters, self.system, self.topology, self.pcf_generator, self.work_dir, self.base_dir, self.class_qm_job, self.class_mm_job)
 
 
         #   Run (Initial) Singlepoint Calculation

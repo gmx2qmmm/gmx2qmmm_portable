@@ -19,6 +19,7 @@ import numpy as np
 from gmx2qmmm.jobs.singlepoint import Singlepoint
 from gmx2qmmm.generators.geometry import propagate_dispvec
 from gmx2qmmm.generators._helper import mask_atoms
+from gmx2qmmm.generators.pcf.base import PCFGenerator
 
 #   // TODOS & NOTES //
 #   TODO:
@@ -31,7 +32,7 @@ class Optimisation():
     This Class Performs An Optimization
     '''
 
-    def __init__(self, dict_input_userparameters, class_system, class_topology, class_pcf, str_directory_base) -> None:
+    def __init__(self, dict_input_userparameters, class_system, class_topology, pcf_generator: PCFGenerator, work_dir, str_directory_base) -> None:
         '''
         ------------------------------ \\
         EFFECT: \\
@@ -43,8 +44,9 @@ class Optimisation():
         input_dict: dict -> Dictionary Of The User Parameter Input \\
         class_system: class -> Class Object Of The System \\
         class_topology: class -> Class Object Of The Topology \\
-        class_pcf: class -> Class Object Of The Pointchargefield \\
-        str_directory_base: str -> Directory Path \\
+        pcf_generator: A point charge field generator \\
+        work_dir: str -> Working Directory Path \\
+        str_directory_base: str -> Base Directory Path \\
         ------------------------------ \\
         RETURN: \\
         --------------- \\
@@ -55,7 +57,7 @@ class Optimisation():
         self.dict_input_userparameters = dict_input_userparameters
         self.system = class_system
         self.class_topology_qmmm = class_topology
-        self.PCF = class_pcf
+        self.pcf_generator = pcf_generator
         self.str_directory_base = str_directory_base
 
         #   XX AJ check how to deal with nma flag later
@@ -67,7 +69,7 @@ class Optimisation():
         self.STEPSIZE = 2
 
         #   Perform Initial Singlepoint Calculation
-        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, self.PCF, self.str_directory_base)
+        self.singlepoint = Singlepoint(self.dict_input_userparameters, self.system, self.class_topology_qmmm, pcf_generator=self.pcf_generator, work_dir=work_dir, base_dir=self.str_directory_base)
 
         #   Setting Up Variables
         self.list_forces_max_all_steps = []
@@ -103,14 +105,15 @@ class Optimisation():
         #   Prepare New Input
         self.update_input_filenames()
 
-        #   Update Pointchargefield Filename
-        self.PCF.pcf_filename = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges")
-
         #   Calculate And Apply Displacement
         self.generate_displacement()
 
         #   Update Pointchargefield
-        self.PCF.make_pcf()
+        self.pcf_generator.input_field = self.list_xyzq_all_steps[-1]
+        field = self.pcf_generator.generate()
+        file = str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".pointcharges")
+        self.pcf_generator.write_output(file)
+
 
         #   Run Singlepoint Calculation
         self.singlepoint.run_calculation()
@@ -220,4 +223,4 @@ class Optimisation():
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))
         os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf"))
-        os.remove(self.PCF.pcf_filename)
+        os.remove(self.pcf_generator.output_file)

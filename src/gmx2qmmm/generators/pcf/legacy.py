@@ -1,38 +1,24 @@
-#   // INITIAL DESCRIPTION //
+"""Generate point charge fields (PCF) for QM/MM calculations (legacy)"""
 
-
-#   // MEATDATA //
 __author__ = "jangoetze"
 __date__ = "$15-May-2018 17:02:17$"  # During a rain storm
 
-#   // IMPORTS //
-
-#   Imports Of Existing Libraries
 import math
+import warnings
+
 import numpy as np
 
-#   Imports From Existing Libraries
-
-#   Imports Of Custom Libraries
-
-#   Imports From Custom Libraries
-from gmx2qmmm.generators._helper import filter_xyzq, normalized_vector, _flatten
+from gmx2qmmm.generators._helper import _flatten, filter_xyzq, normalized_vector
 
 
-#   // TODOS & NOTES //
-#   TODO:
-#   NOTE:
+class GeneratePCF:
+    """ "Deprecated class for PCF generation
 
-#   // CLASS & METHOD DEFINITIONS //
-class GeneratePCF():
-
-    '''
-    XX
-    '''
+    Use :class:`PCFGeneratorShift` instead.
+    """
 
     def __init__(self, input_dict, system, topology, work_dir) -> None:
-
-        '''
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -46,21 +32,26 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
+
+        warnings.warn(
+            "GeneratePCF is deprecated and will be removed in a future version. Please use PCFGeneratorShift instead.",
+            DeprecationWarning,
+        )
 
         self.input_dict = input_dict
         self.system = system
         self.topology = topology
         self.work_dir = work_dir
 
-        self.pcf_filename = self.work_dir / (self.input_dict['jobname'] + ".pointcharges")
-
+        self.pcf_filename = self.work_dir / (
+            self.input_dict["jobname"] + ".pointcharges"
+        )
 
         self.make_pcf()
 
     def make_pcf(self):
-
-        '''
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -74,15 +65,20 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
 
-        self.qm_xyzq = filter_xyzq(self.system.array_xyzq_current, self.system.list_atoms_qm, coordinates=True, charges=True)
+        self.qm_xyzq = filter_xyzq(
+            self.system.array_xyzq_current,
+            self.system.list_atoms_qm,
+            coordinates=True,
+            charges=True,
+        )
         self.updated_chargelist = self.eliminate_and_shift_to_m1()
         new_field = self.generate_charge_shift_fieldsonly()
         self.write_new_field_to_disk_listsonly(new_field)
 
     def eliminate_and_shift_to_m1(self):
-        '''
+        """
         ------------------------------
         EFFECT: \\
         ---------------
@@ -96,14 +92,14 @@ class GeneratePCF():
         ---------------
         updated_chargelist: shifts m1 charges
         ------------------------------
-        '''
+        """
 
         updated_charges = []
         curr_charge = float(0.0)
         for element in self.qm_xyzq:
             curr_charge += float(element[3])
         count = 0
-        parentcharge = float(curr_charge) - float(self.input_dict['charge'])
+        parentcharge = float(curr_charge) - float(self.input_dict["charge"])
         for element in self.system.array_xyzq_current:
             count += 1
             if count in np.array(self.system.list_atoms_qm).astype(int):
@@ -126,8 +122,7 @@ class GeneratePCF():
         return updated_charges
 
     def generate_charge_shift_fieldsonly(self):
-
-        '''
+        """
         ------------------------------
         EFFECT: \\
         ---------------
@@ -141,7 +136,7 @@ class GeneratePCF():
         ---------------
         None
         ------------------------------
-        '''
+        """
 
         # XX AJ no idea yet what orgfield means, but for now it contains m1 xyzq
         orgfield = filter_xyzq(self.updated_chargelist, self.system.list_atoms_m1)
@@ -153,6 +148,10 @@ class GeneratePCF():
             target_sum += np.array(
                 self.sum_pcf_tm_nofile(orgfield, element[0], element[1], element[2])
             )
+
+        # For later inspection
+        self.target_sum = target_sum
+
         # self.updated_chargelist = pcf, target_sum same
         m1coordsq = []
         m2coordsqlist = []
@@ -160,7 +159,9 @@ class GeneratePCF():
         disp_charge_vec = []
         count = 0
         for element in self.system.list_atoms_m2:
-            m1 = self.updated_chargelist[int(self.system.list_atoms_m1[count]) - 1].copy()
+            m1 = self.updated_chargelist[
+                int(self.system.list_atoms_m1[count]) - 1
+            ].copy()
             m1coordsq.append(m1)
             m2coordsqthing = self.get_m2vec_fieldsonly(element, self.updated_chargelist)
             # XX AJ removed m2coordsq from previous version as it seems unnecessary, if it causes problems, look back into it
@@ -186,10 +187,18 @@ class GeneratePCF():
             m2coordsqlist.append(m2coordsqthing)
 
         disp = 0.1
-        disp_vec = [disp for _ in range(len(self.system.list_atoms_m2)) for _ in range(len(self.system.list_atoms_m2[_]))]
+        disp_vec = [
+            disp
+            for _ in range(len(self.system.list_atoms_m2))
+            for _ in range(len(self.system.list_atoms_m2[_]))
+        ]
 
         corr_charge_list = self.create_corr_charges(
-            m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, self.system.list_atoms_m2
+            m1coordsq,
+            m2coordsqlist,
+            disp_vec,
+            disp_charge_vec,
+            self.system.list_atoms_m2,
         )
 
         new_field = np.array(self.make_new_field(m2coordsqlist, corr_charge_list))
@@ -217,7 +226,6 @@ class GeneratePCF():
         strike = 0
         # checkpoint AJ XX temp
         while max_change_disp > 0.0000001 and iter_count < 200:
-
             max_change_disp = 0.0
             iter_count += 1
             count = 0
@@ -233,7 +241,11 @@ class GeneratePCF():
                     new_disp_vec = np.array(disp_vec)
                     new_disp_vec[count] += change_disp[count]
                     curr_corr_charge_list = self.create_corr_charges(
-                        m1coordsq, m2coordsqlist, new_disp_vec, disp_charge_vec, self.system.list_atoms_m2
+                        m1coordsq,
+                        m2coordsqlist,
+                        new_disp_vec,
+                        disp_charge_vec,
+                        self.system.list_atoms_m2,
                     )
                     curr_field = np.array(
                         self.make_new_field(m2coordsqlist, curr_corr_charge_list)
@@ -253,7 +265,11 @@ class GeneratePCF():
                     new_disp_vec = np.array(disp_vec)
                     new_disp_vec[count] -= change_disp[count]
                     curr_corr_charge_list = self.create_corr_charges(
-                        m1coordsq, m2coordsqlist, new_disp_vec, disp_charge_vec, self.system.list_atoms_m2
+                        m1coordsq,
+                        m2coordsqlist,
+                        new_disp_vec,
+                        disp_charge_vec,
+                        self.system.list_atoms_m2,
                     )
                     curr_field = np.array(
                         self.make_new_field(m2coordsqlist, curr_corr_charge_list)
@@ -296,9 +312,15 @@ class GeneratePCF():
                     max_change_disp = element
             new_disp_vec = np.array(mod_disp_vec)
             curr_corr_charge_list = self.create_corr_charges(
-                m1coordsq, m2coordsqlist, new_disp_vec, disp_charge_vec, self.system.list_atoms_m2
+                m1coordsq,
+                m2coordsqlist,
+                new_disp_vec,
+                disp_charge_vec,
+                self.system.list_atoms_m2,
             )
-            curr_field = np.array(self.make_new_field(m2coordsqlist, curr_corr_charge_list))
+            curr_field = np.array(
+                self.make_new_field(m2coordsqlist, curr_corr_charge_list)
+            )
             new_sum = np.array([0.0, 0.0, 0.0])
             for element in self.qm_xyzq:
                 new_sum += np.array(
@@ -332,11 +354,20 @@ class GeneratePCF():
                         count += 1
             if max_change_disp < 0.0000001:
                 break
+
+        self.iterations_ = iter_count
+
         corr_charge_list = self.create_corr_charges(
-            m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, self.system.list_atoms_m2
+            m1coordsq,
+            m2coordsqlist,
+            disp_vec,
+            disp_charge_vec,
+            self.system.list_atoms_m2,
         )
         new_field = np.array(self.make_new_field(m2coordsqlist, corr_charge_list))
         new_sum = np.array([0.0, 0.0, 0.0])
+        self.new_sum = new_sum
+
         for element in self.qm_xyzq:
             new_sum += np.array(
                 self.sum_pcf_tm_nofile(new_field, element[0], element[1], element[2])
@@ -350,8 +381,7 @@ class GeneratePCF():
         return new_field
 
     def sum_pcf_tm_nofile(self, inp, x, y, z):
-
-        '''
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -365,7 +395,7 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
 
         base = [float(x), float(y), float(z)]
         sumvec = np.array([0.0, 0.0, 0.0])
@@ -380,8 +410,7 @@ class GeneratePCF():
         return sumvec
 
     def get_m2vec_fieldsonly(self, m2entry, pcf):
-
-        '''
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -395,16 +424,18 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
 
-        '''extract m2 xyzq from pcf'''
+        """extract m2 xyzq from pcf"""
         m2coordsq = []
         for i in range(0, len(m2entry)):
             m2coordsq.append(pcf[int(m2entry[i] - 1)].copy())
         return m2coordsq
 
-    def create_corr_charges(self, m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, m2_nolist):
-        '''
+    def create_corr_charges(
+        self, m1coordsq, m2coordsqlist, disp_vec, disp_charge_vec, m2_nolist
+    ):
+        """
         ------------------------------ \\
         EFFECT: \\
         Create and normalize a list of displacement charges. \\
@@ -424,7 +455,7 @@ class GeneratePCF():
         np.array \\
             Normalized vector of displacement charges. \\
         --------------- \\
-        '''
+        """
         corr_charge_list = []
         count = 0
         for i in range(0, len(m2_nolist)):
@@ -440,8 +471,7 @@ class GeneratePCF():
         return corr_charge
 
     def write_disp_charges(self, m1, m2coordsqlist, disp_vec, dispcharge):
-
-        '''
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -455,7 +485,7 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
 
         charge_list = []
         for i in range(0, len(m2coordsqlist)):
@@ -463,7 +493,7 @@ class GeneratePCF():
                 [
                     float(m2coordsqlist[i][0]),
                     float(m2coordsqlist[i][1]),
-                    float(m2coordsqlist[i][2])
+                    float(m2coordsqlist[i][2]),
                 ]
             ) - np.array([float(m1[0]), float(m1[1]), float(m1[2])])
 
@@ -504,9 +534,8 @@ class GeneratePCF():
             charge_list.append(chargeplus)
         return charge_list
 
-    def make_new_field(self, m2coordsqlist,corr_charge_list):
-
-        '''
+    def make_new_field(self, m2coordsqlist, corr_charge_list):
+        """
         ------------------------------ \\
         EFFECT: \\
         --------------- \\
@@ -520,10 +549,10 @@ class GeneratePCF():
         --------------- \\
         NONE \\
         ------------------------------ \\
-        '''
+        """
 
-        '''combine m2 and corr charges to a new list'''
-        new_field=[]
+        """combine m2 and corr charges to a new list"""
+        new_field = []
         for element in m2coordsqlist:
             for entry in element:
                 new_field.append(entry)
@@ -532,7 +561,7 @@ class GeneratePCF():
         return new_field
 
     def write_new_field_to_disk_listsonly(self, new_field):
-        '''
+        """
         ------------------------------
         EFFECT: \\
         ---------------
@@ -550,7 +579,7 @@ class GeneratePCF():
         ---------------
         None
         ------------------------------
-        '''
+        """
 
         ofile = open(self.pcf_filename, "w")
         count = 0
