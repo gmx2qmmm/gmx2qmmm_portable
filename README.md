@@ -60,9 +60,9 @@ The required input files in the package are
 
 If the parameters are not entered in the input files, the program will run the job with the default values.
 
-Input files guide please execute  `python gmx2qmmm.py -h`
+Input files guide please execute  `python gmx2qmmm.py -h`.
 
-The executed example with default parameters is  `python gmx2qmmm.py`
+The executed example with default parameters is  `python gmx2qmmm.py`.
 
 For advance information please read the [Documentation].
 
@@ -106,7 +106,7 @@ $ gmx2qmmm
 ## Support and development
 For bug reports/suggestions/complaints please raise an issue on [GitHub].
 
-Or contact us directly: [gmx2qmmm@gmail.com]
+Or contact us directly: [gmx2qmmm@gmail.com].
 
 ## Links
 - [Documentation]
