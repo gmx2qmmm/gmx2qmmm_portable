@@ -1,8 +1,17 @@
-Developer notes
-===============
+Miscellaneous items to address
+------------------------------
 
-Summary of changes in regards to the migration to v2
-----------------------------------------------------
+- [ ] Look at path handling (type, definition, consistency), in particular GMX directories and executables
+- [ ] Use pint for working with units
+- [ ] Use proper configuration handling (YAML + Pydantic)
+- [ ] Migrate to ``pyproject.toml`` only install mechanism (manage via both ``uv`` or ``conda``)
+- [ ] Use ``ruff`` for formatting
+- [ ] Add a pip-installable QM backend (e.g. PySCF) for tests and quickstart
+- [ ] Remove committed virtualenv ``env_gmx2qmmm/`` from git
+- [ ] CI triggers on ``main``, but the default branch is ``master``
+
+Summary of changes related to the migration to v2 (historic)
+------------------------------------------------------------
 
   * Switched to a `setup.cfg`/`pyproject.toml` based installation mechanism
   * Switched to a `src/` based package layout
