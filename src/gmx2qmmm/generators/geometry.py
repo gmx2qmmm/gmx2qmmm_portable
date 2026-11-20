@@ -158,9 +158,8 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
 
     #   Always Use Steepest Descent For The First Propagation
     if propagator == "STEEP" or curr_step < 2:
-        # logger.info("Propagate with steepest descent...\n") or log propagate with steepest descent for first cycle if propagator not steep
-        normalized_forces = np.array(total_force)*float(stepsize)*0.52917721/abs(float(float_force_max))
-        dispvec = normalized_forces
+        # Normalize by max force, scale so the largest component equals stepsize (Bohr), convert Bohr -> Angstrom
+        dispvec = np.array(total_force)*float(stepsize)*0.52917721/abs(float(float_force_max))
 
     elif propagator == "CONJGRAD" :
         # logger.info("Propagate with conjugate gradient...\n")
