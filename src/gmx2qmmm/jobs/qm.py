@@ -134,31 +134,28 @@ class QM():
             if int(self.system.int_step_current) > 0:
                 insert = str("." + str(int(self.system.int_step_current)))
 
-            if not os.path.isfile(str(self.str_inputfile_qm) + ".log"):
-                # logger(logfile, "Running G16 file.\n")
-                subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.str_inputfile_qm)])
-                logname = self.str_inputfile_qm.with_suffix(".log")
-                os.rename(logname, str(self.dict_input_userparameters['jobname'] + insert + ".gjf.log"))
-                os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
+            if not os.path.isfile(self.work_dir / f"{self.str_inputfile_qm}.log"):
+                subprocess.call([self.dict_input_userparameters['qmcommand'], str(self.work_dir / self.str_inputfile_qm)], cwd=self.work_dir)
+                logname = self.work_dir / self.str_inputfile_qm.with_suffix(".log")
+                os.rename(logname, str(self.work_dir / f"{self.dict_input_userparameters['jobname']}{insert}.gjf.log"))
+                os.rename(self.work_dir / "fort.7", str(self.work_dir / f"{self.dict_input_userparameters['jobname']}{insert}.fort.7"))
                 # logger.info("G16 Done.\n")
             else:
                 # logger.info(
                 #     "NOTE: Using existing G16 files, skipping calculation for this step.\n",
                 # )
                 pass
-            if not os.path.isfile(self.dict_input_userparameters['jobname'] + insert + ".fort.7"):
-                if not os.path.isfile("fort.7"):
+            if not os.path.isfile(self.work_dir / f"{self.dict_input_userparameters['jobname']}{insert}.fort.7"):
+                if not os.path.isfile(self.work_dir / "fort.7"):
                     # logger.info(
                     #     "No fort.7 file was created by the last Gaussian run! Exiting.\n",
                     # )
                     # exit(1)
                     pass
-                os.rename("fort.7", str(self.dict_input_userparameters['jobname'] + insert + ".fort.7"))
+                os.rename(self.work_dir / "fort.7", str(self.work_dir / f"{self.dict_input_userparameters['jobname']}{insert}.fort.7"))
                 # logger.info(
                 #     "WARNING: Had to rename fort.7 file but not the log file. MAKE SURE THAT THE FORT.7 FILE FITS TO THE LOG FILE!\n",
                 # )
-        elif self.dict_input_userparameters['qmcommand'] == 'orca':
-            pass
 
     def read_qm_energy(self):
 
