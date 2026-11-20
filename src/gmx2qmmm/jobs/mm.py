@@ -51,7 +51,7 @@ class MM():
         array_coordinates_all = self.system.array_xyzq_current[:,:3]
         self.float_distance_max = np.max(np.linalg.norm(array_coordinates_all[np.newaxis, :, :] - array_coordinates_all[:, np.newaxis, :], axis=-1))
         # self.list_box_vectors_large = (np.array(self.list_box_vectors_initial) + 10.0 * self.float_distance_max).tolist()
-        self.list_box_vectors_large = (np.array(self.list_box_vectors_initial)).tolist()
+        self.list_box_vectors_large = self.list_box_vectors_initial
 
         #   Initialize Gromacs Filenames
         self.mdpname = self.work_dir / (self.input_dict['jobname'] + ".mdp")
