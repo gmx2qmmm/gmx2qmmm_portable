@@ -23,8 +23,7 @@ def test_optimization(mocker):
     files_to_check = ['test.pointcharges', 'test.qmmm.top', 'test.qmmm.top.ndx'] 
     for file_name in files_to_check: 
         with open(work_dir / file_name, 'r') as a, open(ref_path / file_name, 'r') as b:
-            for line_a, line_b in zip(a,b):
-                assert line_a.rstrip() == line_b.rstrip()
+            assert a.read().splitlines() == b.read().splitlines()
 
     ref_energies_by_step = {}
     for line in open(ref_path / 'oenergy.txt').readlines()[1:]:
