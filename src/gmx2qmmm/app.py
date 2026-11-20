@@ -174,7 +174,7 @@ class App:
                     )
 
             if "gmxpath" not in self.parameters:
-                self.parameters["gmxpath"] = str(pathlib.Path(gmx_path).parent)
+                self.parameters["gmxpath"] = str(pathlib.Path(gmx_path).parent) + "/"
 
             if "gmxtop_path" not in self.parameters:
                 self.parameters["gmxtop_path"] = str(pathlib.Path(gmx_path).parent.parent / "share" / "gromacs" / "top")
