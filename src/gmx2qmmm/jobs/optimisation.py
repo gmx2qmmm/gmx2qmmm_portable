@@ -59,10 +59,6 @@ class Optimisation():
         self.work_dir = work_dir
         self.base_dir = base_dir
 
-        #   XX AJ check how to deal with nma flag later
-        self.nmaflag = 0
-
-        #define done XX AJ evaluate this later (why are we not using just the strings?)
         self.STEPLIMIT = 0
         self.FTHRESH = 1
         self.STEPSIZE = 2
@@ -84,7 +80,7 @@ class Optimisation():
 
         #   Check If Maximum Force Is Below Threshold
         float_force_max = max(np.max(self.singlepoint.total_force), np.min(self.singlepoint.total_force), key=abs)
-        if abs(float_force_max) < self.dict_input_userparameters['f_thresh']:
+        if abs(float_force_max) < float(self.dict_input_userparameters['f_thresh']):
             self.bool_opt_done = self.FTHRESH
         else:
             self.bool_opt_done = False
@@ -119,41 +115,28 @@ class Optimisation():
         #    Remove Forces On Inactive Atoms
         self.singlepoint.total_force = mask_atoms(self.singlepoint.total_force, self.system.list_atoms_active)
 
-        #   Update Forces And Energies
-        self.list_forces_all_steps.append(self.singlepoint.total_force)
-        self.list_energies_all_steps.append([self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy])
-
-        #   The following section needs to be adapted for different optimizers, for bfgs we accept increasing energies, for steep and conjugate we dont but we then also dont need to check for the max force
-        #   XX AJ the following code works for steepest descent. I will change it later for different optimizers
-        #   Check If The Total Energy Improved
-
         #   Evaluate current step
-        if self.dict_input_userparameters['propagator'] == 'STEEP':
-            self.evaluate_step_steep()
-        elif self.dict_input_userparameters['propagator'] == 'conjgrad':
-            self.evaluate_step_conjgrad()
-        elif self.dict_input_userparameters['propagator'] == 'bfgs':
-            self.evaluate_step_bfgs()
+        list_energies_new = [self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy]
+        self.evaluate_step_steep(list_energies_new)
 
-        if self.dict_input_userparameters['jobname'] == "SCAN" :
-            # write_output(qmmmInputs.energies, qmmmInputs.forces, qmmmInputs.qmmmparams.curr_step, energy_file="oenergy_%s.txt"%jobname, forces_file="oforces_%s.txt"%jobname)
-            pass
-        else:
-            self.singlepoint.class_output.oenergy_append(self.system.int_step_current, self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy)
-            self.singlepoint.class_output.oforces_append(self.system.int_step_current, self.singlepoint.total_force)
-            pass
-
-
-    def evaluate_step_steep(self):
-        if self.list_energies_all_steps[-1][-1] > self.list_energies_all_steps[-2][-1]:
+    def evaluate_step_steep(self, list_energies_new):
+        if list_energies_new[-1] > self.list_energies_all_steps[-1][-1]:
             #   Step Gets Rejected, Decrease Stepsize
             self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 0.2
 
             #   Remove Files
             self.remove_previous_files()
 
+            #   Remove Rejected xyzq And Restore Last Accepted Geometry
+            self.list_xyzq_all_steps.pop()
+            self.system.array_xyzq_current = self.list_xyzq_all_steps[-1]
+            self.system.update_linkatom_coordinates()
+
             #   Rejected Current Step And Use Previous Parameters
             self.system.int_step_current -= 1
+
+            if self.dict_input_userparameters['stepsize'] < 1e-6: #0.000001 a.u.
+                self.bool_opt_done = self.STEPSIZE
 
         else:
             self.dict_input_userparameters['stepsize'] = float(self.dict_input_userparameters['stepsize']) * 1.2
@@ -161,27 +144,21 @@ class Optimisation():
             #   Remove xyzq From Two Steps Ago
             self.list_xyzq_all_steps.pop(0)
 
+            #   Update Forces And Energies
+            self.list_forces_all_steps.append(self.singlepoint.total_force)
+            self.list_energies_all_steps.append(list_energies_new)
+
             float_force_max = max(np.max(self.singlepoint.total_force), np.min(self.singlepoint.total_force), key=abs)
             self.list_forces_max_all_steps.append(float_force_max)
 
+            #   Write Output 
+            self.singlepoint.class_output.oenergy_append(self.system.int_step_current, self.singlepoint.class_qm_job.qmenergy, self.singlepoint.class_mm_job.mmenergy, self.singlepoint.linkcorrenergy, self.singlepoint.total_energy)
+            self.singlepoint.class_output.oforces_append(self.system.int_step_current, self.singlepoint.total_force)
+
             if abs(float_force_max) < float(self.dict_input_userparameters['f_thresh']):
-                # logger.info("Max force (%f) below threshold (%f) Finishing.\n"%(maxforce,f_thresh))
                 self.bool_opt_done = self.FTHRESH
 
-            elif float(self.dict_input_userparameters['stepsize']) < 1e-6: #0.000001 a.u.
-                self.bool_opt_done = self.STEPSIZE
-                # logger.info(
-                #     "Step became lower than 0.000001 a.u., optimization is considered done for now. "
-                #     "This is the best we can do unless reaching unacceptable numerical noise levels."
-                # )
-
-    def evaluate_step_bfgs(self):
-        #   Check If Optimization Is Finished
-        if abs(self.float_force_max) < float(self.dict_input_userparameters['f_thresh']):
-            self.bool_opt_done = self.FTHRESH
-        elif float(self.dict_input_userparameters['stepsize']) < 1e-6: #0.000001 a.u.
-            self.bool_opt_done = self.STEPSIZE
-
+            
 
     def update_input_filenames(self):
         self.singlepoint.class_mm_job.groname = self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".g96")
@@ -198,7 +175,6 @@ class Optimisation():
             pass # XX AJ add scan later
             # dispvec = propagate_dispvec(propagator, xyzq, new_xyzq, total_force, last_forces, stepsize, self.system.int_step_current, True, qmmmInputs.scan_atoms)
         else :
-            print(self.list_forces_max_all_steps)
             dispvec = propagate_dispvec(self.dict_input_userparameters['propagator'], self.list_xyzq_all_steps, self.list_forces_all_steps, self.list_forces_max_all_steps[-1], self.dict_input_userparameters['stepsize'], self.system.int_step_current)
         #   Apply Displacement
         list_xyzq_new = self.list_xyzq_all_steps[-1] + np.append(dispvec, np.zeros((len(dispvec),1)), axis=1)
@@ -209,8 +185,8 @@ class Optimisation():
         os.remove(self.singlepoint.class_mm_job.tprname)
         os.remove(self.singlepoint.class_mm_job.gmxlogname)
         os.remove(self.singlepoint.class_mm_job.edrname)
-        os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr.xvg"))
-        os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
-        os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))
-        os.remove(str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf"))
+        os.remove(self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".edr.xvg"))
+        os.remove(self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf.log"))
+        os.remove(self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".fort.7"))
+        os.remove(self.work_dir / str(self.dict_input_userparameters['jobname'] + "." + str(self.system.int_step_current) + ".gjf"))
         os.remove(self.PCF.pcf_filename)
