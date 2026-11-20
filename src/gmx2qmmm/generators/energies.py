@@ -113,8 +113,6 @@ class GeneratorQMMM():
         ------------------------------ \\
         '''
 
-        # XX AJ check what this connection object is
-        # XX AJ: I had to convert the path object to string to get the sqlite object, is there a better way to do that?
         with resources.files("gmx2qmmm.correction_database").joinpath("database.sqlite").open("rb") as f:
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(f.read())
