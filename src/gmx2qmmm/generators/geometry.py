@@ -140,9 +140,9 @@ def propagate_dispvec(propagator, xyzq, all_forces, float_force_max, stepsize, c
     #     elif scan_type == 4 :
     #         clean_force = scan_adj_force(clean_force, xyzq, scan_atoms, 'B')
 
-    max_abs_value_index  = np.argmax(np.abs((np.array(total_force)).flatten()))
-    maxatom = max_abs_value_index // 3
-    maxcoord = max_abs_value_index % 3
+    #max_abs_value_index  = np.argmax(np.abs((np.array(total_force)).flatten()))
+    #maxatom = max_abs_value_index // 3
+    #maxcoord = max_abs_value_index % 3
 
     # logger.info(
     #     str(
